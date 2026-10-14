@@ -575,7 +575,7 @@ function renderAtmotubeDevices(devices) {
             : online ? "GPS canlı" : "son konum";
         // Bulut API'si hata verdiyse (anahtar, kota, bağlantı) "veri yok" denmez; hata ayrı gösterilir
         const info = !r && d.error ? "Atmotube bulutuna ulaşılamadı"
-            : !r ? "son 120 günde veri yok"
+            : !r ? "kayıt yok"
             : recentish ? `${timeAgo(r.recorded_at)} · ${gpsTxt}`
             : `son veri ${timeAgo(r.recorded_at)} · ${d.error ? "bulut yanıt vermiyor" : "telefonla eşitlenmedi"}`;
         const tip = r
