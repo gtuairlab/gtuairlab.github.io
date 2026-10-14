@@ -257,7 +257,7 @@ def atmotube_history():
     try:
         items = atmotube_cloud.fetch_device_history(mac, start, end)
     except Exception as e:
-        abort(502, description=f"Atmotube API hatası: {e}")
+        abort(502, description=f"Atmotube API hatası: {atmotube_cloud._safe_error(e)}")
     return jsonify({"device": device, "count": len(items), "data": items})
 
 

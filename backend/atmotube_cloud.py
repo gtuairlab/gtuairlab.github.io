@@ -104,6 +104,18 @@ def _fetch_device_latest(mac):
     }
 
 
+def _safe_error(e):
+    """Hata mesajını anahtarsız ve kısa döndürür (ör. "HTTP 401", "Timeout")."""
+    import re
+    resp = getattr(e, "response", None)
+    if resp is not None and getattr(resp, "status_code", None):
+        return f"HTTP {resp.status_code}"
+    msg = re.sub(r"api_key=[^&\s]*", "api_key=…", str(e))
+    if ATMOTUBE_API_KEY:
+        msg = msg.replace(ATMOTUBE_API_KEY, "…")
+    return f"{type(e).__name__}: {msg}"[:200]
+
+
 def get_live_devices(force=False):
     """Tüm cihazların son durumunu döner. 60 sn önbellekli."""
     if not ATMOTUBE_API_KEY:
@@ -119,7 +131,8 @@ def get_live_devices(force=False):
         try:
             entry["reading"] = _fetch_device_latest(mac)
         except Exception as e:
-            entry["error"] = str(e)
+            # Hata metni herkese açık API'ye gider: istek adresindeki anahtar gizlenir
+            entry["error"] = _safe_error(e)
         result.append(entry)
 
     _cache["ts"] = now

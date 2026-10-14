@@ -573,11 +573,14 @@ function renderAtmotubeDevices(devices) {
         const gpsTxt = far ? "kampüs dışında"
             : !hasGps ? "GPS yok"
             : online ? "GPS canlı" : "son konum";
-        const info = !r ? "son 120 günde veri yok"
+        // Bulut API'si hata verdiyse (anahtar, kota, bağlantı) "veri yok" denmez; hata ayrı gösterilir
+        const info = !r && d.error ? "Atmotube bulutuna ulaşılamadı"
+            : !r ? "son 120 günde veri yok"
             : recentish ? `${timeAgo(r.recorded_at)} · ${gpsTxt}`
             : `son veri ${timeAgo(r.recorded_at)} · telefonla eşitlenmedi`;
         const tip = r
             ? `Son veri (TR): ${trClock(r.recorded_at)}${r.pm2_5 != null ? ` · PM₂.₅ ${f1tr(r.pm2_5)} µg/m³` : ""}${hasGps ? " — haritada göster" : ""}`
+            : d.error ? `Atmotube bulut API'si hata verdi: ${String(d.error).replace(/api_key=[^&\s]*/g, "api_key=…").replace(/"/g, "'").slice(0, 160)}`
             : "Cihaz telefondaki Atmotube uygulamasıyla eşitlenince veri gelir";
         return `
           <div class="atp-row" ${hasGps ? `data-lat="${r.lat}" data-lon="${r.lon}" style="cursor:pointer"` : ""} title="${tip}">
