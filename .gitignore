@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+.venv/
+
+# Veritabanı (Railway PostgreSQL kullanacak, SQLite upload etme)
+*.db
+*.sqlite3
+
+# Büyük dosyalar
+atmotube_deneme_harita/
+*.xlsx
+
+# Geçici
+*.csv
+# İstisna: yöntem doğrulamasında kullanılan PurpleAir sensör verisi (herkese açık ölçüm; kişisel veri içermez)
+!docs/veri/purpleair_*.csv
+*.log
+.DS_Store
+Thumbs.db
+
+# KVKK: kişisel veri içeren belgeler (başvuru/kabul formları, fotoğraflar) herkese açık repoya eklenmez
+*.pdf
+*.doc
+*.docx
+photos_b64.json
+unpacked_*/
+bap_text.txt
+docx_text.txt
+extracted.txt
+
+# Ajan taslakları: onaylanmadan repoya girmez (KVKK); onaylanan rapor ana ajan tarafından raporlar/ altına taşınır
+ajanlar/*/taslak/

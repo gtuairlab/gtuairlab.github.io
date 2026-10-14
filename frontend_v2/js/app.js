@@ -1,0 +1,1375 @@
+// GTÜ AirLab (kampüs hava kalitesi platformu) v2 — ana uygulama
+// Bağımlılıklar: Leaflet, Leaflet.heat, Chart.js, colorscale.js, api.js
+
+const GTU_CENTER = [40.806155, 29.360985];
+const GTU_ZOOM = 17;
+const CAMPUS_BOUNDS = [[40.797, 29.348], [40.820, 29.378]];
+
+// Kişi grupları: oturum adı önekine göre renk + etiket.
+// Gizlilik: uygulama herkese açık; ölçüm yapan kişilerin adları gösterilmez, yalnızca ekip etiketi.
+// (Harf sırası kişilerin adlarıyla eşleşmesin diye karışık.)
+const PEOPLE = [
+    { key: "Ayse",  name: "Saha ekibi B", color: "#34d27b", initial: "B" },
+    { key: "Ilker", name: "Saha ekibi A", color: "#6c8cff", initial: "A" },
+    { key: "Serra", name: "Saha ekibi C", color: "#f5b840", initial: "C" },
+    // Canlı Atmotube cihazları (saha ölçümleri panelinde cihaz-gün bazlı)
+    { key: "ATP-1", name: "ATP-1", color: "#e06c9f", initial: "1" },
+    { key: "ATP-2", name: "ATP-2", color: "#5ec6c2", initial: "2" },
+    { key: "ATP-3", name: "ATP-3", color: "#c98bff", initial: "3" },
+    { key: "ATP-4", name: "ATP-4", color: "#ff9f45", initial: "4" },
+    { key: "ATP-5", name: "ATP-5", color: "#7ed957", initial: "5" },
+];
+
+// Ekip görünümü (KVKK): gerçek adlar kaynak kodda düz metin olarak YOK; ekip koduyla şifreli (PBKDF2-SHA256 → AES-GCM).
+// Kodu giren cihazda çözülen adlar yalnızca o tarayıcıda saklanır. Yeni kod/ad için: scripts/ekip_kasasi.js
+const TEAM_KEY = "gtu.team.names";
+const TEAM_VAULT = {"salt":"F1PB00CrzufPr2P1Aa51Pg==","iv":"rEhgWg/laLWDQJC3","ct":"NmFTMIiyOZIFxiYEGm4DEhHZzZrgd0E5J0GdOhBsSOHs22++NpGB2GJ8W8PizO3hGHm3cPqsJIwmwiEMPYiFYP31WjJHbG/SJaywEYHGJvPdjOqI"};
+const TEAM_NAMES = (() => { try { return JSON.parse(localStorage.getItem(TEAM_KEY) || "null"); } catch (_) { return null; } })();
+const TEAM_MODE = !!TEAM_NAMES;
+if (TEAM_MODE) PEOPLE.forEach(p => { const n = TEAM_NAMES[p.key]; if (n) { p.name = n[0]; p.initial = n[1]; } });
+try { localStorage.removeItem("gtu.team"); } catch (_) {}   // eski sürümün anahtarı
+
+async function openTeamVault(code) {
+    const b = s => Uint8Array.from(atob(s), ch => ch.charCodeAt(0));
+    const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(code), "PBKDF2", false, ["deriveKey"]);
+    const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: b(TEAM_VAULT.salt), iterations: 210000, hash: "SHA-256" },
+        base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+    const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b(TEAM_VAULT.iv) }, key, b(TEAM_VAULT.ct));
+    return JSON.parse(new TextDecoder().decode(plain));      // kod yanlışsa AES-GCM doğrulaması hata verir
+}
+
+function initTeamMode() {
+    const btn = document.getElementById("team-btn");
+    if (!btn) return;
+    btn.innerHTML = ico("lock") + (TEAM_MODE ? " Ekip görünümü açık · kapat" : " Ekip görünümü");
+    btn.addEventListener("click", async () => {
+        if (TEAM_MODE) {
+            try { localStorage.removeItem(TEAM_KEY); } catch (_) {}
+            location.reload();
+            return;
+        }
+        const code = prompt("Ekip kodu (ölçüm yapanların adlarını gösterir):");
+        if (!code) return;
+        let names;
+        try { names = await openTeamVault(code.trim()); } catch (_) { alert("Kod hatalı."); return; }
+        try { localStorage.setItem(TEAM_KEY, JSON.stringify(names)); } catch (_) {}
+        location.reload();
+    });
+}
+
+let map, heatLayer, dotsLayer, trailLayer, paMarker, campusOverlay;
+let allSessions = [];
+let cmpChart = null;
+
+// PurpleAir senkronizasyon durumu
+let paHistory = [];     // animasyon sırasındaki geçmiş PA verisi
+let paLive = true;
+
+// ─────────────────────────────────────────────────────────────────
+// Boot
+// ─────────────────────────────────────────────────────────────────
+
+document.addEventListener("DOMContentLoaded", async () => {
+    initMap();
+    initSidebar();
+    initTeamMode();
+    initPlayerUI();
+    initChartDrawer();
+
+    document.getElementById("legend").innerHTML = buildLegend() + (CO2_AKTIF ? buildCO2Legend() : "");
+    if (!CO2_AKTIF) {   // CO₂ kapalı: paneli ve harita seçeneğini gizle
+        document.querySelector('section.panel[data-key="co2"]')?.setAttribute("hidden", "");
+        document.getElementById("tg-co2")?.closest("label")?.setAttribute("hidden", "");
+    }
+
+    // İlk yükleme: açılış ekranı en fazla 6 sn bekler. Ücretsiz sunucu uykudaysa uygulama yine açılır
+    // (Özet, Tuzla verisini İBB'den doğrudan da alabilir); sunucu uyanınca veriler yüklenir ve Özet tazelenir.
+    const woke = wakeBackend();
+    const early = await Promise.race([woke.then(() => true), new Promise(r => setTimeout(() => r(false), 6000))]);
+    document.getElementById("boot").classList.add("gone");
+    if (!early) { await woke; if (typeof Ozet !== "undefined") Ozet.load(true); }
+
+    loadPurpleAir();
+    loadSessions();
+    loadHeatmap();
+    startCountdown();
+
+    // Atmotube canlı cihazlar — 2 dk'da bir yenile
+    loadAtmotubeLive();
+    setInterval(loadAtmotubeLive, 120000);
+
+    // CO₂ sensörleri (Tuya, sabit) — 2 dk'da bir yenile
+    if (CO2_AKTIF) { loadCO2Live(); setInterval(loadCO2Live, 120000); }
+
+    // CSB ulusal istasyon (Tuzla) — 5 dk'da bir
+    loadCSB();
+    setInterval(loadCSB, 300000);
+
+    // Kampüs (PurpleAir saatlik ort.) vs Bölge (CSB) karşılaştırması
+    loadComparison();
+    setInterval(loadComparison, 300000);
+});
+
+async function wakeBackend() {
+    const el = document.getElementById("boot-status");
+    for (let i = 0; i < 12; i++) {
+        try { await API.sessions(); return; }
+        catch (_) {
+            el.textContent = `Sunucu uyandırılıyor… (${(i+1)*10} sn)`;
+            await new Promise(r => setTimeout(r, 10000));
+        }
+    }
+    el.textContent = "Sunucuya ulaşılamadı — sayfayı yenileyin.";
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Harita
+// ─────────────────────────────────────────────────────────────────
+
+let baseLayers = {};
+
+function initMap() {
+    // zoomSnap 0.25: kampüsün tamamı panellerin arasına tam sığsın (Campus.fitCampus)
+    map = L.map("map", { center: GTU_CENTER, zoom: GTU_ZOOM, zoomControl: false, preferCanvas: true, zoomSnap: 0.25 });
+    L.control.zoom({ position: "bottomright", zoomInTitle: "Yakınlaştır", zoomOutTitle: "Uzaklaştır" }).addTo(map);
+
+    // Koyu taban (CARTO) — renkli ölçüm noktaları üzerinde öne çıkar
+    const dark = L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+        { attribution: "© CARTO © OpenStreetMap", maxZoom: 20, subdomains: "abcd" });
+
+    const sat = L.layerGroup([
+        L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+            { attribution: "© Esri, Maxar", maxZoom: 20 }),
+        L.tileLayer("https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+            { maxZoom: 20 }),
+    ]);
+
+    const street = L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+        { attribution: "© CARTO © OpenStreetMap", maxZoom: 20, subdomains: "abcd" });
+
+    baseLayers = { dark, sat, street };
+    sat.addTo(map);   // Açılışta uydu haritası
+
+    // Segment kontrol bağlantısı
+    document.querySelectorAll(".seg-btn").forEach(btn =>
+        btn.addEventListener("click", () => {
+            document.querySelectorAll(".seg-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            Object.values(baseLayers).forEach(l => map.removeLayer(l));
+            baseLayers[btn.dataset.base].addTo(map);
+        }));
+
+    campusOverlay = L.imageOverlay("images/campus_map_22TR.jpg", CAMPUS_BOUNDS,
+        { opacity: 0.55, interactive: false });
+
+    // Kampüs bileşenleri (binalar, yeşil alan, yol, otopark…) — ölçümlerin altında
+    Campus.init(map).catch(e => console.warn("[campus]", e));
+
+    dotsLayer  = L.layerGroup().addTo(map);
+    trailLayer = L.layerGroup().addTo(map);
+    // Isı haritası renkleri HKİ sınıflarına hizalı (yoğunluk = PM₂.₅ / 75): 12 → Orta, 35,4 → Hassas, 55,4 → Sağlıksız
+    heatLayer  = L.heatLayer([], { radius: 26, blur: 16, maxZoom: 17, gradient: {
+        0.0: "#00cc00", 0.16: "#ffcc00", 0.47: "#ff8800", 0.74: "#ff0000", 1.0: "#ff0000",
+    }});
+}
+
+// ─────────────────────────────────────────────────────────────────
+// PurpleAir canlı panel
+// ─────────────────────────────────────────────────────────────────
+
+async function loadPurpleAir() {
+    try {
+        const res = await API.purpleairLatest();
+        updatePAPanel(res.data);
+        updatePAMarker(res.data);
+        markPAFreshness(res.data);
+    } catch (e) {
+        document.getElementById("pa-cat").textContent = "Bağlantı hatası";
+    }
+}
+
+// Sensör 2 saatten uzun süredir veri göndermiyorsa "CANLI" rozeti yanıltmasın
+const PA_STALE_MIN = 120;
+
+function markPAFreshness(d) {
+    if (!paLive || !d || !d.recorded_at) return;   // animasyon modunda dokunma
+    const b = document.getElementById("pa-badge");
+    const ageMin = (Date.now() - new Date(d.recorded_at).getTime()) / 60000;
+    if (ageMin > PA_STALE_MIN) {
+        b.innerHTML = "Çevrimdışı";
+        b.style.background = "rgba(244,97,94,0.12)";
+        b.style.borderColor = "rgba(244,97,94,0.4)";
+        b.style.color = "#f4615e";
+        b.title = "Sensör veri göndermiyor — son veri (TR): " + trClock(d.recorded_at);
+        explainPAOffline(d);
+    } else {
+        setPABadge("live");
+        b.title = "";
+    }
+}
+
+// Çevrimdışı nedeni: sunucunun PurpleAir'e son bağlanma denemesine bak.
+// Deneme başarılı ama veri eskiyse sorun sensörde (elektrik / Wi-Fi);
+// deneme başarısızsa sorun sunucu ile PurpleAir arasında (API anahtarı, kota).
+async function explainPAOffline(d) {
+    const cat = document.getElementById("pa-cat");
+    const last = `son veri ${timeAgo(d.recorded_at)}`;
+    let msg = `Sensör veri göndermiyor (${last}) — elektrik/Wi-Fi bağlantısını kontrol edin`;
+    try {
+        const st = await API.purpleairStatus();
+        if (st && st.success === false) {
+            msg = `Sunucu PurpleAir'den veri alamıyor (${last})` + (st.error ? ` — ${st.error}` : "");
+        }
+    } catch (_) {}
+    cat.textContent = msg;
+    cat.style.color = "#f4615e";
+    document.getElementById("pa-pm25").style.opacity = "0.55";   // eski değer canlı gibi görünmesin
+    cat.style.fontSize = "12px";
+}
+
+function updatePAPanel(d) {
+    const set = (id, v) => document.getElementById(id).textContent = v;
+    if (!d) { set("pa-pm25", "--"); set("pa-cat", "Veri yok"); return; }
+
+    // Büyük değer US EPA düzeltmeli; ham sensör değeri ikincil satırda (api.js → paCorrect)
+    set("pa-pm25", d.pm2_5 != null ? f1tr(d.pm2_5) : "--");
+    document.getElementById("pa-pm25").style.color = pm25Color(d.pm2_5);
+
+    const cat = document.getElementById("pa-cat");
+    cat.textContent = d.qa_ab === false ? "Kanal A/B uyuşmuyor: ölçüm geçersiz sayıldı" : pm25Label(d.pm2_5);
+    cat.style.color = d.qa_ab === false ? "#f5b840" : pm25Color(d.pm2_5);
+    cat.style.fontSize = "";
+    document.getElementById("pa-pm25").style.opacity = "";
+    set("pa-raw", d.pm2_5_raw != null ? `US EPA düzeltmeli · ham sensör değeri ${f1tr(d.pm2_5_raw)} µg/m³` : "");
+
+    set("pa-pm10", d.pm10_0 != null ? f1tr(d.pm10_0) : "--");
+    set("pa-temp", d.temperature_c != null ? f1tr(d.temperature_c) + "°" : "--");
+    set("pa-hum",  d.humidity_pct != null ? d.humidity_pct.toFixed(0) + "%" : "--");
+    set("pa-time", d.recorded_at ? new Date(d.recorded_at).toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" }) : "—");
+}
+
+function updatePAMarker(d) {
+    if (!d) return;
+    const latlng = [d.lat || GTU_CENTER[0], d.lon || GTU_CENTER[1]];
+    // Canlı modda sensör uzun süredir veri göndermiyorsa etiket eski değeri güncelmiş gibi göstermesin
+    const stale = paLive && d.recorded_at && (Date.now() - new Date(d.recorded_at).getTime()) / 60000 > PA_STALE_MIN;
+    const col = stale ? "#69758c" : pm25Color(d.pm2_5);
+    const when = stale ? `<br><small style="color:#f3d48f">Çevrimdışı · son veri ${new Date(d.recorded_at).toLocaleDateString("tr-TR",
+        { day: "numeric", month: "long", timeZone: "Europe/Istanbul" })}</small>` : "";
+    // Kalıcı etiket tek satır (binaları örtmesin); ayrıntı dokununca açılan kutuda
+    const label = `PurpleAir <b style="color:${col}">${f1tr(d.pm2_5) ?? "--"}</b> µg/m³`;
+    const html = `<b>PurpleAir PA-II</b> · sabit hava kalitesi sensörü<br>SUMER Lab — GTÜ çatısı<br>PM₂.₅: <b style="color:${col}">${f1tr(d.pm2_5) ?? "--"}</b> µg/m³ · ${pm25Label(d.pm2_5)}
+        <br><small style="color:#9aa4b8">US EPA düzeltmeli${d.pm2_5_raw != null ? ` · ham ${f1tr(d.pm2_5_raw)} µg/m³` : ""}</small>${when}`;
+    const icon = L.divIcon({
+        className: "",
+        html: `<div class="pulse-marker${stale ? " stale" : ""}" style="--marker-color:${col}"></div>`,
+        iconSize: [20, 20], iconAnchor: [10, 10],
+    });
+    if (!paMarker) {
+        paMarker = L.marker(latlng, { icon, zIndexOffset: 500 }).addTo(map)
+            .bindTooltip(label, { permanent: true, direction: "top", offset: [0, -13], className: "pa-label" })
+            .bindPopup(html, { offset: [0, -8] });
+    } else {
+        paMarker.setIcon(icon);
+        paMarker.setTooltipContent(label);
+        paMarker.setPopupContent(html);
+    }
+}
+
+function setPABadge(mode, dateLabel) {
+    const b = document.getElementById("pa-badge");
+    if (mode === "live") {
+        b.innerHTML = `<span class="live-dot"></span>CANLI`;
+        b.style.cssText = "";
+    } else {
+        b.innerHTML = `${ico("clock")} ${dateLabel || "Geçmiş"}`;
+        b.style.background = "rgba(245,184,64,0.12)";
+        b.style.borderColor = "rgba(245,184,64,0.4)";
+        b.style.color = "#f5b840";
+    }
+}
+
+function startCountdown() {
+    let s = 120;
+    setInterval(() => {
+        if (!paLive) return;
+        s--;
+        if (s <= 0) { s = 120; loadPurpleAir(); }
+        document.getElementById("pa-countdown").textContent = `↻ ${s}s`;
+    }, 1000);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Kampüs (PurpleAir saatlik ort.) vs Bölge (CSB Tuzla) karşılaştırması
+// ─────────────────────────────────────────────────────────────────
+
+// Tuzla değerinin saatine denk gelen PurpleAir saatlik ortalaması (Sağlık sekmesindeki karşılaştırmayla aynı eşleştirme).
+// Tuzla değeri İBB yayın gecikmesi yüzünden 1–3 saat geride olabilir; kampüsün son saatiyle karşılaştırmak farklı saatleri karşılaştırır.
+function paSameHour(rows, tz) {
+    const t = tz && tz.recorded_at ? trTime(tz.recorded_at) : null;
+    if (!t) return null;
+    const h = Math.floor(t.getTime() / 3600e3);
+    const r = (rows || []).find(x => x.pm2_5 != null && Math.floor(new Date(x.recorded_at).getTime() / 3600e3) === h);
+    return r ? { v: +r.pm2_5, hour: t.toLocaleTimeString("tr-TR", { timeZone: "Europe/Istanbul", hour: "2-digit", minute: "2-digit" }) } : null;
+}
+
+async function loadComparison() {
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set("cmp-note", "PM₂.₅ µg/m³ karşılaştırması");
+    try {
+        // PurpleAir saatlik ortalamalar (son 6 saat: Tuzla'nın saatini de kapsasın)
+        const now = new Date();
+        const start = new Date(now.getTime() - 6 * 3600 * 1000).toISOString();
+        const hist = await API.purpleairHistory(start, now.toISOString(), "hourly");
+        const paRows = (hist.data || []).filter(r => r.pm2_5 != null);
+        let paAvg = paRows.length ? paRows[paRows.length - 1].pm2_5 : null;
+
+        // Saatlik pencere boşsa son kayda bak: tazeyse onu kullan, eskiyse sensör çevrimdışı
+        let paStaleAt = null;
+        if (paAvg == null) {
+            try {
+                const latest = await API.purpleairLatest();
+                const ld = latest.data;
+                if (ld && ld.pm2_5 != null && ld.recorded_at) {
+                    const ageMin = (Date.now() - new Date(ld.recorded_at).getTime()) / 60000;
+                    if (ageMin <= PA_STALE_MIN) paAvg = ld.pm2_5;
+                    else paStaleAt = ld.recorded_at;
+                }
+            } catch (_) {}
+        }
+
+        // CSB bölge değeri (eskiyse karşılaştırmaya katma)
+        const tz = await getTuzla();
+        const csb = tz && !tz.stale ? tz.pm2_5 : null;
+        // Aynı saat varsa onu karşılaştır; yoksa kampüsün son saati kullanılır ve notta belirtilir
+        if (csb != null && paAvg != null) {
+            const same = paSameHour(paRows, tz);
+            if (same) { paAvg = same.v; set("cmp-note", `PM₂.₅ µg/m³ · aynı saat (${same.hour}) karşılaştırması`); }
+            else set("cmp-note", "PM₂.₅ µg/m³ · kampüs son saat, Tuzla son yayımlanan saat (saatler farklı)");
+        }
+
+        const paEl = document.getElementById("cmp-pa");
+        const csbEl = document.getElementById("cmp-csb");
+        paEl.textContent  = paAvg != null ? f1tr(paAvg) : "--";
+        paEl.style.color  = pm25Color(paAvg);
+        csbEl.textContent = csb != null ? f1tr(csb) : "--";
+        csbEl.style.color = pm25Color(csb);
+
+        const verdict = document.getElementById("cmp-verdict");
+        if (paStaleAt) {
+            // Sensör çevrimdışı: eldeki ölçümlerle aynı saatlerdeki geçmiş karşılaştırmayı göster
+            let hs = null;
+            try { const k = await Kiyas.data(); hs = Kiyas.summary(k.pairs); } catch (_) {}
+            if (hs) {
+                const v = Kiyas.verdict(hs);
+                const dl = d => new Date(d + "T12:00:00").toLocaleDateString("tr-TR", { day: "numeric", month: "short" });
+                paEl.textContent = f1tr(hs.c); paEl.style.color = pm25Color(hs.c);
+                csbEl.textContent = f1tr(hs.r); csbEl.style.color = pm25Color(hs.r);
+                verdict.innerHTML = `${v.icon} ${v.txt} <span style="font-weight:500;opacity:.85">· geçmiş ölçümler</span>`;
+                verdict.style.cssText = v.cls === "ok" ? "background:rgba(52,210,123,0.13);color:#34d27b;border:1px solid rgba(52,210,123,0.35)"
+                    : v.cls === "bad" ? "background:rgba(244,97,94,0.13);color:#f4615e;border:1px solid rgba(244,97,94,0.35)"
+                    : "background:rgba(245,184,64,0.13);color:#f5b840;border:1px solid rgba(245,184,64,0.35)";
+                set("cmp-note", `Sabit hava kalitesi sensörü çevrimdışı · ${dl(hs.first)} – ${dl(hs.last)} arası ${hs.n} ortak saatin PM₂.₅ ortalaması`);
+                return;
+            }
+            verdict.innerHTML = `${ico("plug")} PurpleAir çevrimdışı — son veri: ${trClock(paStaleAt)}`;
+            verdict.style.cssText = "background:rgba(244,97,94,0.10);color:#f4615e;border:1px solid rgba(244,97,94,0.3)";
+            return;
+        }
+        if (paAvg != null && tz && tz.stale) {
+            verdict.innerHTML = `${ico("clock")} Tuzla verisi güncel değil (${timeAgo(trTime(tz.recorded_at))}) — karşılaştırma bekliyor`;
+            verdict.style.cssText = "background:rgba(245,184,64,0.10);color:#f5b840;border:1px solid rgba(245,184,64,0.3)";
+            return;
+        }
+        if (paAvg == null || csb == null) {
+            verdict.textContent = "Veri bekleniyor…";
+            verdict.style.cssText = "border:1px solid var(--stroke-2);color:var(--text-2)";
+            return;
+        }
+        const diff = paAvg - csb;
+        const abs = f1tr(Math.abs(diff));
+        if (diff < -0.5) {
+            verdict.innerHTML = `${ico("trending-down")} Kampüs bölgeden <b>${abs} µg/m³ daha temiz</b>`;
+            verdict.style.cssText = "background:rgba(52,210,123,0.13);color:#34d27b;border:1px solid rgba(52,210,123,0.35)";
+        } else if (diff > 0.5) {
+            verdict.innerHTML = `${ico("trending-up")} Kampüs bölgeden <b>${abs} µg/m³ daha kirli</b>`;
+            verdict.style.cssText = "background:rgba(244,97,94,0.13);color:#f4615e;border:1px solid rgba(244,97,94,0.35)";
+        } else {
+            verdict.innerHTML = `${ico("equal")} Kampüs ve bölge <b>benzer</b> (~${abs} fark)`;
+            verdict.style.cssText = "background:rgba(245,184,64,0.13);color:#f5b840;border:1px solid rgba(245,184,64,0.35)";
+        }
+    } catch (e) {
+        const v = document.getElementById("cmp-verdict");
+        if (v) { v.textContent = "Karşılaştırma alınamadı"; }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// CSB ulusal istasyon (Tuzla)
+// ─────────────────────────────────────────────────────────────────
+
+// Tuzla değeri sunucudan gelir (resmî ÇŞB arşivi → İBB canlı → eski arşiv).
+// Sunucu eski veri verirse kullanıcının tarayıcısından İBB'ye doğrudan sorulur:
+// ÇŞB/İBB yurt dışı sunucuları engelleyebiliyor, kullanıcı ise Türkiye'de.
+const TUZLA_STALE_MIN = 180;
+const IBB_URL = "https://havakalitesi.ibb.gov.tr/Pages/GetAirQualityStations?type=0";
+const TUZLA_SOURCE = { csb: "ÇŞB resmî", live: "İBB canlı", "csb-stale": "ÇŞB arşivi", ibb: "İBB canlı (doğrudan)" };
+let _tuzla = { at: 0, p: null };
+
+// Saat dilimi yazmayan zamanlar Türkiye saatidir
+function trTime(s) {
+    if (!s) return null;
+    const t = /Z$|[+-]\d\d:?\d\d$|GMT/.test(s) ? new Date(s) : new Date(s.replace(" ", "T") + "+03:00");
+    return isNaN(t) ? null : t;
+}
+
+async function ibbDirect() {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 8000);
+    try {
+        const r = await fetch(IBB_URL, { signal: ctl.signal });
+        const objs = (await r.json()).objects || [];
+        let best = null, bestKm = 1e9;
+        for (const o of objs) {
+            const m = /POINT \(([\d.]+) ([\d.]+)\)/.exec(o.Location || "");
+            const last = o.LastMeasurement || {};
+            if (!m || last.PM25 == null) continue;
+            const lat = +m[2], lon = +m[1];
+            const km = Math.hypot((lat - GTU_CENTER[0]) * 111.2, (lon - GTU_CENTER[1]) * 84.2);
+            // Yalnızca kampüse yakın istasyon (Tuzla); Tuzla veri vermezse uzak istasyona geçilmez
+            if (km <= 15 && km < bestKm) { bestKm = km; best = { o, lat, lon, last }; }
+        }
+        if (!best) return null;
+        return { station_name: best.o.Name, pm2_5: best.last.PM25, lat: best.lat, lon: best.lon,
+                 distance_km: Math.round(bestKm * 10) / 10, recorded_at: best.last.DataDate, source: "ibb" };
+    } catch (_) { return null; }       // CORS / ağ engeli: sessizce vazgeç
+    finally { clearTimeout(timer); }
+}
+
+function getTuzla() {
+    if (_tuzla.p && Date.now() - _tuzla.at < 240000) return _tuzla.p;
+    _tuzla.at = Date.now();
+    _tuzla.p = (async () => {
+        let d = null;
+        try { d = (await API.csbLatest()).data; } catch (_) {}
+        const age = t => { const x = trTime(t && t.recorded_at); return x ? (Date.now() - x) / 60000 : Infinity; };
+        if (!d || d.pm2_5 == null || age(d) > TUZLA_STALE_MIN) {
+            const direct = await ibbDirect();
+            if (direct && age(direct) < age(d)) d = direct;
+        }
+        if (d) { d.ageMin = age(d); d.stale = d.ageMin > TUZLA_STALE_MIN; }
+        return d;
+    })();
+    return _tuzla.p;
+}
+
+let csbMarker = null;
+
+async function loadCSB() {
+    try {
+        const d = await getTuzla();
+        const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+        if (!d || d.pm2_5 == null) { set("csb-name", "Tuzla verisi alınamadı"); return; }
+        const when = trTime(d.recorded_at);
+
+        const pmEl = document.getElementById("csb-pm25");
+        pmEl.innerHTML = `${f1tr(d.pm2_5)}<small> PM₂.₅ µg/m³</small>`;
+        pmEl.style.color = pm25Color(d.pm2_5);
+
+        set("csb-name", `${d.station_name.replace(/ \((eski|canlı)\)$/, "")} · ${TUZLA_SOURCE[d.source] || "CSB ağı"}`);
+        set("csb-dist", d.distance_km != null ? f1tr(d.distance_km) + " km" : "--");
+
+        const badge = document.getElementById("csb-badge");
+        const c = d.stale ? "#f4615e" : pm25Color(d.pm2_5);
+        badge.textContent = d.stale ? "Eski veri" : pm25Label(d.pm2_5);
+        badge.style.color = c;
+        badge.style.borderColor = c + "55";
+        badge.style.background = c + "1f";
+        pmEl.style.opacity = d.stale ? "0.55" : "";
+
+        set("csb-time", when
+            ? `Ölçüm: ${trClock(when.toISOString())} · ${timeAgo(when)}${d.stale ? " — kaynaklar güncel veri vermiyor" : ""}`
+            : "Ölçüm zamanı bilinmiyor");
+
+        if (d.lat && d.lon) {
+            // İBB Tuzla ile aynı noktada — üst üste binmesin diye hafif offset
+            const c = pm25Color(d.pm2_5);
+            const html = `<b>Tuzla istasyonu</b> · ${d.station_name.replace(/ \((eski|canlı)\)$/, "")}<br>${TUZLA_SOURCE[d.source] || "Resmî istasyon"} · HKİ ${hki(d.pm2_5)?.i ?? "—"} (${pm25Label(d.pm2_5)})<br>PM₂.₅: <b style="color:${c}">${f1tr(d.pm2_5)}</b> µg/m³<br><small>${f1tr(d.distance_km) ?? "—"} km · ${d.recorded_at ? d.recorded_at.replace("T"," ") : ""}</small>`;
+            const icon = L.divIcon({ className: "",
+                html: `<div class="ibb-marker" style="--marker-color:${c}">🏛️</div>`,
+                iconSize: [30, 30], iconAnchor: [15, 15] });
+            const pos = [d.lat + 0.0008, d.lon + 0.0008];
+            if (!csbMarker) {
+                csbMarker = L.marker(pos, { icon, zIndexOffset: 400 }).addTo(map)
+                    .bindTooltip(html, { direction: "top", offset: [0, -16], className: "pa-label" });
+            } else {
+                csbMarker.setIcon(icon); csbMarker.setTooltipContent(html);
+            }
+        }
+    } catch (e) {
+        const el = document.getElementById("csb-name");
+        if (el) el.textContent = "CSB bağlantı hatası";
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Atmotube Cloud — canlı cihazlar (ATP-1..5)
+// ─────────────────────────────────────────────────────────────────
+
+let atpMarkers = {};   // device adı → Leaflet marker
+let atpVisible = true; // Atmotube cihazları aç/kapa
+const ATP_ONLINE_MIN = 60;   // son X dk içinde veri = canlı (bulut gecikmesi için geniş)
+const ATP_SHOW_HOURS = 24;   // son X saat içinde GPS varsa haritada göster (eski=soluk)
+// Kampüs sınırı (backend/kampus.py ile aynı): dışındaki cihaz konumu haritada gösterilmez (ev/yol konumu olabilir — KVKK)
+const CAMPUS_C = [40.8114, 29.3563], CAMPUS_KM = 2;
+const offCampus = r => !!r && (r.off_campus ||
+    (r.lat != null && r.lon != null && Math.hypot((r.lat - CAMPUS_C[0]) * 111.32, (r.lon - CAMPUS_C[1]) * 84.3) > CAMPUS_KM));
+
+function timeAgo(iso) {
+    const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    if (mins < 1)   return "şimdi";
+    if (mins < 60)  return `${mins} dk önce`;
+    const h = Math.floor(mins / 60);
+    if (h < 24)     return `${h} sa önce`;
+    return `${Math.floor(h / 24)} gün önce`;
+}
+
+// Türkiye saatiyle (Europe/Istanbul) tam tarih-saat
+function trClock(iso) {
+    return new Date(iso).toLocaleString("tr-TR", {
+        timeZone: "Europe/Istanbul", day: "2-digit", month: "2-digit", year: "numeric",
+        hour: "2-digit", minute: "2-digit", second: "2-digit",
+    });
+}
+
+async function loadAtmotubeLive() {
+    try {
+        const res = await API.atmotubeLive();
+        renderAtmotubeDevices(res.data || []);
+    } catch (e) {
+        document.getElementById("atp-list").innerHTML =
+            `<div style="color:var(--red);font-size:12px">Atmotube API'sine ulaşılamadı</div>`;
+    }
+}
+
+function renderAtmotubeDevices(devices) {
+    const wrap = document.getElementById("atp-list");
+    let onlineCount = 0;
+
+    wrap.innerHTML = devices.map(d => {
+        const r = d.reading;
+        const ageMin = r ? (Date.now() - new Date(r.recorded_at).getTime()) / 60000 : Infinity;
+        const online = ageMin < ATP_ONLINE_MIN;
+        const recentish = ageMin < ATP_SHOW_HOURS * 60;   // son 24 saat içinde senkron olmuş
+        if (online) onlineCount++;
+        // 3 kademe: yeşil=canlı, sarı=senkron eski (24 sa), gri=veri yok/çok eski
+        const statusCls = online ? "on" : (recentish ? "warn" : "off");
+        // 24 saatten eski son ölçüm güncel değer gibi renkli gösterilmez (yalnızca ne zaman geldiği yazılır)
+        const pmColor = r && recentish ? pm25Color(r.pm2_5) : "#3a4254";
+        const far = offCampus(r);
+        const hasGps = r && r.lat != null && r.lon != null && !far;
+        const gpsTxt = far ? "kampüs dışında"
+            : !hasGps ? "GPS yok"
+            : online ? "GPS canlı" : "son konum";
+        const info = !r ? "son 120 günde veri yok"
+            : recentish ? `${timeAgo(r.recorded_at)} · ${gpsTxt}`
+            : `son veri ${timeAgo(r.recorded_at)} · telefonla eşitlenmedi`;
+        const tip = r
+            ? `Son veri (TR): ${trClock(r.recorded_at)}${r.pm2_5 != null ? ` · PM₂.₅ ${f1tr(r.pm2_5)} µg/m³` : ""}${hasGps ? " — haritada göster" : ""}`
+            : "Cihaz telefondaki Atmotube uygulamasıyla eşitlenince veri gelir";
+        return `
+          <div class="atp-row" ${hasGps ? `data-lat="${r.lat}" data-lon="${r.lon}" style="cursor:pointer"` : ""} title="${tip}">
+            <span class="atp-status ${statusCls}"></span>
+            <span class="atp-name">${d.device}</span>
+            <span class="atp-info">${info}</span>
+            <span class="atp-val" style="color:${pmColor}">${r && recentish && r.pm2_5 != null ? f1tr(r.pm2_5) : "--"}<small> µg/m³</small></span>
+          </div>`;
+    }).join("");
+
+    // Cihaza tıkla → haritada o konuma uç
+    wrap.querySelectorAll(".atp-row[data-lat]").forEach(row => {
+        row.addEventListener("click", () => {
+            map.flyTo([parseFloat(row.dataset.lat), parseFloat(row.dataset.lon)], 16, { duration: 1 });
+        });
+    });
+
+    // Rozet: kaç cihaz çevrimiçi
+    const badge = document.getElementById("atp-badge");
+    if (onlineCount > 0) {
+        badge.innerHTML = `<span class="live-dot"></span>${onlineCount} CANLI`;
+        badge.style.cssText = "";
+    } else {
+        badge.innerHTML = "ÇEVRİMDIŞI";
+        badge.style.background = "rgba(255,255,255,0.06)";
+        badge.style.borderColor = "var(--stroke-2)";
+        badge.style.color = "var(--text-2)";
+    }
+
+    // Son yenileme saati (TR)
+    const upd = document.getElementById("atp-upd");
+    if (upd) upd.textContent = "↻ " + new Date().toLocaleTimeString("tr-TR",
+        { timeZone: "Europe/Istanbul", hour: "2-digit", minute: "2-digit" });
+
+    updateAtmotubeMarkers(devices);
+}
+
+function removeAtpMarker(dev) {
+    if (atpMarkers[dev]) { map.removeLayer(atpMarkers[dev]); delete atpMarkers[dev]; }
+}
+
+function updateAtmotubeMarkers(devices) {
+    for (const d of devices) {
+        const r = d.reading;
+        const hasGps = r && r.lat != null && r.lon != null && !offCampus(r);
+        const ageMin = r ? (Date.now() - new Date(r.recorded_at).getTime()) / 60000 : Infinity;
+        // Toggle kapalıysa, GPS yoksa, cihaz kampüs dışındaysa veya 24 saatten eskiyse gösterme
+        if (!atpVisible || !hasGps || ageMin > ATP_SHOW_HOURS * 60) { removeAtpMarker(d.device); continue; }
+
+        const recent = ageMin < ATP_ONLINE_MIN;     // canlı mı
+        const c = pm25Color(r.pm2_5);
+        const durum = recent ? "canlı" : "son bilinen konum";
+        const html = `<b>📡 ${d.device}</b> — ${durum}<br>PM₂.₅: <b style="color:${c}">${f1tr(r.pm2_5) ?? "--"}</b> µg/m³<br><small>${timeAgo(r.recorded_at)}</small>`;
+        // Canlı: yanıp sönen kare (kendi PM₂.₅ renginde); eski: soluk sabit kare. Altında cihaz adı etiketi.
+        const dot = recent
+            ? `<div class="atp-live" style="--marker-color:${c}"></div>`
+            : `<div style="width:18px;height:18px;border-radius:30%;background:${c};border:2px dashed #fff;opacity:0.55"></div>`;
+        const inner = `<div class="mk-wrap">${dot}<div class="mini-label"${recent ? "" : ' style="opacity:.6"'}>${d.device}</div></div>`;
+        const icon = L.divIcon({ className: "", html: inner, iconSize: [60, 40], iconAnchor: [30, 10] });
+
+        if (!atpMarkers[d.device]) {
+            atpMarkers[d.device] = L.marker([r.lat, r.lon], { icon, zIndexOffset: 600 })
+                .addTo(map)
+                .bindTooltip(html, { direction: "top", offset: [0, -14], className: "pa-label" });
+        } else {
+            atpMarkers[d.device].setLatLng([r.lat, r.lon]);
+            atpMarkers[d.device].setIcon(icon);
+            atpMarkers[d.device].setTooltipContent(html);
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// CO₂ sensörleri (Tuya Cloud) — sabit kapalı-alan cihazları
+// ─────────────────────────────────────────────────────────────────
+
+let co2Markers = {};    // cihaz adı → Leaflet marker
+let co2Visible = true;  // CO₂ cihazları aç/kapa
+const CO2_ONLINE_MIN = 30;   // son X dk içinde veri = canlı
+const CO2_SHOW_HOURS = 24;   // daha eski ölçüm haritada gösterilmez (listede "… gün önce" olarak kalır)
+
+async function loadCO2Live() {
+    try {
+        const res = await API.co2Live();
+        renderCO2Devices(res.data || []);
+    } catch (e) {
+        document.getElementById("co2-list").innerHTML =
+            `<div style="color:var(--red);font-size:12px">CO₂ sensörlerine ulaşılamadı</div>`;
+    }
+}
+
+function renderCO2Devices(devices) {
+    const wrap = document.getElementById("co2-list");
+    let onlineCount = 0;
+
+    if (!devices.length) {
+        wrap.innerHTML = `<div style="color:var(--text-2);font-size:12px">CO₂ sensörü tanımlı değil</div>`;
+    } else {
+        wrap.innerHTML = devices.map(d => {
+            const r = d.reading;
+            const online = r && r.co2_ppm != null &&
+                (Date.now() - new Date(r.recorded_at).getTime()) < CO2_ONLINE_MIN * 60000;
+            if (online) onlineCount++;
+            const c = r ? co2Color(r.co2_ppm) : "#3a4254";
+            const loc = d.anchored_to
+                ? `📍 ${d.anchored_to} ile${d.anchor_live === false ? " (son konum)" : ""}`
+                : (d.location || "kampüs");
+            const info = r && r.co2_ppm != null
+                ? timeAgo(r.recorded_at) + " · " + loc
+                : (d.error ? "kurulum bekliyor" : "veri yok");
+            const tip = r && r.recorded_at
+                ? `Son veri (TR): ${trClock(r.recorded_at)} — haritada göster`
+                : "Haritada göster";
+            return `
+              <div class="atp-row" data-lat="${d.lat}" data-lon="${d.lon}" style="cursor:pointer" title="${tip}">
+                <span class="atp-status ${online ? "on" : "off"}"></span>
+                <span class="atp-name">${d.device}</span>
+                <span class="atp-info">${info}</span>
+                <span class="atp-val" style="color:${c}">${r && r.co2_ppm != null ? Math.round(r.co2_ppm) : "--"}<small> ppm</small></span>
+              </div>`;
+        }).join("");
+
+        // Cihaza tıkla → haritada o konuma uç
+        wrap.querySelectorAll(".atp-row[data-lat]").forEach(row =>
+            row.addEventListener("click", () =>
+                map.flyTo([parseFloat(row.dataset.lat), parseFloat(row.dataset.lon)], 18, { duration: 1 })));
+    }
+
+    const badge = document.getElementById("co2-badge");
+    if (onlineCount > 0) {
+        badge.innerHTML = `<span class="live-dot"></span>${onlineCount} CANLI`;
+        badge.style.cssText = "";
+    } else {
+        badge.innerHTML = "ÇEVRİMDIŞI";
+        badge.style.background = "rgba(255,255,255,0.06)";
+        badge.style.borderColor = "var(--stroke-2)";
+        badge.style.color = "var(--text-2)";
+    }
+
+    // Son yenileme saati (TR)
+    const upd = document.getElementById("co2-upd");
+    if (upd) upd.textContent = "↻ " + new Date().toLocaleTimeString("tr-TR",
+        { timeZone: "Europe/Istanbul", hour: "2-digit", minute: "2-digit" });
+
+    updateCO2Markers(devices);
+}
+
+function removeCO2Marker(dev) {
+    if (co2Markers[dev]) { map.removeLayer(co2Markers[dev]); delete co2Markers[dev]; }
+}
+
+function updateCO2Markers(devices) {
+    for (const d of devices) {
+        const r = d.reading;
+        // Toggle kapalıysa ya da hiç ölçüm yoksa işaretçiyi gösterme
+        const ageMin = r ? (Date.now() - new Date(r.recorded_at).getTime()) / 60000 : Infinity;
+        // Toggle kapalıysa, ölçüm yoksa ya da ölçüm 24 saatten eskiyse işaretçiyi gösterme (eski değer canlı sanılmasın)
+        if (!co2Visible || !r || r.co2_ppm == null || !(ageMin <= CO2_SHOW_HOURS * 60)) { removeCO2Marker(d.device); continue; }
+
+        const recent = ageMin < CO2_ONLINE_MIN;
+        const c = co2Color(r.co2_ppm);
+        // ATP'ye bağlıysa o işaretçiyle tam üst üste binmesin diye küçük kuzey offseti (~9 m)
+        const lat = d.lat + (d.anchored_to ? 0.00008 : 0), lon = d.lon;
+        const t = r.temperature_c != null ? `${f1tr(r.temperature_c)}°C` : "--";
+        const h = r.humidity_pct != null ? `${Math.round(r.humidity_pct)}%` : "--";
+        const where = d.anchored_to
+            ? `${d.anchored_to} ile birlikte${d.anchor_live === false ? " (son bilinen konum)" : ""}`
+            : (d.location || "kampüs");
+        const ppm = Math.round(r.co2_ppm);
+        const html = `<b>🔺 ${d.device}</b> — ${where}<br>` +
+            `CO₂: <b style="color:${c}">${ppm}</b> ppm · ${co2Label(r.co2_ppm)}<br>` +
+            `<small>🌡️ ${t} · 💧 ${h} · ${timeAgo(r.recorded_at)}</small><br>` +
+            `<small style="opacity:.7">🕐 ${trClock(r.recorded_at)} (TR)</small>`;
+        // Üçgen işaretçi — CO₂'yi PM dairelerinden/ATP noktalarından ayırır. İçinde ppm değeri.
+        const svg = `<svg width="40" height="34" viewBox="0 0 40 34">
+            <polygon points="20,2 38,32 2,32" fill="${c}" stroke="#fff" stroke-width="2.5"
+              stroke-linejoin="round"${recent ? "" : ' stroke-dasharray="4 2.5"'}/>
+            <text x="20" y="28" text-anchor="middle" font-family="Inter,sans-serif"
+              font-size="9.5" font-weight="800" fill="#0b0e14">${ppm}</text></svg>`;
+        const inner = `<div class="mk-wrap"><div class="co2-marker${recent ? "" : " stale"}">${svg}</div><div class="mini-label">${d.device}</div></div>`;
+        const icon = L.divIcon({ className: "", html: inner, iconSize: [60, 52], iconAnchor: [30, 32] });
+
+        if (!co2Markers[d.device]) {
+            co2Markers[d.device] = L.marker([lat, lon], { icon, zIndexOffset: 550 })
+                .addTo(map)
+                .bindTooltip(html, { direction: "top", offset: [0, -34], className: "pa-label" });
+        } else {
+            co2Markers[d.device].setLatLng([lat, lon]);
+            co2Markers[d.device].setIcon(icon);
+            co2Markers[d.device].setTooltipContent(html);
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Oturumlar — kişiye göre gruplu liste
+// ─────────────────────────────────────────────────────────────────
+
+function personOf(sessionName) {
+    for (const p of PEOPLE) if (sessionName.startsWith(p.key)) return p;
+    return { key: "Other", name: "Diğer", color: "#8a93a6", initial: "•" };
+}
+
+function dateLabelOf(s) {
+    // start_time'dan gün etiketi üret
+    if (!s.start_time) {
+        // ham oturum adı kişi adı içerir; yalnızca içindeki tarihi kullan
+        const m = /\d{4}-\d{2}-\d{2}/.exec(s.session_name || "");
+        return m ? new Date(m[0] + "T12:00:00").toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" }) : "Tarih bilinmiyor";
+    }
+    const d = new Date(s.start_time.replace(" ", "T"));
+    return d.toLocaleDateString("tr-TR", { timeZone: "Europe/Istanbul", day: "numeric", month: "long", year: "numeric" });
+}
+
+async function loadSessions() {
+    try {
+        const res = await API.sessions();
+        allSessions = res.data || [];
+        renderSessionGroups();
+        updateChips();
+        refreshDots();
+    } catch (e) {
+        document.getElementById("session-list").innerHTML =
+            `<div style="color:var(--red);font-size:12px">Oturumlar yüklenemedi</div>`;
+    }
+}
+
+function renderSessionGroups() {
+    const wrap = document.getElementById("session-list");
+    const groups = new Map();
+    for (const s of allSessions) {
+        const p = personOf(s.session_name);
+        if (!groups.has(p.key)) groups.set(p.key, { person: p, sessions: [] });
+        groups.get(p.key).sessions.push(s);
+    }
+
+    // Üst kontrol çubuğu: Tümünü Seç / Temizle
+    const controls = `
+      <div class="session-controls">
+        <button class="sc-btn" id="sel-all">Tümünü Seç</button>
+        <button class="sc-btn" id="sel-none">Temizle</button>
+      </div>`;
+
+    // Gruplar açık başlasın (günler + kutucuklar görünür), kutucuklar işaretsiz (harita temiz)
+    const html = [...groups.values()].map(({ person, sessions }) => `
+      <div class="person-group open" data-person="${person.key}">
+        <div class="person-head">
+          <input type="checkbox" class="person-cb" title="Bu kişinin tüm günleri">
+          <div class="person-avatar" style="background:${person.color}">${person.initial}</div>
+          <span class="person-name">${person.name}</span>
+          <span class="person-count">${sessions.length} gün · ${sessions.reduce((a,s)=>a+(s.reading_count||0),0)} ölçüm</span>
+          <span class="person-arrow">▶</span>
+        </div>
+        <div class="person-sessions">
+          ${sessions.map(s => `
+            <div class="session-item">
+              <input type="checkbox" class="s-cb" value="${s.id}">
+              <span class="session-date">${dateLabelOf(s)}</span>
+              <span class="session-n">${s.reading_count ?? 0}</span>
+              <button class="session-play" data-sid="${s.id}" title="Bu günü oynat">▶</button>
+            </div>`).join("")}
+        </div>
+      </div>`).join("");
+
+    wrap.innerHTML = controls + html;
+
+    // Kişi başlığına tıkla → aç/kapa (kutucuk veya oynat düğmesi hariç)
+    wrap.querySelectorAll(".person-head").forEach(h =>
+        h.addEventListener("click", (e) => {
+            if (e.target.closest(".person-cb")) return;
+            h.parentElement.classList.toggle("open");
+        }));
+
+    // Kişi kutucuğu → o kişinin tüm günlerini seç/kaldır
+    wrap.querySelectorAll(".person-cb").forEach(pcb =>
+        pcb.addEventListener("change", (e) => {
+            e.stopPropagation();
+            const group = pcb.closest(".person-group");
+            group.querySelectorAll(".s-cb").forEach(cb => cb.checked = pcb.checked);
+            if (pcb.checked) group.classList.add("open");
+            refreshDots();
+        }));
+
+    // Tekil gün kutucuğu
+    wrap.querySelectorAll(".s-cb").forEach(cb =>
+        cb.addEventListener("change", () => { syncPersonCheckboxes(); refreshDots(); }));
+
+    // Oynat düğmeleri
+    wrap.querySelectorAll(".session-play").forEach(btn =>
+        btn.addEventListener("click", (e) => { e.stopPropagation(); startPlayback(+btn.dataset.sid); }));
+
+    // Tümünü Seç / Temizle
+    document.getElementById("sel-all").addEventListener("click", () => {
+        wrap.querySelectorAll(".s-cb").forEach(cb => cb.checked = true);
+        wrap.querySelectorAll(".person-group").forEach(g => g.classList.add("open"));
+        syncPersonCheckboxes(); refreshDots();
+    });
+    document.getElementById("sel-none").addEventListener("click", () => {
+        wrap.querySelectorAll(".s-cb").forEach(cb => cb.checked = false);
+        syncPersonCheckboxes(); refreshDots();
+    });
+}
+
+// Kişi kutucuğunu, altındaki günlerin durumuna göre güncelle (hepsi/bazısı/hiçbiri)
+function syncPersonCheckboxes() {
+    document.querySelectorAll(".person-group").forEach(group => {
+        const cbs = [...group.querySelectorAll(".s-cb")];
+        const checked = cbs.filter(c => c.checked).length;
+        const pcb = group.querySelector(".person-cb");
+        pcb.checked = checked === cbs.length;
+        pcb.indeterminate = checked > 0 && checked < cbs.length;
+    });
+}
+
+function updateChips() {
+    const total = allSessions.reduce((a, s) => a + (s.reading_count || 0), 0);
+    document.querySelector("#chip-readings b").textContent = total.toLocaleString("tr-TR");
+    document.querySelector("#chip-sessions b").textContent = allSessions.length;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Ölçüm noktaları + istatistik
+// ─────────────────────────────────────────────────────────────────
+
+let _dotsReq = 0;   // üst üste binen çağrılarda yalnızca en sonuncusu çizsin
+let _selPts = [];   // seçili oturumların tüm noktaları (özet istatistik için)
+
+// İki ayrı görünüm: tek tek ölçüm noktaları ya da bina bazında ortalamalar (üst üste binmesin)
+let viewMode = "points";
+function setViewMode(m) {
+    viewMode = m;
+    try { localStorage.setItem("gtu.view", m); } catch (_) {}
+    document.querySelectorAll(".vs-btn").forEach(b => b.classList.toggle("on", b.dataset.view === m));
+    document.getElementById("avg-tools").hidden = m !== "avg";
+    if (m === "avg") map.removeLayer(dotsLayer); else if (!map.hasLayer(dotsLayer)) dotsLayer.addTo(map);
+    Campus.setChoropleth(m === "avg");
+    setStats(_selPts);
+}
+function initViewMode() {
+    let m = "points";
+    try { m = localStorage.getItem("gtu.view") || "points"; } catch (_) {}
+    document.querySelectorAll(".vs-btn").forEach(b => b.addEventListener("click", () => setViewMode(b.dataset.view)));
+    document.addEventListener("campus:period", () => setStats(_selPts));
+    setViewMode(m === "avg" ? "avg" : "points");
+}
+
+async function refreshDots() {
+    const ids = [...document.querySelectorAll(".s-cb:checked")].map(cb => +cb.value);
+    const req = ++_dotsReq;
+    dotsLayer.clearLayers();
+    _selPts = [];
+    setStats([]);
+    if (!ids.length) { Campus.colorByPoints([]); return; }
+
+    try {
+        const res = await API.mapTracks(ids);
+        if (req !== _dotsReq) return;   // bu arada yeni bir seçim yapıldı
+        const allPts = [];
+        for (const track of res.tracks || []) {
+            const person = personOf(track.session_name);
+            for (const pt of (track.points || []).filter(p => p.lat && p.lon)) {
+                pt._person = person.name;   // bina popup'ında kişi kırılımı için
+                allPts.push(pt);
+                // Değer yükseldikçe nokta büyür: temiz hava küçük, kirli hava dikkat çeker
+                const v = pt.pm2_5 ?? 0;
+                const radius = 5 + Math.min(v / 12, 6);
+                const c = pm25Color(pt.pm2_5);
+                L.circleMarker([pt.lat, pt.lon], {
+                    radius,
+                    color: c, weight: 2, opacity: 0.35,
+                    fillColor: c, fillOpacity: 0.92,
+                }).bindPopup(`
+                    <div style="font-family:Inter;min-width:170px">
+                      <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px">
+                        <span style="width:20px;height:20px;border-radius:6px;background:${person.color};display:grid;place-items:center;font-size:10px;font-weight:800;color:#0b0e14">${person.initial}</span>
+                        <b style="font-size:12.5px">${person.name}</b>
+                      </div>
+                      <div style="font-size:20px;font-weight:700;font-family:Inter,sans-serif;font-variant-numeric:tabular-nums;color:${pm25Color(pt.pm2_5)}">${f1tr(pt.pm2_5) ?? "--"} <span style="font-size:10px;color:#9aa4b8">µg/m³</span></div>
+                      <div style="font-size:11px;color:${pm25Color(pt.pm2_5)};font-weight:600">${pm25Label(pt.pm2_5)}</div>
+                      <div style="font-size:10.5px;color:#9aa4b8;margin-top:4px">${pt.recorded_at ? new Date(pt.recorded_at).toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" }) : ""}</div>
+                    </div>`)
+                  .addTo(dotsLayer);
+            }
+        }
+        _selPts = allPts;
+        Campus.colorByPoints(allPts);   // binaları ortalama PM₂.₅ ile boya (dönem burada düzelebilir)
+        setStats(allPts);
+    } catch (e) { console.error("[tracks]", e); }
+}
+
+// Ortalama görünümünde bir ay seçiliyse özet de o aya göre
+function setStats(pts) {
+    const per = viewMode === "avg" ? Campus.getPeriod() : "all";
+    if (per !== "all") pts = pts.filter(p => Campus.monthOf(p) === per);
+    const vals = pts.map(p => p.pm2_5).filter(v => v != null);
+    const set = (id, v) => document.getElementById(id).textContent = v;
+    // Seçim yoksa boş kartlar yerine ne yapılacağını söyleyen kısa yönlendirme
+    document.getElementById("st-hint").hidden = vals.length > 0;
+    document.getElementById("st-strip").hidden = !vals.length;
+    if (!vals.length) { set("st-count","—"); set("st-avg","—"); set("st-max","—"); return; }
+    const avg = vals.reduce((a,b)=>a+b,0)/vals.length;
+    const max = Math.max(...vals);
+    set("st-count", vals.length.toLocaleString("tr-TR"));
+    set("st-avg", f1tr(avg));
+    document.getElementById("st-avg").style.color = pm25Color(avg);
+    set("st-max", f1tr(max));
+    document.getElementById("st-max").style.color = pm25Color(max);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Heatmap + katman anahtarları
+// ─────────────────────────────────────────────────────────────────
+
+async function loadHeatmap() {
+    try {
+        const res = await API.mapHeatmap("pm2_5");
+        heatLayer.setLatLngs((res.points || []).map(p => [p.lat, p.lon, pm25Intensity(p.value)]));
+    } catch (_) {}
+}
+
+function initSidebar() {
+    document.getElementById("tg-heat").addEventListener("change", e =>
+        e.target.checked ? heatLayer.addTo(map) : map.removeLayer(heatLayer));
+    document.getElementById("tg-campus").addEventListener("change", e =>
+        e.target.checked ? campusOverlay.addTo(map) : map.removeLayer(campusOverlay));
+    document.getElementById("tg-campuslayer").addEventListener("change", e => Campus.setVisible(e.target.checked));
+    initViewMode();
+
+    // Panel başlığına tıkla → paneli katla/aç (izleyici tercihi tarayıcıda hatırlanır)
+    initCollapsiblePanels();
+    document.getElementById("tg-atp").addEventListener("change", e => {
+        atpVisible = e.target.checked;
+        if (!atpVisible) { Object.keys(atpMarkers).forEach(removeAtpMarker); }
+        loadAtmotubeLive();  // yeniden çiz (açıksa işaretçileri geri getirir)
+    });
+    document.getElementById("tg-co2").addEventListener("change", e => {
+        co2Visible = e.target.checked;
+        if (!co2Visible) { Object.keys(co2Markers).forEach(removeCO2Marker); }
+        loadCO2Live();  // yeniden çiz (açıksa işaretçileri geri getirir)
+    });
+
+    const sb = document.getElementById("sidebar");
+    document.getElementById("sidebar-toggle").addEventListener("click", () => sb.classList.remove("hidden"));
+}
+
+// Kenar çubuğu panelleri katlanabilir — kalabalığı azaltır. Tercih yalnızca bu tarayıcıda saklanır.
+function initCollapsiblePanels() {
+    const KEY = "gtu.collapsed";
+    let saved = [];
+    try { saved = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (_) {}
+    document.querySelectorAll("#sidebar .panel[data-key]").forEach(p => {
+        const k = p.dataset.key;
+        if (saved.includes(k)) p.classList.add("folded");
+        p.querySelector(".panel-head").addEventListener("click", ev => {
+            if (ev.target.closest("input,button,a")) return;
+            p.classList.toggle("folded");
+            const now = [...document.querySelectorAll("#sidebar .panel.folded[data-key]")].map(x => x.dataset.key);
+            try { localStorage.setItem(KEY, JSON.stringify(now)); } catch (_) {}
+        });
+    });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Gün animasyonu (oynatıcı)
+// ─────────────────────────────────────────────────────────────────
+
+const Player = {
+    pts: [], idx: 0, timer: null, speed: 4, marker: null, session: null,
+
+    load(points, session) {
+        this.stop();
+        this.pts = points;
+        this.session = session;
+        this.idx = 0;
+    },
+    play() {
+        if (!this.pts.length || this.timer) return;
+        this.timer = setInterval(() => this.step(), 1000 / this.speed);
+        document.getElementById("pl-play").textContent = "⏸";
+    },
+    pause() {
+        clearInterval(this.timer); this.timer = null;
+        document.getElementById("pl-play").textContent = "▶";
+    },
+    stop() {
+        this.pause();
+        this.idx = 0;
+        trailLayer.clearLayers();
+        if (this.marker) { map.removeLayer(this.marker); this.marker = null; }
+    },
+    setSpeed(s) { this.speed = s; if (this.timer) { this.pause(); this.play(); } },
+    seek(frac) {
+        if (!this.pts.length) return;
+        this.idx = Math.max(0, Math.min(Math.floor(frac * this.pts.length), this.pts.length - 1));
+        this.render(this.pts[this.idx]);
+        onStep(this.pts[this.idx], this.idx, this.pts.length);
+    },
+    step() {
+        if (this.idx >= this.pts.length) { this.finish(); return; }
+        const pt = this.pts[this.idx];
+        this.render(pt);
+        onStep(pt, this.idx, this.pts.length);
+        this.idx++;
+    },
+    finish() {
+        this.pause();
+        paLive = true; paHistory = [];
+        setPABadge("live");
+        loadPurpleAir();
+        restoreAvgBadge();
+    },
+    render(pt) {
+        const color = pm25Color(pt.pm2_5);
+        if (this.idx > 0) {
+            const prev = this.pts[this.idx - 1];
+            L.circleMarker([prev.lat, prev.lon], {
+                radius: 5.5, color: pm25Color(prev.pm2_5), weight: 1,
+                fillColor: pm25Color(prev.pm2_5), fillOpacity: 0.82,
+            }).addTo(trailLayer);
+        }
+        const icon = L.divIcon({
+            className: "",
+            html: `<div class="player-dot" style="background:${color};box-shadow:0 0 0 5px ${color}44,0 0 16px ${color}99"></div>`,
+            iconSize: [16, 16], iconAnchor: [8, 8],
+        });
+        if (!this.marker) this.marker = L.marker([pt.lat, pt.lon], { icon, zIndexOffset: 1000 }).addTo(map);
+        else { this.marker.setLatLng([pt.lat, pt.lon]); this.marker.setIcon(icon); }
+    },
+};
+
+async function startPlayback(sessionId) {
+    const session = allSessions.find(s => s.id === sessionId);
+    if (!session) return;
+
+    const res = await API.sessionReadings(sessionId);
+    const pts = (res.data || [])
+        .filter(r => r.lat && r.lon && r.pm2_5 != null)
+        .sort((a, b) => new Date(a.recorded_at) - new Date(b.recorded_at));
+    if (!pts.length) { alert("Bu oturumda GPS verisi yok."); return; }
+
+    Player.load(pts, session);
+
+    // Dock'u göster ve etiketle
+    const dock = document.getElementById("player-dock");
+    dock.classList.add("visible");
+    const person = personOf(session.session_name);
+    const tag = document.getElementById("pl-tag");
+    tag.textContent = `${person.name} — ${dateLabelOf(session)}`;
+    tag.style.background = person.color + "22";
+    tag.style.color = person.color;
+
+    // O günün PurpleAir geçmişini çek
+    paHistory = []; paLive = false;
+    const day = pts[0].recorded_at.slice(0, 10);
+    setPABadge("hist", new Date(day).toLocaleDateString("tr-TR", { timeZone: "Europe/Istanbul", day: "numeric", month: "short" }));
+    try {
+        const hist = await API.purpleairHistory(day + "T00:00:00", day + "T23:59:59", "raw");
+        paHistory = (hist.data || []).map(r => ({ ...r, ts: new Date(r.recorded_at).getTime() }));
+    } catch (_) {}
+
+    // Karşılaştırma grafiği
+    loadCompareChart(pts, paHistory, person);
+
+    // Statik noktaları gizle, animasyonu başlat (oynatma nokta görünümünde izlenir)
+    setViewMode("points");
+    dotsLayer.clearLayers();
+    map.flyTo([pts[0].lat, pts[0].lon], 17, { duration: 1 });
+    Player.play();
+}
+
+// Oynatmada en yakın PurpleAir kaydı (10 dk içinde). PurpleAir arşivinden eklenen 2 dakikalık kayıtlarda (27 Nisan –
+// 6 Ekim 2026) PM₁₀ ve sıcaklık yoktur; bu iki alan 10 dk içindeki en yakın sunucu kaydından alınır, yoksa "--" kalır.
+function nearestPA(ts) {
+    const best = nearestPAIn(paHistory, ts);
+    if (!best || (best.pm10_0 != null && best.temperature_c != null)) return best;
+    const srv = nearestPAIn(paHistory.filter(r => r.pm10_0 != null || r.temperature_c != null), ts);
+    return srv ? { ...best, pm10_0: best.pm10_0 ?? srv.pm10_0, temperature_c: best.temperature_c ?? srv.temperature_c } : best;
+}
+
+function onStep(pt, idx, total) {
+    const dt = new Date(pt.recorded_at);
+    document.getElementById("pl-time").textContent =
+        dt.toLocaleTimeString("tr-TR", { timeZone: "Europe/Istanbul", hour: "2-digit", minute: "2-digit" });
+    document.getElementById("pl-loc").textContent =
+        pt.activity || `${pt.lat.toFixed(5)}, ${pt.lon.toFixed(5)}`;
+
+    const pmEl = document.getElementById("pl-pm");
+    pmEl.style.color = pm25Color(pt.pm2_5);
+    pmEl.innerHTML = `${f1tr(pt.pm2_5)}<small>ATMOTUBE PM₂.₅ µg/m³</small>`;
+
+    document.getElementById("pl-fill").style.width = `${(idx / (total - 1) * 100).toFixed(1)}%`;
+
+    // PurpleAir senkronizasyonu + anlık fark
+    const pa = nearestPA(dt.getTime());
+    const paEl = document.getElementById("pl-pa");
+    const deltaEl = document.getElementById("pl-delta");
+    if (pa) {
+        paEl.textContent = f1tr(pa.pm2_5) ?? "--";
+        paEl.style.color = pm25Color(pa.pm2_5);
+        updatePAPanel(pa);
+        updatePAMarker({ ...pa, lat: GTU_CENTER[0], lon: GTU_CENTER[1] });
+
+        // Anlık fark: Atmotube − PurpleAir
+        if (pt.pm2_5 != null && pa.pm2_5 != null) {
+            showLiveDelta(pt.pm2_5 - pa.pm2_5, deltaEl);
+        }
+    } else {
+        paEl.textContent = "--";
+        if (deltaEl) deltaEl.textContent = "";
+    }
+
+    updateChartCursor(idx);
+
+    if (idx === total - 1) Player.finish();
+}
+
+function initPlayerUI() {
+    document.getElementById("pl-play").addEventListener("click", () =>
+        Player.timer ? Player.pause() : Player.play());
+    document.getElementById("pl-restart").addEventListener("click", () => {
+        Player.stop(); Player.play();
+    });
+    document.getElementById("pl-close").addEventListener("click", () => {
+        Player.stop();
+        document.getElementById("player-dock").classList.remove("visible");
+        restoreAvgBadge();
+        paLive = true; paHistory = [];
+        setPABadge("live");
+        loadPurpleAir();
+        refreshDots();
+    });
+    document.querySelectorAll(".speed-btn").forEach(b =>
+        b.addEventListener("click", () => {
+            document.querySelectorAll(".speed-btn").forEach(x => x.classList.remove("active"));
+            b.classList.add("active");
+            Player.setSpeed(+b.dataset.speed);
+        }));
+    const prog = document.getElementById("pl-progress");
+    prog.addEventListener("click", (e) => {
+        const r = prog.getBoundingClientRect();
+        Player.seek((e.clientX - r.left) / r.width);
+    });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Karşılaştırma grafiği
+// ─────────────────────────────────────────────────────────────────
+
+function initChartDrawer() {
+    const drawer = document.getElementById("chart-drawer");
+    document.getElementById("chart-handle").addEventListener("click", () => {
+        drawer.classList.toggle("collapsed");
+        if (!drawer.classList.contains("collapsed") && cmpChart) cmpChart.resize();
+    });
+}
+
+function loadCompareChart(atmoPts, paHist, person) {
+    const labels = atmoPts.map(r =>
+        new Date(r.recorded_at).toLocaleTimeString("tr-TR", { timeZone: "Europe/Istanbul", hour: "2-digit", minute: "2-digit" }));
+    const atmoVals = atmoPts.map(r => r.pm2_5);
+    // İki sensör aynı temelde karşılaştırılsın: Atmotube'a düzeltme uygulanmadığı için PurpleAir'in de ham değeri kullanılır
+    const paVals = atmoPts.map(r => {
+        const pa = nearestPAIn(paHist, new Date(r.recorded_at).getTime());
+        return pa ? (pa.pm2_5_raw ?? pa.pm2_5) : null;
+    });
+
+    // Avantaj rozeti
+    const am = atmoVals.reduce((a,b)=>a+b,0)/atmoVals.length;
+    const pf = paVals.filter(v=>v!=null);
+    const badge = document.getElementById("adv-badge");
+    if (pf.length) {
+        const pm = pf.reduce((a,b)=>a+b,0)/pf.length;
+        const diff = f1tr(Math.abs(am - pm));
+        if (am > pm) {
+            _avgBadge = { text: `Ort. fark: Taşınabilir +${diff} µg/m³`,
+                          css: `background:${DEVICE_COLOR.atmotube}22;color:${DEVICE_COLOR.atmotube};border-color:${DEVICE_COLOR.atmotube}55` };
+        } else {
+            _avgBadge = { text: `Ort. fark: Sabit +${diff} µg/m³`,
+                          css: `background:${DEVICE_COLOR.purpleair}22;color:${DEVICE_COLOR.purpleair};border-color:${DEVICE_COLOR.purpleair}55` };
+        }
+        badge.textContent = _avgBadge.text;
+        badge.style.cssText = _avgBadge.css;
+    } else { badge.textContent = ""; _avgBadge = null; }
+
+    // Uç değerler doğrusal ölçeği bozuyorsa logaritmik eksene geç:
+    // hem düşük taban (1-5) hem yüksek tepeler (300+) okunur kalır, veri atılmaz.
+    const allVals = [...atmoVals, ...paVals].filter(v => v != null).sort((a, b) => a - b);
+    const p98 = allVals[Math.floor(allVals.length * 0.98)] ?? 50;
+    const trueMax = allVals[allVals.length - 1] ?? 50;
+    const useLog = trueMax > p98 * 3 && trueMax > 50;
+
+    if (cmpChart) cmpChart.destroy();
+    cmpChart = new Chart(document.getElementById("cmp-chart"), {
+        type: "line",
+        data: { labels, datasets: [
+            {
+                // Cihaz renkleri her grafikte aynı (colorscale.js → DEVICE_COLOR); dolgu ve yumuşatma yok (tepe değerler olduğu gibi)
+                label: `Atmotube Pro — ${person.name} (ham)`,
+                data: atmoVals,
+                borderColor: DEVICE_COLOR.atmotube,
+                borderWidth: 2, pointRadius: 0, tension: 0, fill: false,
+            },
+            {
+                label: "PurpleAir PA-II (sabit, ham)",
+                data: paVals,
+                borderColor: DEVICE_COLOR.purpleair,
+                borderWidth: 2, pointRadius: 0, tension: 0, fill: false,
+                spanGaps: true,
+            },
+            {
+                // Referans: WHO 2021 PM₂.₅ 24 saatlik kılavuz değeri
+                label: "WHO 24 sa kılavuz değeri (15 µg/m³)",
+                data: atmoVals.map(() => 15),
+                borderColor: "rgba(232,236,244,0.45)",
+                borderWidth: 1.2, borderDash: [5, 5], pointRadius: 0, fill: false,
+            },
+        ]},
+        options: {
+            responsive: true, maintainAspectRatio: false, animation: false,
+            interaction: { mode: "index", intersect: false },
+            plugins: {
+                legend: { labels: { color: "#9aa4b8", font: { size: 11, family: "Inter" }, boxWidth: 14 } },
+                tooltip: {
+                    backgroundColor: "#181e2c", titleColor: "#e8ecf4", bodyColor: "#9aa4b8",
+                    borderColor: "rgba(255,255,255,0.12)", borderWidth: 1,
+                    callbacks: { label: c => `${c.dataset.label}: ${c.parsed.y != null ? f1tr(c.parsed.y) + " µg/m³" : "—"}` },
+                },
+            },
+            scales: {
+                x: { ticks: { color: "#5d6678", font: { size: 9.5 }, maxTicksLimit: 12 }, grid: { color: "rgba(255,255,255,0.04)" } },
+                y: { type: useLog ? "logarithmic" : "linear",
+                     min: useLog ? Math.max(0.5, allVals[0] * 0.8) : undefined,
+                     ticks: { color: "#5d6678", font: { size: 9.5 },
+                              callback: v => Number(v.toFixed(1)).toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" }) },
+                     grid: { color: "rgba(255,255,255,0.05)" },
+                     title: { display: true,
+                              text: useLog ? "PM₂.₅ (µg/m³) — log ölçek" : "PM₂.₅ (µg/m³)",
+                              color: "#5d6678", font: { size: 10 } } },
+            },
+        },
+    });
+
+    document.getElementById("chart-drawer").classList.remove("collapsed");
+}
+
+function nearestPAIn(hist, ts) {
+    if (!hist?.length) return null;
+    let best = hist[0], bd = Math.abs(ts - best.ts);
+    for (const r of hist) {
+        const d = Math.abs(ts - r.ts);
+        if (d < bd) { best = r; bd = d; }
+    }
+    return bd < 10 * 60 * 1000 ? best : null;
+}
+
+// Oynatma sırasında anlık farkı göster (oynatıcı rozeti + grafik başlığı)
+let _avgBadge = null;
+
+function showLiveDelta(d, deltaEl) {
+    const sign = d >= 0 ? "+" : "−";
+    const abs = f1tr(Math.abs(d));
+    const who = d >= 0 ? "Taşınabilir" : "Sabit";
+    const color = d >= 0 ? "#34d27b" : "#b07aff";
+
+    // Oynatıcıdaki küçük rozet
+    if (deltaEl) {
+        deltaEl.textContent = `Δ ${sign}${abs}`;
+        deltaEl.style.background = color + "22";
+        deltaEl.style.color = color;
+    }
+    // Grafik başlığındaki rozet — anlık fark
+    const badge = document.getElementById("adv-badge");
+    if (badge) {
+        badge.textContent = `Anlık fark: ${who} ${sign}${abs} µg/m³`;
+        badge.style.cssText = `background:${color}22;color:${color};border-color:${color}55`;
+    }
+}
+
+function restoreAvgBadge() {
+    const badge = document.getElementById("adv-badge");
+    if (!badge) return;
+    if (_avgBadge) { badge.textContent = _avgBadge.text; badge.style.cssText = _avgBadge.css; }
+    const deltaEl = document.getElementById("pl-delta");
+    if (deltaEl) deltaEl.textContent = "";
+}
+
+function updateChartCursor(idx) {
+    if (!cmpChart) return;
+    cmpChart.data.datasets.forEach(ds => {
+        if (ds.borderDash) return;   // referans çizgisinde imleç noktası yok
+        ds.pointRadius = ds.data.map((_, i) => i === idx ? 5 : 0);
+        ds.pointBackgroundColor = ds.borderColor;
+    });
+    cmpChart.update("none");
+}

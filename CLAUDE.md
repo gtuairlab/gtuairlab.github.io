@@ -1,0 +1,196 @@
+# GTÜ AirLab (kampüs hava kalitesi) — Claude çalışma kuralları
+
+Bu proje hem Claude masaüstü uygulamasında hem de Claude Code web (bulut) oturumlarında geliştiriliyor.
+Tek bir güncel sürüm olması için **tek kaynak `main` branch'idir**.
+
+## Her oturumun başında
+1. `git fetch origin main`
+2. `main`'e geç ve güncelle: `git checkout main && git pull origin main`
+   (Yerelde commit'lenmemiş değişiklik varsa önce kullanıcıya sor.)
+3. Kullanıcıya ilk yanıtında kısaca hatırlat: "`main`'den en güncel sürümü çektim (son commit: `<hash> <mesaj>`).
+   Bu projede tek kaynak `main`; iş bitince `main`'e push edeceğim."
+   `git pull` başarısız olduysa veya `main`'e geçilemediyse bunu açıkça söyle; kullanıcı eski sürümle çalışmasın.
+
+## Çalışma tarzı (kullanıcının isteği, 8 Ekim 2026)
+- Kullanıcının takip edemeyeceği karmaşık yapılar kurma: çözümleri sade tut, yanıtları kısa ve düz Türkçe yaz.
+- Birden çok yeni parça (dosya, modül, kural) gerektiren bir değişiklikten önce ne yapacağını bir-iki cümleyle anlat.
+
+## Bekleyen işler (oturum başında kullanıcıya kısaca hatırlat, bitenleri buradan sil)
+- **Tuzla resmî ÇŞB toplayıcısı Haziran 2026'dan beri çalışmıyor** (yerel bilgisayardaki zamanlanmış görev); Tuzla saatlik
+  arşivi 6 Ekim 2026'dan beri sunucuda İBB'den toplanıyor (`collector.collect_hourly`).
+- **CO₂ şimdilik kapalı (kullanıcının kararı, 13 Ekim 2026):** ölçüm alınmıyor; uygulamada `api.js` → `CO2_AKTIF = false`
+  (panel, harita, lejant, Özet çipi, kesinti duyurusu gizli; veri silinmedi) ve rapordan çıkarıldı. Sensörler yeniden tanımlanınca
+  `CO2_AKTIF = true` yap. Not: 22 Haziran 15:01'den sonraki 2 798 kayıt donmuş değer (toplayıcı çevrimdışı cihazın son değerini
+  yeniden yazıyor, `backend/tuya_co2.py`); yeniden açmadan önce toplayıcı düzeltilmeli.
+- **Tuzla PM₂.₅ geçmişi (kampüs–bölge karşılaştırması için):** İBB açık verisi Tuzla'nın PM₂.₅ geçmişini vermiyor,
+  ÇŞB sitesi yalnızca Türkiye'den erişilebiliyor. **Masaüstü oturumunda** (kullanıcının Türkiye'deki bilgisayarı) çalıştır:
+  `pip install requests && python scripts/csb_gecmis.py 2026-04-01`, sonra `frontend_v2/data/tuzla_saatlik.json`'u commit'leyip
+  `main`'e push et. Karşılaştırma ekranları (WHO sekmesi, Özet aylık, Canlı "Kampüs vs Bölge") kendiliğinden dolar.
+  Kullanıcı yeni PurpleAir verisi ekleyince aynı komutu güncel tarih aralığıyla tekrar çalıştır.
+- **gtuairlab'a taşındı (14 Ekim 2026):** repo `gtuairlab/gtuairlab.github.io`, geçmişsiz ilk commit; site https://gtuairlab.github.io/frontend_v2/.
+  Taşınmayanlar (kişi adı içeriyordu): eski demo betikleri (`create_demo*.py`, `regenerate_demo.py`, `snap_campaign_to_buildings.py`,
+  `embed_images.py`), `backend/seed.sql`, `.claude/settings.local.json`. Eski repo `ilkerakmirza/gtu-air-quality` yönlendirme sayfasıyla
+  duruyor; geçmişinde kişisel belgeler ve PurpleAir anahtarı var, **silinmesini kullanıcı ayrıca onaylayacak**. Kalan: `app.js` → `PEOPLE`
+  anahtarları ilk adlar (sunucunun `session_name` önekleriyle eşleşiyor; sunucu düzeltmesiyle birlikte kaldırılacak, onay bekliyor).
+- **KVKK, kullanıcı tutmaya karar verdi:** `proje_animasyon.html` (3 Ekim 2026; proje ekibinin akademik unvanlı adları).
+- **Sunucu güvenliği (kullanıcı "sonra" dedi, 4 Ekim 2026; hatırlat):**
+  1. `/api/upload` (CSV yükleme) korumasız: adresi bilen herkes veritabanına veri yükleyebilir. Öneri: `_admin_required()` eklemek;
+     önce ekipte elle CSV yükleyen var mı sor (eski arayüzdeki form kapandı, yükleme için yeni yol gerekebilir).
+  2. `ADMIN_TOKEN` varsayılanı `"changeme"` (`backend/config.py`): Render → Environment'ta uzun, rastgele bir değerle tanımlı mı,
+     kullanıcı kontrol etmeli (değeri isteme).
+- **Tanıtım videoları (6 Ekim 2026 deneme sürümü hazır):** `scripts/tanitim_video/` (Shorts 9:16 → Instagram/LinkedIn, uzun 16:9 → YouTube).
+  Yayın sürümü PurpleAir veri göndermeye başlayınca `GERCEK=1` ile ve kalıcı adres (gtuairlab / airlab.gtu.edu.tr) karekodla yeniden kaydedilecek.
+- **airlab.gtu.edu.tr (14 Ekim 2026):** GTÜ ana sayfa editöründeki birim sayfasına yönlenir (`gtu.edu.tr/kategori/9611`); kullanıcı bunu
+  vitrin olarak kullanacak (tanıtım metni + uygulamaya "URL" hedefli kategori bağlantısı). Uygulama GitHub Pages'te kalır; birim sayfasındaki
+  bağlantı https://gtuairlab.github.io olmalı (eski ilkerakmirza adresi yazılıysa kullanıcıya hatırlat).
+- **Adsız 20 bina:** ekip numaralı haritadan eşleştirince `campus.geojson`'a adları işle.
+- **PurpleAir düzeltmesi, kontroller** (yöntem 12 Ekim 2026'da EPA'nın ABD geneli denklemine, cf_1 girdisiyle geçti;
+  ayrıntı `docs/purpleair_epa_duzeltmesi.md` §9): (1) PurpleAir haritasında orta düzeyde bir saatin (ör. 11 Ekim 06:00, saatlik)
+  "US EPA" değerini uygulamayla karşılaştır, beklenen ~35,7 µg/m³; (2) Barkjohn vd. 2021 katsayılarını birincil kaynaktan teyit et
+  (girdi cf_1 ve nem teyit edildi; masaüstü oturumu); (3) **PurpleAir arşiv içe aktarımı yarım (12 Ekim 2026), kullanıcıya hatırlat:**
+  1 Mayıs – 6 Ekim arşivi eklendi, 3341 kayda cf_1 yazıldı; kalan tek engel 27–30 Nisan'daki 781 eski kaydın silinmesi
+  (yedeği `yedek_purpleair_nisan`; MCP'den DELETE çalışmıyor, kullanıcı Supabase SQL Editor'de çalıştıracak). Komut, kalan adımlar,
+  beklenen sayılar ve belge taslağı: `scripts/purpleair_arsiv/BENIOKU.md`; (4) Tuzla saat etiketi büyük olasılıkla saatin sonu, İBB/ÇŞB belgesinden doğrulanırsa
+  aynı saat eşleştirmesi 1 saat kaydırılacak. Kullanıcı yöntem kararlarının Tuzla karşılaştırmasına dayanmasını istemiyor.
+- **Atmotube yan yana ölçüm (karar 8 Ekim 2026; tarih belli değil, en kısa sürede; kurulumu kullanıcı yapacak, ölçüm bitince haber verecek):** 5 cihaz SUMER çatısında PurpleAir'in yanına
+  konacak (en az 24 sa, tercihen 48). Kurulum, analiz ve karar kuralı (oran 1 ± %10 → dokunma, değilse cihaza tek çarpan):
+  `docs/hesaplama_ve_kaynaklar.md` §5. EPA formülü Atmotube'a uygulanmaz; sonuç gelene kadar Atmotube ham ve göreli kullanılır.
+  1. Cihazlar telefonsuz ölçer, kendi belleğine dakikalık yazar. Sunucunun canlı toplayıcısı yalnızca telefona bağlı cihazın son değerini
+     aldığı için bu kayıt veritabanına girmez (saha ekranlarını da etkilemez). Ölçüm bitip cihazlar telefona bağlanınca kayıt buluta gider;
+     `/api/atmotube/history?device=ATP-n&start=GG&end=ertesi gün` ile gün gün çekilir. Bulut oturumu onrender.com'a erişemiyor:
+     ortam ayarlarında izinli alan adı eklenmeli ya da masaüstü oturumu kullanılmalı (yedek: uygulamadan CSV dışa aktarımı).
+  2. PurpleAir saatlik değerleri (US EPA düzeltmeli, A/B kanal denetimli) Supabase'den alınır.
+  3. Açık soru: saha verisinin %92'si (27–30 Nisan, 12 CSV oturumu) veritabanında "cihaz 1" diye kayıtlı. Çarpan gerekirse o günlerde
+     hangi oturumun hangi ATP ile ölçüldüğünü kullanıcıya sor (adları koda ve belgeye yazma).
+
+## Ajanlar (12 Ekim 2026, kullanıcının isteği; 5. ajan 13 Ekim 2026)
+Kullanıcı yalnızca ana ajanla (bu oturum) konuşur. Büyük işlerde beş uzman ajan kullanılır; kimlik kartları `.claude/agents/`,
+hafıza ve çalışma klasörleri `ajanlar/<ad>/` (`HAFIZA.md`), özet `ajanlar/BENIOKU.md`.
+- **1 · veri-kontrol** (salt okur): uygunluk, literatür, beklenen sayılar. **2 · isleme-yontem**: geri alınabilir plan, belge, kod, test
+  (commit/veritabanı yok). **4 · arayuz-kalitesi** (salt okur): işlev, grafikler, anlaşılırlık; ekran görüntüsüyle. **3 · son-kontrol**
+  (salt okur): geri alınamazlık, tutarlılık, onay/ret, `anlatim_notu.md`. **5 · veri-analiz**: analiz ve akademik rapor (grafik, harita,
+  `sayilar.json`); yalnızca `ajanlar/veri-analiz/` altına yazar.
+- Analiz ve rapor işlerinin sahibi Ajan 5'tir (kullanıcının kararı): sorunlu alanlar, kişisel maruziyet, en kötü durum, senaryolar,
+  dönemsel raporlar; yeni veri gelince raporu o günceller. Analiz akışı: 5 → 1 (kritik sayıları bağımsız yeniden hesaplar) → 3 → ana ajan yayımlar.
+- Akış: 1 → 2 → 4 → 3 → ana ajan uygular ve sayıları 1'in beklentisiyle karşılaştırır. Veritabanına yazma, commit ve `main`
+  yalnızca ana ajanda; silme gibi kararlar kullanıcıya sorulur. Salt okuyan ajanların "Hafızaya eklenecek" maddelerini ana ajan işler.
+- Küçük işte ajan açma: tek dosyalık düzeltme ya da soru için ana ajan doğrudan çalışır.
+
+## Gizlilik ve KVKK (her değişiklikte kontrol et)
+Repo ve GitHub Pages sitesi **herkese açık**: repoya giren her dosya (kök dizin dahil) bir bağlantıyla indirilebilir.
+- **Kişisel veri repoya girmez:** ad-soyad, e-posta, telefon, öğrenci/TC no, fotoğraf, imzalı form, başvuru/kabul belgeleri.
+  Böyle bir dosya görürsen kullanıcıya bildir; silmeden önce onay al.
+- Saha ölçümü yapan kişilerin adları arayüzde **varsayılan olarak hiçbir yerde** gösterilmez; `app.js` → `PEOPLE` listesi
+  "Saha ekibi A/B/C" etiketlerini kullanır. Ham `session_name` ekrana yazılmaz.
+- Adlar sunucuda/veritabanında olduğu gibi kalır (kullanıcının tercihi; sunucuda anonimleştirme yapma). Herkese açık
+  uçların çıktısında ise ad ve kampüs dışı konum yer almaz: CSV dışa aktarımda saha cihazları `saha-1…`, kampüs merkezine
+  2 km'den uzak konumlar (`backend/kampus.py`) harita, saha oturumu, canlı cihaz ve CSV'de gösterilmez.
+- **Ekip görünümü:** Saha panelinin altındaki "🔒 Ekip görünümü" bağlantısı ekip kodunu sorar. Gerçek adlar kaynak kodda
+  düz metin olarak **yoktur**; `TEAM_VAULT` içinde ekip koduyla şifrelidir (PBKDF2 → AES-GCM). Kod ya da ad değişirse:
+  `node scripts/ekip_kasasi.js "<kod>" '<ad JSON>'` çıktısını `TEAM_VAULT`'a yaz. Kaynak koda asla düz metin ad yazma.
+- **Üçüncü taraflar:** Yazı tipleri ve kütüphaneler `frontend_v2/vendor/` altından yerel yüklenir (Google Fonts / CDN yok).
+  Yeni bir dış servis ekleme; zorunluysa "Hakkında · Yöntem · Gizlilik" panelindeki KVKK bölümünü güncelle.
+- Analitik, çerez, izleme aracı ekleme. Tarayıcıda yalnızca tercihler (localStorage) tutulur.
+- **API anahtarları ve parolalar repoya asla girmez** (PurpleAir, Atmotube, Tuya, veritabanı, admin token): yalnızca sunucu ortam
+  değişkenlerinde (Render → Environment). Tarayıcı koduna anahtar gömülmez. `.claude/settings.local.json` izin listesine komutla
+  birlikte anahtar girebilir; commit'ten önce kontrol et. 4 Ekim 2026'da bu dosyada ve eski ekip sayfasında PurpleAir okuma anahtarı
+  (76E9… ile başlayan) bulundu ve git geçmişinde duruyor. **Kullanıcının kararı (7 Ekim 2026): bu anahtar kullanılmaya devam edecek,
+  yenilenmeyecek; tekrar önerme.** Risk yalnızca başkasının puanları harcaması (veri zaten herkese açık); kullanıcı PurpleAir panelinden
+  puan kullanımını izler, beklenmedik artışta yeniler. gtuairlab'a geçmişsiz depoyla taşınınca anahtar herkese açık yerden kalkar.
+
+## Arayüz ilkeleri (benzer uygulamalarla karşılaştırarak, akademik üslupla)
+- Arayüz değişikliğinden önce benzer uygulamalardaki karşılığına bak: IQAir AirVisual, PurpleAir haritası,
+  Sensor.Community, İBB Hava Kalitesi, ÇŞB SİM. Yaygın ve anlaşılır kalıbı seç; gösterişten çok netlik.
+- **Akademik üslup:** birimler her zaman yazılı (µg/m³, ppm); veri kaynağı ve ölçüm zamanı görünür; sınırlılıklar
+  saklanmaz; tavsiye dili ölçülü ("önerilir", "düşünebilir"), kesin sağlık hükmü yok. Yöntemde değişiklik olursa
+  "Hakkında · Yöntem · Gizlilik" panelini güncelle.
+- **Bileşen tutarlılığı:** mevcut bileşenleri yeniden kullan (panel/`news-dock`, `oz-card`, `wt` kutucukları, `pd-chip`,
+  `oz-line`, `who-legend`, `who-cap`). Yeni renk ekleme; grafik renklerini dataviz doğrulayıcısından geçir.
+- **Görsel dil:** GTÜ lacivertine dayalı koyu yüzeyler (`:root` belirteçleri), tek vurgu rengi (`--accent`), degrade/parlama yok.
+  Panel ve bölüm başlıkları serif (`var(--serif)`, Source Serif 4), metin ve rakamlar Inter (`var(--num)`, tabular rakamlar).
+  Arayüz ikonları emoji değil, `js/icons.js` (Lucide, ISC) çizgi ikonlarıdır: HTML'de `<svg class="i"><use href="#i-ad"></use></svg>`,
+  JS'te `ico("ad")`; yeni ikon gerekirse `ICONS` listesine Lucide'dan ekle. Harita üzerindeki bina etiketi simgeleri (🎓, 🔬…) bilinçli olarak emojidir.
+- **Basit / Araştırma görünümü:** Varsayılan görünüm herkes içindir (öğrenci, akademik ve idari personel):
+  Özet, Harita, Sağlık (WHO), Duyuru. Teknik içerik (sensör panelleri, saha ölçümleri, oynatma, karşılaştırma grafiği)
+  yalnızca **Araştırma**'dadır: masaüstünde üst çubuktaki düğme (`body.research`, tercih `gtu.view.research`),
+  telefonda "Araştırma" sekmesi ve içindeki Sensörler / Saha ölçümleri geçişi. Yeni teknik özellikleri Araştırma'ya koy.
+- **HKİ (Ulusal Hava Kalitesi İndeksi):** Herkesin gördüğü tek sınıflandırma budur (`colorscale.js` → `hki()`, `HKI_PM25`;
+  `pm25Label` HKİ sınıf adını döndürür). PM₂.₅ kesim noktaları İBB'nin yayımladığı ulusal tablodan: 12,0 / 35,4 / 55,4 / 150,4 / 250,4.
+  Sınıflar: İyi, Orta, Hassas, Sağlıksız, Kötü, Tehlikeli; her birinin yüz simgesi var (laugh … angry). Özet kartı IQAir düzeninde:
+  büyük HKİ sayısı + yüz + sınıf, PM₂.₅ ikincil. WHO karşılaştırması ayrı kavram olarak Sağlık sekmesinde kalır.
+  Sınır değerler (WHO 2021, Türkiye, AB 2030) Hakkında panelinde "Sınır değerler ve HKİ" bölümünde.
+- **Otomatik durum duyuruları** (`shell.js` → `statusNotices`): sensör kesintisi (PurpleAir > 2 sa, Tuzla > 6 sa, CO₂ > 24 sa) ve
+  HKİ > 100 (Hassas ve üstü) olduğunda Duyurular'a kendiliğinden kart düşer, sorun bitince kalkar; elle duyuru eklemeye gerek yok.
+- **Kişisel maruziyet** (`maruziyet.js`): varsayılan girdi yolu kural tabanlı **asistan** (sohbet; yapay zekâ/dış servis yok; yüzü HKİ'ye
+  göre değişir), ikinci yol tablo. C = P(saat) × R(bina) × F(ortam), solunum hızları US EPA (2011). Varsayımlar panelde
+  yazılıdır; girilen bilgiler cihazdan çıkmaz (yalnızca "Bu cihazda hatırla" ile localStorage).
+  Yöntem belgesi: `docs/maruziyet_yontemi.md`. `ENV`/`ACT` değerleri ya da hesap değişirse belgeyi aynı commit'te güncelle.
+- **Sayı biçimi:** Ekranda gösterilen ölçüm değerleri Türkçe biçimdedir (12,3): `colorscale.js` → `f1tr()`. `toFixed` yalnızca hesap/CSS içinde kullanılır.
+- **Kaynak kaydı:** Uygulamadaki her eşik, sınıflandırma ve hesap `docs/hesaplama_ve_kaynaklar.md`'de kaynağı ve doğrulama durumuyla
+  kayıtlı. Bir eşik/kaynak değişirse ya da yeni hesap eklenirse belgeyi aynı commit'te güncelle; doğrulanmamış değeri "ikincil" diye işaretle.
+- **PurpleAir düzeltmesi:** Ekrandaki ve hesaplardaki kampüs PM₂.₅'i US EPA düzeltmelidir: asıl yöntem
+  0,524 × cf_1 − 0,0862 × nem + 5,75 (`colorscale.js` → `epaCf1`; PurpleAir haritasındaki "US EPA" ile aynı), cf_1'i olmayan eski
+  kayıtlarda genişletilmiş denklem cf_atm ile (`epaPM25`); seçim `paCorrect` içinde, tek uygulama noktası `api.js`. Ham değerler
+  (`pm2_5_raw` = cf_atm, `pm2_5_cf1_a/b`) veritabanında kalır. PM₁₀, Atmotube ve Tuzla düzeltilmez. Formül ya da kanal
+  kuralı değişirse `docs/purpleair_epa_duzeltmesi.md` ve `hesaplama_ve_kaynaklar.md` §1a aynı commit'te güncellenir.
+- **Renkler:** PM₂.₅ rengi her yerde HKİ sınıf rengidir (`pm25Color`; ayrı renk ölçeği ekleme). Cihaz/seri renkleri `DEVICE_COLOR`
+  (PurpleAir `#6380f0`, Tuzla `#bf8418`, Atmotube `#2fa79a`): aynı cihaz her grafikte aynı renk; yeni seri rengi doğrulayıcıdan geçir.
+  Günlük grafiklerde takvim ekseni (boş gün boş kalır).
+- Kısa süreli saha ölçümleri WHO 24 saatlik değeriyle karşılaştırılmaz (kampüs saha ortalamasıyla karşılaştırılır).
+- **Saha ölçümlerindeki ani yükselmeler ayıklanmaz** (kullanıcının kararı, 8 Ekim 2026): yakında sigara içilmesi gibi gerçek,
+  kısa süreli maruziyet olabilir. Ortalamalardan çıkarma, "hatalı" diye işaretleme, Atmotube ölçümlerini silme; tekrar önerme.
+
+## İş bitince
+1. Değişiklikleri açıklayıcı bir mesajla commit'le.
+2. Push'tan hemen önce tekrar `git pull origin main` (diğer ortamda yapılan iş varsa birleştir).
+3. `git push origin main`
+4. Bulut oturumunda ayrı bir çalışma branch'i kullanılıyorsa, o branch'i de `main` ile aynı commit'e getir ve push et.
+
+Değişiklikler `main`'e geldiğinde GitHub Pages sitesi de güncellenir:
+https://gtuairlab.github.io/frontend_v2/
+
+## Duyuru eklemek
+Duyurular `frontend_v2/data/duyurular.json` dosyasında. Kullanıcı "duyuru ekle: …" dediğinde listeye yeni bir öğe ekle
+(sıra önemli değil, uygulama tarihe göre sıralar), commit'le ve `main`'e push et. Birkaç dakika içinde herkesin uygulamasına gelir.
+
+Sade duyuru (çoğu duyuru için yeterli):
+```json
+{
+  "id": "2026-10-15-saha-olcumu",      // benzersiz; okunmamış sayacı buna göre çalışır, sonradan değiştirme
+  "tarih": "2026-10-15",               // YYYY-AA-GG
+  "etiket": "Saha",                    // isteğe bağlı: Duyuru, Saha, Toplantı, Sensör…
+  "baslik": "Kısa başlık",
+  "metin": "Açıklama. **kalın** yazılabilir, satır atlamak için \\n",
+  "link": "https://…",                 // isteğe bağlı
+  "link_metni": "Formu aç"             // isteğe bağlı
+}
+```
+
+Renkli (zengin) duyuru — `renk` ya da `bolumler` varsa renkli başlık alanıyla kart olarak gösterilir
+(örnek: `duyurular.json` içindeki uygulama tanıtımı):
+- `renk`: `mor` | `mavi` | `yesil` | `turuncu` | `pembe` (başlık alanının degradesi)
+- `ikon`: başlıktaki emoji · `ozet`: başlığın altındaki kısa cümle · `sabit: true`: listenin en üstünde kalır
+- `bolumler`: sırayla gösterilen bölümler
+  - `{ "tur": "ozellikler", "baslik": "…", "ogeler": [{ "ikon": "📡", "baslik": "…", "metin": "…" }] }` — renkli özellik kartları
+  - `{ "tur": "adimlar", "ikon": "📱", "baslik": "…", "alt": "…", "renk": "#6c8cff", "adimlar": ["…", "…"] }` — numaralı adımlar
+  - `{ "tur": "not", "ikon": "✨", "metin": "…" }` — yeşil not kutusu
+  - `{ "tur": "metin", "baslik": "…", "metin": "…" }` — ara başlık / paragraf
+
+## Telefon uygulaması (PWA)
+- `frontend_v2/manifest.webmanifest`, `frontend_v2/sw.js`, `frontend_v2/icons/`, `frontend_v2/js/shell.js` (alt sekmeler, duyurular, kurulum).
+- `sw.js` uygulama dosyalarını "önce ağ" ile sunar; güncellemeler bir sonraki açılışta gelir, önbellek sürümünü değiştirmek gerekmez.
+- Telefon düzeni `index.html` içindeki `@media (max-width: 760px)` bloğunda; masaüstü düzenini bozmamaya dikkat et.
+
+## Proje yapısı
+- `frontend_v2/` — yayındaki arayüz (`index.html`, `js/icons.js` (ikon seti), `js/app.js`, `js/api.js`, `js/campus.js`, `js/colorscale.js`, `js/shell.js`, `js/who.js` (WHO durumu sekmesi), `js/ozet.js` (Özet: günlük ve aylık özet, açılış ekranı), `js/kiyas.js` (kampüs–Tuzla aynı saat karşılaştırması), `js/maruziyet.js` (kişisel maruziyet hesabı, taslak), `data/campus.geojson`, `data/duyurular.json`, `data/tuzla_saatlik.json` (Tuzla saatlik geçmişi))
+- `frontend_v2/vendor/` — yerel Leaflet, Leaflet.heat, Chart.js ve yazı tipleri (Inter, Source Serif 4) (lisanslar `vendor/LICENSES/`)
+- `docs/` — yöntem belgeleri: `hesaplama_ve_kaynaklar.md` (tüm sınıflandırma, eşik, hesap ve kaynakların kaydı + kontrol listesi), `purpleair_epa_duzeltmesi.md` (PurpleAir US EPA düzeltmesi: formül, örnekler, doğrulama, kaynaklar), `maruziyet_yontemi.md` (kişisel maruziyet hesabı)
+- **Sunucuyu uyanık tutma:** Asıl yöntem Supabase `pg_cron` işi `render-uyanik-tut` (5 dakikada bir `net.http_get` ile `/health`, 7 Ekim 2026).
+  Yedek: `.github/workflows/sunucu-uyanik.yml` (GitHub zamanlaması 3–8 saatte bir çalışabiliyor). Render uyursa veri toplama durur.
+  Render ücretsiz planı ayda 750 saat; tek servis 7/24 açık kalabilir.
+- **Veritabanı (Supabase):** 4 tabloda RLS açık (7 Ekim 2026); sunucu `postgres` rolüyle bağlanır (RLS'yi atlar), anon/authenticated erişemez.
+  `purpleair_readings.recorded_at` tekil (kopya kayıt yazılmaz).
+- `scripts/` — `tanitim_video/` (tanıtım videosu kaydı ve fon müziği), `ekip_kasasi.js` (ekip görünümü ad kasası), `tuzla_gecmis.py` (İBB'den Tuzla PM₁₀ geçmişi, her yerden çalışır), `csb_gecmis.py` (ÇŞB'den Tuzla PM₂.₅ geçmişi, yalnızca Türkiye'den)
+- `frontend/` — önceki harita arayüzü; **emekliye ayrıldı** (4 Ekim 2026): `map.html` ve kök `index.html` yeni arayüze (`frontend_v2/`) yönlendirir. Eski arayüz gerçek adları gösteriyor, CDN kullanıyor ve korumasız yükleme formu içeriyordu; geri getirme.
+- `backend/` — Python sunucu ve veri toplayıcılar (PurpleAir, Atmotube, Tuya CO2, ÇSB, İBB); arayüzün kullandığı API: https://gtu-air-quality.onrender.com (`frontend_v2/js/api.js`)
+- Yerelde önizleme: `python -m http.server 8765 --directory frontend_v2` → http://localhost:8765
