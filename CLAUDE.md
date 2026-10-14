@@ -28,6 +28,7 @@ Tek bir güncel sürüm olması için **tek kaynak `main` branch'idir**.
   `main`'e push et. Karşılaştırma ekranları (WHO sekmesi, Özet aylık, Canlı "Kampüs vs Bölge") kendiliğinden dolar.
   Kullanıcı yeni PurpleAir verisi ekleyince aynı komutu güncel tarih aralığıyla tekrar çalıştır.
 - **gtuairlab'a taşındı (14 Ekim 2026):** repo `gtuairlab/gtuairlab.github.io`, geçmişsiz ilk commit; site https://gtuairlab.github.io/frontend_v2/.
+  Render servisi (`gtu-air-quality`, kök `backend`, Python 3) aynı gün bu repoya bağlandı; `main`'e push sunucuyu da günceller.
   Taşınmayanlar (kişi adı içeriyordu): eski demo betikleri (`create_demo*.py`, `regenerate_demo.py`, `snap_campaign_to_buildings.py`,
   `embed_images.py`), `backend/seed.sql`, `.claude/settings.local.json`. Eski repo `ilkerakmirza/gtu-air-quality` yönlendirme sayfasıyla
   duruyor; geçmişinde kişisel belgeler ve PurpleAir anahtarı var, **silinmesini kullanıcı ayrıca onaylayacak**. Kalan: `app.js` → `PEOPLE`
