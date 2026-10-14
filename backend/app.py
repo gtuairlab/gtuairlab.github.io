@@ -132,6 +132,9 @@ def atmotube_live():
     out = []
     for d in atmotube_cloud.get_live_devices(force=force):
         d = dict(d)
+        if d.get("reading") is None:
+            # Bulut API'sine ulaşılamadıysa ya da yakın tarihte kayıt dönmediyse arşivdeki son ölçüm
+            d["reading"] = archive.latest_device_reading("atmotube", d.get("device"))
         r = d.get("reading")
         # Cihaz kampüs dışındaysa konum verilmez (ev/yol konumu olabilir — KVKK); ölçüm değerleri kalır
         if r and r.get("lat") is not None and not kampus.near(r.get("lat"), r.get("lon")):
@@ -258,6 +261,12 @@ def atmotube_history():
         items = atmotube_cloud.fetch_device_history(mac, start, end)
     except Exception as e:
         abort(502, description=f"Atmotube API hatası: {atmotube_cloud._safe_error(e)}")
+    # KVKK: kampüs dışındaki konumlar (ev, yol) herkese açık çıktıda verilmez; ölçüm değerleri kalır
+    for it in items:
+        c = it.get("coords") or {}
+        if c.get("lat") is not None and not kampus.near(c.get("lat"), c.get("lon")):
+            it["coords"] = None
+            it["off_campus"] = True
     return jsonify({"device": device, "count": len(items), "data": items})
 
 

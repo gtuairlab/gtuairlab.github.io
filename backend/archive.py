@@ -132,6 +132,29 @@ def latest_by_source(source):
         return None
 
 
+def latest_device_reading(source, device):
+    """Bir cihazın arşivdeki en son ölçümü (canlı API'ye ulaşılamadığında yedek). Biçim canlı
+    okumayla aynıdır; zaman UTC ISO. Yoksa None."""
+    if not _enabled:
+        return None
+    try:
+        con = _connect(); cur = con.cursor()
+        cur.execute("""SELECT recorded_at, voc_ppm, pm1_0, pm2_5, pm10_0, temperature_c,
+                              humidity_pct, pressure_hpa, lat, lon
+                       FROM measurements WHERE source=%s AND device=%s
+                       ORDER BY recorded_at DESC LIMIT 1""", (source, device))
+        r = cur.fetchone(); con.close()
+        if not r:
+            return None
+        return {"recorded_at": r[0].astimezone(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "voc_ppm": r[1], "pm1_0": r[2], "pm2_5": r[3], "pm10_0": r[4],
+                "temperature_c": r[5], "humidity_pct": r[6], "pressure_hpa": r[7],
+                "lat": r[8], "lon": r[9], "from_archive": True}
+    except Exception as e:
+        print(f"[archive] latest_device_reading hatası: {e}")
+        return None
+
+
 def last_device_gps(name_prefix):
     """Bir Atmotube cihazının (örn. 'ATP-2') arşivdeki SON bilinen GPS konumu.
     Önce canlı measurements, yoksa saha ölçümleri (atmotube_readings, oturum adı

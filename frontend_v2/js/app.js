@@ -577,7 +577,7 @@ function renderAtmotubeDevices(devices) {
         const info = !r && d.error ? "Atmotube bulutuna ulaşılamadı"
             : !r ? "son 120 günde veri yok"
             : recentish ? `${timeAgo(r.recorded_at)} · ${gpsTxt}`
-            : `son veri ${timeAgo(r.recorded_at)} · telefonla eşitlenmedi`;
+            : `son veri ${timeAgo(r.recorded_at)} · ${d.error ? "bulut yanıt vermiyor" : "telefonla eşitlenmedi"}`;
         const tip = r
             ? `Son veri (TR): ${trClock(r.recorded_at)}${r.pm2_5 != null ? ` · PM₂.₅ ${f1tr(r.pm2_5)} µg/m³` : ""}${hasGps ? " — haritada göster" : ""}`
             : d.error ? `Atmotube bulut API'si hata verdi: ${String(d.error).replace(/api_key=[^&\s]*/g, "api_key=…").replace(/"/g, "'").slice(0, 160)}`
