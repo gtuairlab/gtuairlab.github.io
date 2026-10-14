@@ -44,6 +44,9 @@ Tek bir güncel sürüm olması için **tek kaynak `main` branch'idir**.
 - **airlab.gtu.edu.tr (14 Ekim 2026):** GTÜ ana sayfa editöründeki birim sayfasına yönlenir (`gtu.edu.tr/kategori/9611`); kullanıcı bunu
   vitrin olarak kullanacak (tanıtım metni + uygulamaya "URL" hedefli kategori bağlantısı). Uygulama GitHub Pages'te kalır; birim sayfasındaki
   bağlantı https://gtuairlab.github.io olmalı (eski ilkerakmirza adresi yazılıysa kullanıcıya hatırlat).
+- **Atmotube bulut erişimi (14 Ekim 2026):** canlı listede tüm cihazlar "veri yok" görünüyordu (arşivde son ölçüm 14 Ekim 08:55 UTC).
+  Uygulama artık arşivdeki son ölçümü gösteriyor; asıl neden (`/api/atmotube/live` → `error`: HTTP 401/403/429?) kullanıcıdan bekleniyor.
+  Hata metni bu tarihe kadar herkese açık çıktıya anahtarla birlikte yazılabiliyordu → kullanıcıya Atmotube anahtarını yenilemeyi öner (karar onun).
 - **Adsız 20 bina:** ekip numaralı haritadan eşleştirince `campus.geojson`'a adları işle.
 - **PurpleAir düzeltmesi, kontroller** (yöntem 12 Ekim 2026'da EPA'nın ABD geneli denklemine, cf_1 girdisiyle geçti;
   ayrıntı `docs/purpleair_epa_duzeltmesi.md` §9): (1) PurpleAir haritasında orta düzeyde bir saatin (ör. 11 Ekim 06:00, saatlik)
