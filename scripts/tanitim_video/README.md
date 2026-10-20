@@ -26,7 +26,7 @@ HD=1 GERCEK=1 node scripts/tanitim_video/video_kaydet.js short    # → scripts/
   tarayıcı saati `NOW`'a ayarlanır, kapanış kartına kayıt tarihi yazılır. İkisi de verilmezse **örnek veri** kullanılır ve
   videoda "TASLAK · ÖRNEK VERİ" etiketi görünür (yayımlanmaz).
 - **HD (yayın kalitesi):** `HD=1` → ekran 1,5 kat yüksek çözünürlükte yakalanıp 1080×1920'ye küçültülür (keskin yazı), H.264 High, CRF 14.
-- **Telefon çerçevesi** (kısa sürüm): uygulama 390×800 telefon görünümünde, gerçek oranlı bir telefon çerçevesi ve durum çubuğuyla gösterilir.
+- **Kısa sürüm düzeni:** üstte başlık/açıklama bandı, altında uygulama telefon görünümünde (390 CSS px) tam genişlikte.
 - **Akıcılık:** tarayıcı saati ve CSS animasyonları `HIZ` katına yavaşlatılır (varsayılan 0,25), kareler içerik zamanına göre
   yerleştirilir; böylece yavaş makinede de geçişler takılmaz. Kayıt gerçek sürenin yaklaşık 1/HIZ katı kadar sürer.
 - Betik sahne zamanlarını `cikti/airlab-<mod>.sahneler.json`'a yazar; müziğin kapanış akoru buradaki `kapanis` anına hizalanır.

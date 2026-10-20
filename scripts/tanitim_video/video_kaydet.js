@@ -103,13 +103,10 @@ function sample(url) {
 const W = LONG ? 1280 : 540, H = LONG ? 720 : 960;
 // Çıkış: 1080×1920 / 1920×1080. HD=1 → ekran 1,5 kat yüksek çözünürlükte yakalanıp küçültülür (daha keskin), daha yüksek kalite kodlama
 const OUT_K = LONG ? 1.5 : 2, HD = process.env.HD === '1', DPR = HD ? OUT_K * 1.5 : OUT_K;
-// Kısa sürüm: üstte logo ve başlık/açıklama, altında ortada gerçek telefon oranında
-// (390×800 CSS px görüntü alanı + 44 px durum çubuğu) bir telefon çerçevesinin içinde gösterilir
-const PH = { top: 214, h: 722, pad: 9, sb: 44, vw: 390, vh: 800 };
-const SCP = (PH.h - 2 * PH.pad) / (PH.sb + PH.vh), PW = PH.vw * SCP + 2 * PH.pad, PX = (W - PW) / 2;
-const FRAME = LONG ? { x: 0, y: 92, w: 1280, h: 628 } : { x: PX + PH.pad, y: PH.top + PH.pad + PH.sb * SCP, w: PH.vw * SCP, h: PH.vh * SCP };
-const APPW = LONG ? FRAME.w : PH.vw, SC = LONG ? 1 : SCP, APPH = LONG ? FRAME.h : PH.vh;
-const SAAT = new Date(NOW).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Istanbul' });
+// Kısa sürüm: üstte başlık/açıklama bandı, altında uygulama tam genişlikte (390 CSS px telefon görünümü, ekrana ölçekli)
+const CAPH = 150;
+const FRAME = LONG ? { x: 0, y: 92, w: 1280, h: 628 } : { x: 0, y: CAPH, w: W, h: H - CAPH };
+const APPW = LONG ? FRAME.w : 390, SC = LONG ? 1 : W / 390, APPH = LONG ? FRAME.h : FRAME.h / SC;
 // Akıcılık: kayıt sırasında sayfanın saati (JS zamanlayıcıları, requestAnimationFrame) ve CSS animasyonları RATE hızında akar;
 // kareler içerik zamanına göre 30 fps'ye oturtulur. Ağır anlarda (harita uçuşu, grafik çizimi) kare düşmez, geçişler takılmaz.
 const RATE = +(process.env.HIZ || 0.25);
@@ -119,7 +116,7 @@ const STAGE = `<!doctype html><html lang="tr"><head><meta charset="utf-8">
 *{box-sizing:border-box;margin:0}
 html,body{width:${W}px;height:${H}px;overflow:hidden;background:#0a101d;color:#e8ecf4;font-family:Inter,system-ui,sans-serif}
 svg.i{width:1em;height:1em;flex-shrink:0}
-#cap{position:absolute;pointer-events:none;${LONG ? 'left:36px;right:300px;top:0;height:92px;display:flex;flex-direction:column;justify-content:center' : 'left:24px;right:24px;top:82px;height:126px;display:block'};transition:opacity .45s}
+#cap{position:absolute;pointer-events:none;${LONG ? 'left:36px;right:300px;top:0;height:92px;display:flex;flex-direction:column;justify-content:center' : 'left:22px;right:22px;top:16px;height:130px;display:block'};transition:opacity .45s}
 #cap h2{font-family:"Source Serif 4",serif;font-weight:600;font-size:${LONG ? 27 : 23}px;line-height:1.2;letter-spacing:-.005em}
 #cap h2 .tag{display:inline-block;vertical-align:3px;margin-right:8px;font:700 10.5px/1 Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#101521;background:#f5b840;padding:4px 7px;border-radius:5px}
 #cap p{margin-top:${LONG ? 4 : 5}px;font-size:${LONG ? 14.5 : 13.5}px;line-height:1.45;color:#aeb8cc}
@@ -127,14 +124,7 @@ svg.i{width:1em;height:1em;flex-shrink:0}
 #cap p:empty{display:none}
 #cap .ex{margin-top:11px;font-size:18.5px;line-height:1.45;font-weight:650;color:#fff;transition:opacity .3s}
 #cap .ex mark{background:#f5b840;color:#101521;padding:0 .22em;border-radius:5px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
-#appwrap{position:absolute;left:${FRAME.x}px;top:${FRAME.y}px;width:${FRAME.w}px;height:${FRAME.h}px;overflow:hidden;z-index:2;${LONG ? 'border-top:1px solid rgba(160,180,220,.14)' : `border-radius:0 0 ${36 * SC}px ${36 * SC}px`}}
-#phone{position:absolute;left:${PX}px;top:${PH.top}px;width:${PW}px;height:${PH.h}px;border-radius:${46 * SC + PH.pad}px;background:#04070d;
-  border:1px solid rgba(160,180,220,.24);box-shadow:0 0 0 2px #0b1220,0 22px 60px rgba(0,0,0,.6);z-index:1}
-#pstatus{position:absolute;left:${FRAME.x}px;top:${PH.top + PH.pad}px;width:${FRAME.w}px;height:${PH.sb * SC}px;z-index:2;background:#0a101d;
-  border-radius:${36 * SC}px ${36 * SC}px 0 0;display:flex;align-items:center;justify-content:space-between;padding:0 ${26 * SC}px;
-  font:600 ${15 * SC}px/1 Inter,sans-serif;color:#e8ecf4;letter-spacing:.01em}
-#pstatus .isl{position:absolute;left:50%;top:${10 * SC}px;width:${96 * SC}px;height:${26 * SC}px;margin-left:${-48 * SC}px;border-radius:${14 * SC}px;background:#000}
-#pstatus svg{height:${12 * SC}px;width:auto;margin-left:${5 * SC}px;fill:#e8ecf4}
+#appwrap{position:absolute;left:${FRAME.x}px;top:${FRAME.y}px;width:${FRAME.w}px;height:${FRAME.h}px;overflow:hidden;z-index:2;border-top:1px solid rgba(160,180,220,.14)}
 #appscale{position:absolute;left:0;top:0;width:${APPW}px;height:${APPH}px;transform:scale(${SC});transform-origin:0 0}
 #app{position:absolute;inset:0;width:100%;height:100%;border:0;background:#0a101d;transition:transform .85s cubic-bezier(.4,0,.2,1)}
 #brand{position:absolute;${LONG ? 'right:30px;top:0;height:92px' : 'left:24px;top:22px;height:44px'};display:flex;align-items:center;gap:${LONG ? 10 : 12}px;font-size:12px;line-height:1.35;color:#8b96ab}
@@ -194,12 +184,8 @@ svg.i{width:1em;height:1em;flex-shrink:0}
 </style></head><body>
 <script src="/js/icons.js"></script>
 <div id="cap"><h2></h2><p></p>${LONG ? '' : '<div class="ex"></div>'}</div>
-<div id="brand"><img src="${LOGO}" alt=""><span><b>GTÜ <i>Air</i>Lab</b><br>Kampüs Hava Kalitesi Laboratuvarı${LONG ? '' : ' · Gebze Teknik Üniversitesi'}</span></div>
+<div id="brand"${LONG ? '' : ' style="display:none"'}><img src="${LOGO}" alt=""><span><b>GTÜ <i>Air</i>Lab</b><br>Kampüs Hava Kalitesi Laboratuvarı${LONG ? '' : ' · Gebze Teknik Üniversitesi'}</span></div>
 ${SAMPLE ? '<div id="draft">TASLAK · ÖRNEK VERİ</div>' : ''}
-${LONG ? '' : `<div id="phone"></div><div id="pstatus"><span>${SAAT}</span><i class="isl"></i><span>
-  <svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx=".8"/><rect x="5" y="5.5" width="3" height="6.5" rx=".8"/><rect x="10" y="3" width="3" height="9" rx=".8"/><rect x="15" y="0" width="3" height="12" rx=".8"/></svg>
-  <svg viewBox="0 0 16 12"><path d="M8 11.5 5.6 9a3.4 3.4 0 0 1 4.8 0zM2.8 6.3a7.4 7.4 0 0 1 10.4 0l-1.4 1.4a5.4 5.4 0 0 0-7.6 0zM0 3.5a11.3 11.3 0 0 1 16 0l-1.4 1.4a9.3 9.3 0 0 0-13.2 0z"/></svg>
-  <svg viewBox="0 0 27 12"><rect x=".5" y=".5" width="22" height="11" rx="3" fill="none" stroke="#e8ecf4" opacity=".55"/><rect x="2.5" y="2.5" width="15" height="7" rx="1.6"/><rect x="24" y="4" width="2" height="4" rx="1" opacity=".55"/></svg></span></div>`}
 <div id="appwrap"><div id="appscale"><iframe id="app" name="app"></iframe></div></div>
 <div id="sub"></div>
 <div id="cursor"><svg viewBox="0 0 24 24" width="34" height="34"><path d="M3 2l7.5 19 2.6-7.6L21 10.8z" fill="#fff" stroke="#0a101d" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
