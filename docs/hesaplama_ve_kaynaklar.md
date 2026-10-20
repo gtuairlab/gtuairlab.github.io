@@ -60,6 +60,32 @@ ortamdan erişilemedi; aynı denklem birden çok bağımsız kaynakta aynı); ko
 `api.js` (`purpleairLatest`, `purpleairHistory`); sunucu `purpleair.py` (cf_1 ve cf_atm kanallarını kaydeder), `db.py` →
 `get_purpleair_history()` (kanal saatlik ortalamaları).
 
+## 1b. İç ortam PurpleAir — Amfi 1 (20 Ekim 2026)
+
+İkinci PurpleAir (PA-II, iki kanallı) Kimya ve Çevre Mühendisliği binasındaki Amfi 1'e, PurpleAir'e **iç ortam** olarak kayıtlı
+yerleştirildi. Amaç: Amfi 1'in iç ortam karakteristiği (iç/dış oranı, ders saatleri ile gece farkı, günlük desen) ve aynı binadaki
+Atmotube ölçümleriyle karşılaştırma.
+
+- **Toplama:** Sunucu 2 dakikada bir (dış sensörle aynı alanlar + konum, `location_type`) ayrı tabloya yazar
+  (`purpleair_indoor_readings`, sensör numarası + zaman tekil; RLS açık). Dış sensörün ekranları ve hesapları etkilenmez.
+  Sensör numarası Render ortam değişkeni `PURPLEAIR_INDOOR_SENSOR_ID` (özel kayıtlıysa `PURPLEAIR_INDOOR_READ_KEY`).
+- **Düzeltme:** Kullanıcının tercihiyle dış sensörle aynı US EPA düzeltmesi ve A/B kanal denetimi (§1a). **Uygunluk:** denklem dış
+  ortam eş konumlu ölçümlerinden geliştirildi; iç ortam kaynaklarında (insan, toz, temizlik) sapma olabilir — literatür
+  değerlendirmesi ve öneri için aşağıdaki "Değerlendirme" maddesine bakın. Ham değerler veritabanında; yöntem değişirse yalnızca
+  `api.js` → `indoorLatest/indoorHistory` değişir.
+- **İç/dış oranı (I/O):** Aynı saatin saatlik ortalamaları (iç ÷ dış, ikisi de düzeltilmiş); dönem değeri **medyan**. Ders saatleri =
+  hafta içi 08:00–18:00, gece = 00:00–06:00 (Türkiye saati; bina boşken sızma faktörüne yaklaşır). "Ders − gece" iç ortalamalar farkı.
+  Sensör panelindeki anlık oran, dış sensörün ±15 dk içindeki son ölçümüyle; yoksa aynı saatin ortalamasıyla.
+- **Atmotube karşılaştırması:** Atmotube cihaz oturumlarındaki (ATP-n) ölçümlerden iç sensörün bulunduğu binaya (içinde ya da ≤15 m)
+  düşenler, ±3 dk içindeki iç PurpleAir ölçümüyle eşlenir; cihaz başına medyan Atmotube, medyan PurpleAir ve medyan oran (Atmotube ÷
+  düzeltilmiş PurpleAir; ayrıca ham PurpleAir'e göre). En az 3 eşleşme. Yorum §5'teki kurala göre (oran 1 ± %10 → benzer). Sınırlılık:
+  Atmotube'un Amfi 1'de olduğu GPS'ten doğrulanamaz; kesin sonuç için cihazların sensörün yanında ≥24 saat ölçmesi gerekir.
+- **Değerlendirme:** Ajan 1 literatür incelemesi sürüyor (20 Ekim 2026); sonuç bu maddeye işlenecek.
+
+**Kodda:** `backend/purpleair.py` → `poll_indoor()`, `db.py` → `purpleair_indoor_readings`, `app.py` → `/api/indoor/latest`,
+`/api/indoor/history`; `ic.js` (sensör paneli ve analiz), `campus.js` → `buildingAt()`. Seri rengi `DEVICE_COLOR.indoor` (#d4566b;
+Atmotube ile renk körlüğü ΔE 7,0 → dış sensör kesikli çizgi ve lejant ikincil ayırt edici).
+
 ## 2. Ulusal Hava Kalitesi İndeksi (HKİ)
 
 Herkesin gördüğü tek sınıflandırma budur (Özet kartı, harita lejantı, sensör panelleri, otomatik uyarılar).
@@ -340,6 +366,7 @@ Afroz ve ark. (2025), Branco ve ark. (2024). Ayrıntılar, sayısal örnek ve ka
 
 | Sürüm | Tarih | Değişiklik |
 |---|---|---|
+| 2.1 | 20 Ekim 2026 | §1b: iç ortam PurpleAir (Amfi 1): toplama, düzeltme, I/O oranı, Atmotube eşleştirmesi. |
 | 2.0 | 20 Ekim 2026 | §6: Trendler sekmesi (gün × saat ısı haritası, kampüs–Tuzla günlük eğilimi ve eğilim cümlesi kuralı). §7: Özet'te son 24 saat şeridi. |
 | 1.9 | 12 Ekim 2026 | §1a: PurpleAir düzeltmesi EPA'nın ABD geneli denklemine, yayımlandığı girdi cf_1 ile geçti (PurpleAir haritasındaki "US EPA" ile aynı); cf_1'i olmayan eski kayıtlarda genişletilmiş denklem (yedek). |
 | 1.8 | 12 Ekim 2026 | §5: bina sınırına 15 m'den yakın dış noktalar en yakın binaya sayılır (GPS sapması); etkisi ve sınırlılığı yazıldı. |

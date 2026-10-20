@@ -6,7 +6,8 @@ Stores readings to the database via db.save_purpleair_reading().
 import urllib.request
 import json
 import datetime
-from config import PURPLEAIR_API_KEY, PURPLEAIR_SENSOR_ID, PURPLEAIR_LAT, PURPLEAIR_LON
+from config import (PURPLEAIR_API_KEY, PURPLEAIR_SENSOR_ID, PURPLEAIR_LAT, PURPLEAIR_LON,
+                    PURPLEAIR_INDOOR_SENSOR_ID, PURPLEAIR_INDOOR_READ_KEY)
 import db
 
 # pm2.5_cf_1_a/b: US EPA 2021 düzeltmesinin girdisi (PurpleAir haritasındaki "US EPA" dönüşümü de bunu kullanır)
@@ -90,6 +91,59 @@ def _ts(v):
     except ValueError:
         return None
     return d if d.tzinfo else d.replace(tzinfo=datetime.timezone.utc)
+
+
+# ── İç ortam sensörü (Amfi 1) ─────────────────────────────────────────────
+# Dış sensörle aynı alanlar + konum ve kayıt türü (location_type: 0 dış, 1 iç). Ayrı tabloya yazılır
+# (purpleair_indoor_readings); dış sensörün ekranları ve hesapları etkilenmez.
+INDOOR_FIELDS = FIELDS + ",latitude,longitude,location_type"
+_indoor_status = {"success": None, "error": None, "at": None, "sensor_index": PURPLEAIR_INDOOR_SENSOR_ID or None}
+_indoor_last_at = None
+
+
+def poll_indoor():
+    global _indoor_status, _indoor_last_at
+    if not PURPLEAIR_INDOOR_SENSOR_ID or not PURPLEAIR_API_KEY:
+        _indoor_status = {"success": False, "error": "iç sensör tanımlı değil", "at": _now(), "sensor_index": None}
+        return
+    try:
+        url = (f"https://api.purpleair.com/v1/sensors/{PURPLEAIR_INDOOR_SENSOR_ID}?fields="
+               + urllib.request.quote(INDOOR_FIELDS, safe=",."))
+        if PURPLEAIR_INDOOR_READ_KEY:
+            url += "&read_key=" + urllib.request.quote(PURPLEAIR_INDOOR_READ_KEY, safe="")
+        req = urllib.request.Request(url, headers={"X-API-Key": PURPLEAIR_API_KEY})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            sensor = json.loads(resp.read().decode()).get("sensor", {})
+        ls = sensor.get("last_seen")
+        recorded_at = datetime.datetime.utcfromtimestamp(ls).isoformat() + "Z" if ls else _now()
+        if _indoor_last_at is None:
+            latest = db.get_latest_purpleair_indoor()
+            _indoor_last_at = _ts(latest.get("recorded_at")) if latest else None
+        new_at = _ts(recorded_at)
+        base = {"at": _now(), "sensor_index": PURPLEAIR_INDOOR_SENSOR_ID, "location_type": sensor.get("location_type")}
+        if _indoor_last_at is not None and new_at is not None and new_at <= _indoor_last_at:
+            _indoor_status = {"success": True, "error": None, "stale_since": recorded_at, **base}
+            return
+        db.save_purpleair_indoor_reading({
+            "sensor_index": PURPLEAIR_INDOOR_SENSOR_ID, "recorded_at": recorded_at,
+            "pm1_0": sensor.get("pm1.0_atm"), "pm2_5": sensor.get("pm2.5_atm"),
+            "pm2_5_a": sensor.get("pm2.5_atm_a"), "pm2_5_b": sensor.get("pm2.5_atm_b"),
+            "pm2_5_cf1_a": sensor.get("pm2.5_cf_1_a"), "pm2_5_cf1_b": sensor.get("pm2.5_cf_1_b"),
+            "pm10_0": sensor.get("pm10.0_atm"), "temperature_c": _fahrenheit_to_celsius(sensor.get("temperature")),
+            "humidity_pct": sensor.get("humidity"), "lat": sensor.get("latitude"), "lon": sensor.get("longitude"),
+        })
+        _indoor_last_at = new_at
+        _indoor_status = {"success": True, "error": None, **base}
+    except Exception as e:
+        # Hata metninde okuma anahtarı görünmesin
+        import re
+        msg = re.sub(r"read_key=[^&\s]*", "read_key=…", str(e))
+        _indoor_status = {"success": False, "error": msg[:200], "at": _now(), "sensor_index": PURPLEAIR_INDOOR_SENSOR_ID}
+        print(f"[purpleair/indoor] Poll error: {msg[:200]}")
+
+
+def get_indoor_status():
+    return _indoor_status
 
 
 def get_poll_status():

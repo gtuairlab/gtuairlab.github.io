@@ -1069,6 +1069,21 @@ body.news-open #news-btn, body.who-open #who-btn, body.trend-open #trend-btn, bo
 .th-legend small { font-size: 10px; flex-basis: 100%; }
 .th-k { display: inline-flex; align-items: center; gap: 4px; margin-right: 8px; color: var(--text); }
 .tr-chart { position: relative; height: 190px; margin-bottom: 6px; }
+/* Amfi 1 iç ortam (ic.js) */
+.ph-sub { font: 500 10.5px var(--num); color: var(--text-2); margin-left: 4px; }
+.live-badge.off { background: rgba(244,97,94,0.12); border-color: rgba(244,97,94,0.4); color: #f4615e; }
+.ic-tiles { grid-template-columns: 1fr 1fr; margin-top: 4px; }
+.ic-table { width: 100%; border-collapse: collapse; font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.ic-table th { text-align: left; font-weight: 600; color: var(--text-2); font-size: 10.5px; padding: 4px 5px; border-bottom: 1px solid var(--stroke); }
+.ic-table td { padding: 5px; border-bottom: 1px solid var(--stroke); }
+.ic-table td:first-child { white-space: nowrap; }
+.ic-table .sayi { text-align: right; }
+.ic-table tr.few td { color: var(--text-2); }
+.ic-dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
+.ic-marker { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; background: #0f1726;
+  border: 2.5px solid var(--marker-color); color: var(--marker-color); box-shadow: 0 0 0 3px rgba(15,23,38,0.6); }
+.ic-marker .i { width: 14px; height: 14px; }
+body:not(.research) .ic-marker-wrap { display: none; }
 .mx-jbadge { background: rgba(10,16,29,0.85); border: 1px solid var(--stroke); border-radius: 7px; padding: 4px 7px;
   font: 500 11px/1.2 var(--num); color: #e9edf5; margin: 6px !important; }
 .cb-tips { margin: 6px 0 0 16px; display: grid; gap: 5px; }
@@ -1315,13 +1330,13 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
   body.ozet-open #ozet-dock,
   body.exp-open #exp-dock,
   body.info-open #info-dock,
-  body.who-open #who-dock, body.trend-open #trend-dock,
+  body.who-open #who-dock, body.trend-open #trend-dock, body.ic-open #ic-dock,
   body.news-open #news-dock {
     display: flex; position: absolute; top: 70px; right: 14px;
     width: 372px; max-height: calc(100vh - 84px);
     animation: slideIn 0.35s cubic-bezier(0.22,1,0.36,1);
   }
-  body.ozet-open .legend, body.exp-open .legend, body.info-open .legend, body.who-open .legend, body.trend-open .legend, body.news-open .legend { display: none; }
+  body.ozet-open .legend, body.exp-open .legend, body.info-open .legend, body.who-open .legend, body.trend-open .legend, body.ic-open .legend, body.news-open .legend { display: none; }
   /* Basit görünüm (varsayılan): sensör panelleri, saha paneli, grafik çekmecesi ve sayaçlar yalnızca Araştırma'da */
   body:not(.research) .sidebar, body:not(.research) .sidebar-toggle, body:not(.research) .sessions-dock,
   body:not(.research) .chart-drawer, body:not(.research) .player-dock, body:not(.research) #chip-readings,
@@ -1390,7 +1405,7 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
   body[data-tab="ozet"] #ozet-dock,
   body[data-tab="exp"] #exp-dock,
   body[data-tab="info"] #info-dock,
-  body[data-tab="who"] #who-dock, body[data-tab="trend"] #trend-dock {
+  body[data-tab="who"] #who-dock, body[data-tab="trend"] #trend-dock, body[data-tab="ic"] #ic-dock {
     display: flex; position: fixed; z-index: 1100;
     top: var(--top-h); bottom: var(--tab-h); left: 0; right: 0;
     width: auto; max-height: none; transform: none;
@@ -1398,24 +1413,25 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
     background: rgba(10,16,29,0.94); backdrop-filter: blur(6px);
   }
   .research-switch { --rs-h: 52px; }
-  body[data-tab="live"] .research-switch, body[data-tab="field"] .research-switch {
+  body[data-tab="live"] .research-switch, body[data-tab="field"] .research-switch, body[data-tab="ic"] .research-switch {
     display: block; position: fixed; z-index: 1110; top: var(--top-h); left: 0; right: 0;
     padding: 8px 10px 4px; background: rgba(10,16,29,0.94);
   }
-  body[data-tab="live"] .sidebar, body[data-tab="field"] .sessions-dock { top: calc(var(--top-h) + 52px); padding-top: 4px; }
+  body[data-tab="live"] .sidebar, body[data-tab="field"] .sessions-dock, body[data-tab="ic"] #ic-dock { top: calc(var(--top-h) + 52px); padding-top: 4px; }
   /* Telefonda Saha paneli tek parça kayar: bina sıralaması ve gün listesi ayrı küçük kaydırma kutularında kalmaz */
   .rk-list { max-height: none; overflow: visible; }
   .research-switch .view-seg { background: var(--glass); }
-  .rs-btn { padding: 9px 6px; font-size: 13px; }
+  .rs-btn { padding: 9px 4px; font-size: 12.5px; white-space: nowrap; gap: 5px; }
+  .research-switch .view-seg { display: grid; grid-template-columns: 1fr 1.25fr 0.95fr; }
   body[data-tab="field"] .sessions-dock .panel,
   body[data-tab="news"] #news-dock .panel,
   body[data-tab="ozet"] #ozet-dock .panel,
   body[data-tab="exp"] #exp-dock .panel,
   body[data-tab="info"] #info-dock .panel,
-  body[data-tab="who"] #who-dock .panel, body[data-tab="trend"] #trend-dock .panel { height: 100%; }
+  body[data-tab="who"] #who-dock .panel, body[data-tab="trend"] #trend-dock .panel, body[data-tab="ic"] #ic-dock .panel { height: 100%; }
   body[data-tab="field"] .sessions-dock .panel { height: auto; max-height: none; flex: none; overflow: visible; }
   body[data-tab="field"] .sessions-dock .panel-scroll .panel-body { flex: none; overflow: visible; }
-  body[data-tab="live"] .map-cta, body[data-tab="field"] .map-cta, body[data-tab="who"] .map-cta, body[data-tab="trend"] .map-cta, body[data-tab="ozet"] .map-cta, body[data-tab="exp"] .map-cta {
+  body[data-tab="live"] .map-cta, body[data-tab="field"] .map-cta, body[data-tab="who"] .map-cta, body[data-tab="trend"] .map-cta, body[data-tab="ic"] .map-cta, body[data-tab="ozet"] .map-cta, body[data-tab="exp"] .map-cta {
     display: flex; align-items: center; gap: 8px;
     position: fixed; z-index: 1150; left: 50%; transform: translateX(-50%);
     bottom: calc(var(--tab-h) + 12px); white-space: nowrap;
@@ -1431,7 +1447,7 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
   body:not([data-tab="field"]) .map-cta { left: auto; right: 14px; transform: none; padding: 13px; }
   body:not([data-tab="field"]) .map-cta #map-cta-text {
     position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  body[data-tab="live"] .sidebar, body[data-tab="field"] .sessions-dock .team-foot, body[data-tab="who"] #who-body, body[data-tab="trend"] #trend-body, body[data-tab="ozet"] #ozet-body, body[data-tab="exp"] #exp-body { padding-bottom: 76px; }
+  body[data-tab="live"] .sidebar, body[data-tab="field"] .sessions-dock .team-foot, body[data-tab="who"] #who-body, body[data-tab="trend"] #trend-body, body[data-tab="ic"] #ic-body, body[data-tab="ozet"] #ozet-body, body[data-tab="exp"] #exp-body { padding-bottom: 76px; }
   body:not([data-tab="map"]) .player-dock,
   body:not([data-tab="map"]) .chart-drawer { display: none; }
   /* Sensör karşılaştırma grafiği yalnızca bir saha günü oynatılırken (Araştırma akışı) */
@@ -1541,6 +1557,15 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
         <span id="pa-countdown"></span>
       </div>
     </div>
+  </section>
+
+  <!-- İç ortam PurpleAir: Amfi 1 (ic.js) -->
+  <section class="panel" data-key="ic">
+    <div class="panel-head">
+      <span class="ico"><svg class="i"><use href="#i-building-2"></use></svg></span> PurpleAir · Amfi 1 <small class="ph-sub">iç ortam</small>
+      <span class="right"><span class="live-badge" id="ic-badge" hidden><span class="live-dot"></span>CANLI</span></span>
+    </div>
+    <div class="panel-body" id="ic-panel"><div class="news-empty">Bağlanıyor…</div></div>
   </section>
 
   <!-- Atmotube live devices -->
@@ -1691,6 +1716,16 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
   </div>
 </aside>
 
+<aside class="news-dock who-dock" id="ic-dock">
+  <div class="panel panel-scroll" style="height:100%">
+    <div class="panel-head">
+      <span class="ico"><svg class="i"><use href="#i-building-2"></use></svg></span> Amfi 1 · iç ortam
+      <span class="right"><button class="pbtn sq" id="ic-close" type="button" title="Kapat" aria-label="Kapat"><svg class="i"><use href="#i-x"></use></svg></button></span>
+    </div>
+    <div class="panel-body" id="ic-body"><div class="news-empty">Yükleniyor…</div></div>
+  </div>
+</aside>
+
 <aside class="news-dock who-dock" id="trend-dock">
   <div class="panel panel-scroll" style="height:100%">
     <div class="panel-head">
@@ -1834,6 +1869,8 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
 
       <h4 id="inf-kay">Veri kaynakları ve lisanslar</h4>
       <ul>
+        <li>Kampüs sensörleri: PurpleAir PA-II (SUMER çatısı, dış ortam) ve PurpleAir PA-II (Kimya ve Çevre Müh. binası Amfi 1, iç ortam,
+          20 Ekim 2026'dan beri; yalnızca Araştırma görünümünde). İkisine de US EPA düzeltmesi uygulanır; iç ortamdaki sınırlılıklar Amfi 1 analizinde yazılıdır.</li>
         <li>Bölge verisi: T.C. Çevre, Şehircilik ve İklim Değişikliği Bakanlığı Sürekli İzleme Merkezi; İBB Açık Veri Portalı.</li>
         <li>PurpleAir düzeltmesi: Barkjohn, K. K., Gantt, B., Clements, A. L. (2021). <i>Atmos. Meas. Tech.</i>, 14, 4617–4637,
           doi:10.5194/amt-14-4617-2021 · Barkjohn, K. K., Holder, A. L., Frederick, S. G., Clements, A. L. (2022). <i>Sensors</i>,
@@ -1899,7 +1936,8 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
 <div class="research-switch" id="research-switch">
   <div class="view-seg" role="tablist" aria-label="Araştırma bölümleri">
     <button type="button" class="rs-btn" data-sub="live" role="tab"><svg class="i"><use href="#i-radio-tower"></use></svg> Sensörler</button>
-    <button type="button" class="rs-btn" data-sub="field" role="tab"><svg class="i"><use href="#i-footprints"></use></svg> Saha ölçümleri</button>
+    <button type="button" class="rs-btn" data-sub="field" role="tab"><svg class="i"><use href="#i-footprints"></use></svg> Saha ölçümü</button>
+    <button type="button" class="rs-btn" data-sub="ic" role="tab"><svg class="i"><use href="#i-building-2"></use></svg> Amfi 1</button>
   </div>
 </div>
 
@@ -1947,15 +1985,16 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
 <!-- Legend -->
 <div class="legend" id="legend"></div>
 
-<script src="js/colorscale.js?v=57"></script>
-<script src="js/api.js?v=44"></script>
-<script src="js/campus.js?v=58"></script>
-<script src="js/app.js?v=67"></script>
+<script src="js/colorscale.js?v=58"></script>
+<script src="js/api.js?v=45"></script>
+<script src="js/campus.js?v=59"></script>
+<script src="js/app.js?v=68"></script>
 <script src="js/who.js?v=48"></script>
 <script src="js/kiyas.js?v=43"></script>
 <script src="js/trend.js?v=1"></script>
+<script src="js/ic.js?v=1"></script>
 <script src="js/ozet.js?v=58"></script>
 <script src="js/maruziyet.js?v=6"></script>
-<script src="js/shell.js?v=53"></script>
+<script src="js/shell.js?v=54"></script>
 </body>
 </html>

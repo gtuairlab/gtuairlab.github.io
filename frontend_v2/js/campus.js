@@ -803,8 +803,16 @@ const Campus = (() => {
         const c = b.getCenter();
         return { center: [c.lat, c.lng], geo: ms.map(m => m.feature) };
     }
+    // Noktanın düştüğü bina (içinde ya da sınırına ≤15 m): gk anahtarı ve adı; yoksa null
+    function buildingAt(lat, lon) {
+        if (!ready || lat == null || lon == null) return null;
+        const buildings = features.filter(f => f.cat === "bina");
+        if (buildings.some(f => !f.gk)) groupPoints([]);
+        const b = buildings.find(f => contains(f, lon, lat)) || nearestBuilding(buildings, lon, lat);
+        return b ? { gk: b.gk, name: b.feature.properties.name || "İsimsiz bina" } : null;
+    }
     function campusOutline() { return ready ? features.filter(e => e.cat === "sinir").map(e => e.feature) : []; }
 
     return { init, colorByPoints, setVisible, setChoropleth, setPeriod, getPeriod, monthOf, fitCampus, buildingStats, focusByKey,
-             buildingShape, campusOutline };
+             buildingShape, campusOutline, buildingAt };
 })();

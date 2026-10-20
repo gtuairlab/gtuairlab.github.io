@@ -21,6 +21,12 @@ const API = {
     purpleairHistory: (start, end, interval = "hourly") =>
         apiFetch(`/api/purpleair/history?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&interval=${interval}`)
             .then(r => { (r && r.data || []).forEach(paCorrect); return r; }),
+    // İç ortam PurpleAir (Amfi 1): şimdilik dış sensörle aynı US EPA düzeltmesi (kullanıcının tercihi; iç ortam uygunluğu
+    // docs/hesaplama_ve_kaynaklar.md §1b'de tartışılır). Yöntem değişirse yalnızca burası değişir.
+    indoorLatest:     () => apiFetch("/api/indoor/latest").then(r => { if (r && r.data) paCorrect(r.data); return r; }),
+    indoorHistory:    (start, end, interval = "hourly") =>
+        apiFetch(`/api/indoor/history?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&interval=${interval}`)
+            .then(r => { (r && r.data || []).forEach(paCorrect); return r; }),
     sessions:         () => apiFetch("/api/sessions"),
     sessionReadings:  (id) => apiFetch(`/api/sessions/${id}/readings`),
     mapSummary:       () => apiFetch("/api/map/summary"),

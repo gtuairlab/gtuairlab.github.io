@@ -60,6 +60,7 @@ archive.init()
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(purpleair.poll, "interval", minutes=config.POLL_INTERVAL_MINUTES, id="pa_poll")
+scheduler.add_job(purpleair.poll_indoor, "interval", minutes=config.POLL_INTERVAL_MINUTES, id="pa_indoor_poll")
 # Üç kaynağı kalıcı arşive yaz: hızlı (PurpleAir+Atmotube) + saatlik (İBB)
 scheduler.add_job(collector.collect_fast, "interval", minutes=config.POLL_INTERVAL_MINUTES, id="archive_fast")
 scheduler.add_job(collector.collect_hourly, "interval", minutes=60, id="archive_ibb")
@@ -119,6 +120,23 @@ def purpleair_history():
 @app.get("/api/purpleair/status")
 def purpleair_status():
     return jsonify(purpleair.get_poll_status())
+
+
+# İç ortam PurpleAir (Amfi 1) — dış sensörden ayrı tablo; düzeltme tarayıcıda (api.js → paCorrect)
+@app.get("/api/indoor/latest")
+def indoor_latest():
+    row = db.get_latest_purpleair_indoor()
+    return jsonify({"data": row or None, "name": config.PURPLEAIR_INDOOR_NAME,
+                    "status": purpleair.get_indoor_status()})
+
+
+@app.get("/api/indoor/history")
+def indoor_history():
+    start = request.args.get("start", _days_ago(7))
+    end   = request.args.get("end", _now_iso())
+    interval = request.args.get("interval", "raw")
+    rows = db.get_purpleair_history(start, end, interval, which="in")
+    return _jsonify_rows(rows)
 
 
 # ---------------------------------------------------------------------------

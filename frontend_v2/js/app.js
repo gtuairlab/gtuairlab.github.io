@@ -100,6 +100,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // CO₂ sensörleri (Tuya, sabit) — 2 dk'da bir yenile
     if (CO2_AKTIF) { loadCO2Live(); setInterval(loadCO2Live, 120000); }
+    if (typeof Ic !== "undefined") { Ic.loadPanel(); setInterval(Ic.loadPanel, 120000); }   // Amfi 1 iç ortam PurpleAir
 
     // CSB ulusal istasyon (Tuzla) — 5 dk'da bir
     loadCSB();

@@ -25,7 +25,7 @@ const Shell = (() => {
 
     // ── Sekmeler (yalnızca telefon düzeninde görünür) ──────────────
     // Araştırma sekmesi iki bölümden oluşur: Sensörler (live) ve Saha ölçümleri (field)
-    const RESEARCH_TABS = ["live", "field"];
+    const RESEARCH_TABS = ["live", "field", "ic"];
     function showTab(tab) {
         if (tab === "research") tab = lsGet(SUB_KEY, "live");
         if (RESEARCH_TABS.includes(tab)) lsSet(SUB_KEY, tab);
@@ -41,12 +41,13 @@ const Shell = (() => {
         if (tab === "ozet" && typeof Ozet !== "undefined") Ozet.load();
         if (tab === "exp" && typeof Maruziyet !== "undefined") Maruziyet.load();
         if (tab === "trend" && typeof Trend !== "undefined") Trend.load();
+        if (tab === "ic" && typeof Ic !== "undefined") Ic.load();
         updateMapCta(false);
     }
 
     // Masaüstünde sağdaki paneller (Özet / WHO / Duyurular) aynı yerde açılır; biri açılınca diğerleri kapanır.
     // Telefonda aynı adlı sekmeye geçilir.
-    const PANELS = ["ozet", "who", "trend", "news", "info", "exp"];
+    const PANELS = ["ozet", "who", "trend", "news", "info", "exp", "ic"];
     function openPanel(name, toggle) {
         if (MOBILE.matches) { showTab(name); return; }
         const cls = name + "-open", was = document.body.classList.contains(cls);
@@ -57,6 +58,7 @@ const Shell = (() => {
         if (name === "ozet") Ozet.load();
         if (name === "exp") Maruziyet.load();
         if (name === "trend") Trend.load();
+        if (name === "ic") Ic.load();
         if (name === "news") { renderNews(); markSeen(); }
     }
     function closePanel(name) {
@@ -289,6 +291,7 @@ const Shell = (() => {
         $("who-close").addEventListener("click", () => closePanel("who"));
         $("trend-btn").addEventListener("click", () => openPanel("trend", true));
         $("trend-close").addEventListener("click", () => closePanel("trend"));
+        $("ic-close").addEventListener("click", () => closePanel("ic"));
         $("news-btn").addEventListener("click", () => openPanel("news", true));
         $("info-btn").addEventListener("click", () => openPanel("info", true));
         $("info-close").addEventListener("click", () => closePanel("info"));

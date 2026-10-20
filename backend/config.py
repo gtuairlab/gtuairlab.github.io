@@ -7,6 +7,11 @@ PURPLEAIR_API_KEY = os.getenv("PURPLEAIR_API_KEY", "")
 PURPLEAIR_SENSOR_ID = int(os.getenv("PURPLEAIR_SENSOR_ID", "229263"))
 PURPLEAIR_LAT = float(os.getenv("PURPLEAIR_LAT", "40.806155"))
 PURPLEAIR_LON = float(os.getenv("PURPLEAIR_LON", "29.360985"))
+# İkinci PurpleAir: Kimya ve Çevre Müh. binası Amfi 1, İÇ ORTAM (20 Ekim 2026). Sensör numarası PurpleAir haritasındaki
+# "select=" değeridir; 0 ise iç sensör toplanmaz. Özel (private) kayıtlı sensör için okuma anahtarı yalnızca ortam değişkeninde.
+PURPLEAIR_INDOOR_SENSOR_ID = int(os.getenv("PURPLEAIR_INDOOR_SENSOR_ID", "0") or 0)
+PURPLEAIR_INDOOR_READ_KEY = os.getenv("PURPLEAIR_INDOOR_READ_KEY", "")
+PURPLEAIR_INDOOR_NAME = os.getenv("PURPLEAIR_INDOOR_NAME", "Amfi 1")
 
 # Kampüs sınırı (kampus.py): herkese açık uçlarda bu alanın dışındaki konumlar gösterilmez
 CAMPUS_LAT = float(os.getenv("CAMPUS_LAT", "40.8114"))

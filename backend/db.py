@@ -96,6 +96,16 @@ CREATE TABLE IF NOT EXISTS purpleair_readings (
     created_at   TEXT DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS purpleair_indoor_readings (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    sensor_index INTEGER NOT NULL,
+    recorded_at  TEXT NOT NULL,
+    pm1_0 REAL, pm2_5 REAL, pm2_5_a REAL, pm2_5_b REAL, pm2_5_cf1_a REAL, pm2_5_cf1_b REAL, pm10_0 REAL,
+    temperature_c REAL, humidity_pct REAL, lat REAL, lon REAL,
+    created_at   TEXT DEFAULT (datetime('now')),
+    UNIQUE (sensor_index, recorded_at)
+);
+
 CREATE TABLE IF NOT EXISTS upload_sessions (
     id                 INTEGER PRIMARY KEY AUTOINCREMENT,
     session_name       TEXT NOT NULL,
@@ -144,6 +154,28 @@ CREATE TABLE IF NOT EXISTS purpleair_readings (
     lon           REAL DEFAULT 29.44690,
     created_at    TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- İç ortam PurpleAir (Amfi 1): dış sensörle aynı sütunlar; sensör numarasıyla tekil
+CREATE TABLE IF NOT EXISTS purpleair_indoor_readings (
+    id            BIGSERIAL PRIMARY KEY,
+    sensor_index  INTEGER NOT NULL,
+    recorded_at   TIMESTAMPTZ NOT NULL,
+    pm1_0         REAL,
+    pm2_5         REAL,
+    pm2_5_a       REAL,
+    pm2_5_b       REAL,
+    pm2_5_cf1_a   REAL,
+    pm2_5_cf1_b   REAL,
+    pm10_0        REAL,
+    temperature_c REAL,
+    humidity_pct  REAL,
+    lat           DOUBLE PRECISION,
+    lon           DOUBLE PRECISION,
+    created_at    TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (sensor_index, recorded_at)
+);
+CREATE INDEX IF NOT EXISTS idx_pa_indoor_time ON purpleair_indoor_readings (recorded_at);
+ALTER TABLE purpleair_indoor_readings ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS upload_sessions (
     id                BIGSERIAL PRIMARY KEY,
@@ -218,6 +250,25 @@ def save_purpleair_reading(data: dict):
         conn.cursor().execute(sql, data)
 
 
+def save_purpleair_indoor_reading(data: dict):
+    cols = "sensor_index, recorded_at, pm1_0, pm2_5, pm2_5_a, pm2_5_b, pm2_5_cf1_a, pm2_5_cf1_b, pm10_0, temperature_c, humidity_pct, lat, lon"
+    names = [c.strip() for c in cols.split(",")]
+    if _USE_POSTGRES:
+        sql = f"INSERT INTO purpleair_indoor_readings ({cols}) VALUES ({', '.join('%(' + n + ')s' for n in names)}) ON CONFLICT (sensor_index, recorded_at) DO NOTHING"
+    else:
+        sql = f"INSERT OR IGNORE INTO purpleair_indoor_readings ({cols}) VALUES ({', '.join(':' + n for n in names)})"
+    data = {n: None for n in names} | data
+    with get_conn() as conn:
+        conn.cursor().execute(sql, data)
+
+
+def get_latest_purpleair_indoor():
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM purpleair_indoor_readings ORDER BY recorded_at DESC LIMIT 1")
+        return fetchone(cur)
+
+
 def get_latest_purpleair():
     sql = "SELECT * FROM purpleair_readings ORDER BY recorded_at DESC LIMIT 1"
     with get_conn() as conn:
@@ -226,7 +277,11 @@ def get_latest_purpleair():
         return fetchone(cur)
 
 
-def get_purpleair_history(start: str, end: str, interval: str = "raw"):
+PA_TABLES = {"out": "purpleair_readings", "in": "purpleair_indoor_readings"}
+
+
+def get_purpleair_history(start: str, end: str, interval: str = "raw", which: str = "out"):
+    table = PA_TABLES[which]   # yalnızca beyaz listedeki iki tablo
     # Saatlik/günlük ortalamalar 2 ondalığa yuvarlanır (AVG(real) 17 basamaklı sayı döndürür; yanıt ~%30 küçülür).
     # Düzeltme tarayıcıda bu ortalamalardan yapılır (colorscale.js → paCorrect); 0,005 µg/m³ yuvarlama sonucu etkilemez.
     if interval == "hourly":
@@ -276,6 +331,7 @@ def get_purpleair_history(start: str, end: str, interval: str = "raw"):
                if _USE_POSTGRES else
                "SELECT * FROM purpleair_readings WHERE recorded_at BETWEEN :start AND :end ORDER BY recorded_at")
 
+    sql = sql.replace("purpleair_readings", table)
     params = {"start": start, "end": end} if _USE_POSTGRES else {"start": start, "end": end}
     with get_conn() as conn:
         cur = conn.cursor()

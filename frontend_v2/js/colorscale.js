@@ -63,7 +63,9 @@ function paCorrect(r) {
 
 // Cihaz (seri) renkleri: her grafikte aynı cihaz aynı renk. Üçü birlikte veri görselleştirme doğrulayıcısından geçti
 // (koyu zemin #0f1726, tüm ikililer: renk körlüğü ΔE ≥ 14,5, normal görüş ΔE ≥ 19,3, kontrast ≥ 3:1).
-const DEVICE_COLOR = { purpleair: "#6380f0", tuzla: "#bf8418", atmotube: "#2fa79a" };
+// indoor (Amfi 1 iç PurpleAir, 20 Ekim 2026): dördüyle birlikte doğrulayıcıdan geçti; Atmotube ile renk körlüğü ΔE 7,0 (6–8 bandı,
+// ikincil ayırt edici zorunlu): grafiklerde dış sensör kesikli çizgi, her seride lejant ve tabloda cihaz adı.
+const DEVICE_COLOR = { purpleair: "#6380f0", tuzla: "#bf8418", atmotube: "#2fa79a", indoor: "#d4566b" };
 
 // PM₂.₅ rengi = HKİ sınıf rengi (uygulamanın her yerinde tek renk sistemi; sınıf adı ile renk hiç çelişmez)
 function pm25Color(v) {
