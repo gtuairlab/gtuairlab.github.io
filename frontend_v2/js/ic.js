@@ -75,9 +75,9 @@ const Ic = (() => {
         const v = latest.pm2_5, col = v == null ? "#8a93a6" : pm25Color(v);
         if (badge) { badge.hidden = false; badge.classList.toggle("off", !fresh); badge.innerHTML = fresh ? `<span class="live-dot"></span>CANLI` : "Çevrimdışı"; }
         el.innerHTML = `<div class="pa-hero"><span class="val" style="color:${col}">${v == null ? "--" : f1(v)}</span><span class="unit">PM₂.₅ µg/m³ · iç ortam</span></div>
-            <div class="pa-raw">US EPA düzeltmeli (iç ortamda doğrulanmadı)${cf1(latest) != null ? ` · ham cf_1 ${f1(cf1(latest))} µg/m³` : ""}${latest.qa_ab === false ? " · A/B kanalları uyuşmuyor" : ""}</div>
+            <div class="pa-raw">US EPA düzeltmeli (iç ortamda doğrulanmadı)${cf1(latest) != null ? ` · ham sensör değeri ${f1(cf1(latest))} µg/m³ (CF=1)` : ""}${latest.qa_ab === false ? " · A/B kanalları uyuşmuyor" : ""}</div>
             <div class="pa-grid">
-              <div class="pa-cell" title="Ham cf_1 değerlerinin oranı (iç ÷ dış)"><div class="k">İç / dış</div><div class="v" id="ic-io">…</div></div>
+              <div class="pa-cell" title="Ham değerlerin (CF=1) oranı: iç ÷ dış"><div class="k">İç / dış</div><div class="v" id="ic-io">…</div></div>
               <div class="pa-cell"><div class="k">Sıcaklık*</div><div class="v">${latest.temperature_c != null ? f1(+latest.temperature_c) + "°" : "--"}</div></div>
               <div class="pa-cell"><div class="k">Nem*</div><div class="v">${latest.humidity_pct != null ? Math.round(latest.humidity_pct) + "%" : "--"}</div></div>
             </div>
@@ -93,7 +93,7 @@ const Ic = (() => {
         const io = $("ic-io");
         const vin = cf1(latest);
         if (io) io.textContent = out && vin != null ? f2(vin / out) : "--";
-        if (io) io.title = out ? `Ham cf_1: iç ${f1(vin)} ÷ dış (SUMER çatısı) ${f1(out)} µg/m³` : "Aynı an için dış ölçüm yok";
+        if (io) io.title = out ? `Ham değerler (CF=1): iç ${f1(vin)} ÷ dış (SUMER çatısı) ${f1(out)} µg/m³` : "Aynı an için dış ölçüm yok";
     }
 
     // ── Zaman grafiği: PM₂.₅ (iç), iç/dış oranı (ham cf_1), sıcaklık ve nem (iç ve dış) ──
@@ -159,10 +159,10 @@ const Ic = (() => {
         } else if (M === "io") {
             const ci = rows.map(cf1), co = om.map(o => o ? cf1(o) : null);
             const v = ci.map((x, i) => x != null && co[i] != null && co[i] > 0 ? r2(x / co[i]) : null);
-            sets = [line("İç / dış (ham cf_1)", v, C_IN), { ...line("Eşit (1)", v.map(() => 1), "#8a93a6", true), borderWidth: 1, pointHoverRadius: 0 }]; unit = "oran";
+            sets = [line("İç / dış (ham)", v, C_IN), { ...line("Eşit (1)", v.map(() => 1), "#8a93a6", true), borderWidth: 1, pointHoverRadius: 0 }]; unit = "oran";
             const ok = ci.map((x, i) => x != null && co[i] != null && co[i] > 0 ? i : -1).filter(i => i >= 0);
             const rom = ok.length ? mean(ok.map(i => ci[i])) / mean(ok.map(i => co[i])) : null, s = stats(v);
-            capTxt = s ? `İç ÷ dış, ham cf_1 (A/B denetimli; ${H > 24 ? "aynı saat" : "±2 dk"} eşleme) · aralık <b>${f2(s.lo)}</b>–<b>${f2(s.hi)}</b> ·
+            capTxt = s ? `İç ÷ dış, ham değerler (CF=1, A/B denetimli; ${H > 24 ? "aynı saat" : "±2 dk"} eşleme) · aralık <b>${f2(s.lo)}</b>–<b>${f2(s.hi)}</b> ·
                 dönem oranı (ortalamaların oranı) <b>${f2(rom)}</b> · 1'in altı: içerisi dışarıdan temiz` : "Bu aralıkta eşleşen dış ölçüm yok.";
         } else {
             const key = M === "t" ? "temperature_c" : "humidity_pct";
@@ -183,7 +183,7 @@ const Ic = (() => {
                 responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: "index", intersect: false },
                 plugins: { legend: { display: false }, tooltip: {
                     filter: it => it.dataset.label !== "Eşit (1)",
-                    callbacks: { label: it => M === "pm" ? ` ${f1(it.raw)} µg/m³ (EPA) · ham cf_1 ${f1(cf1(rows[it.dataIndex]))}` : ` ${it.dataset.label}: ${fmtV(it.raw)}` } } },
+                    callbacks: { label: it => M === "pm" ? ` ${f1(it.raw)} µg/m³ (EPA) · ham ${f1(cf1(rows[it.dataIndex]))} µg/m³` : ` ${it.dataset.label}: ${fmtV(it.raw)}` } } },
                 scales: {
                     x: { grid: { display: false }, ticks: { color: "#9aa4b8", font: { size: 9.5 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 5,
                          callback: function (v) { const l = String(this.getLabelForValue(v)); return H > 24 ? l.split(" ").slice(0, 2).join(" ") : l; } } },
@@ -267,14 +267,14 @@ const Ic = (() => {
     function tilesHtml(s) {
         const tile = (k, v, sub) => `<div class="wt"><span>${k}</span><b>${v}</b><small>${sub}</small></div>`;
         return `<div class="wt-grid ic-tiles">
-            ${tile(`${esc(name)} (iç) ortalama`, f1(s.i), `µg/m³ (EPA) · ham cf_1 ${f1(s.ci)} · ${s.all} saat`)}
-            ${tile("Dış, aynı saatler", f1(s.o), `µg/m³ (EPA) · ham cf_1 ${f1(s.co)} · ${s.n} ortak saat`)}
-            ${tile("İç / dış", f2(s.io), `ham cf_1 · saatlik medyan ${f2(s.med)} · EPA ile ${f2(s.ioE)}`)}
+            ${tile(`${esc(name)} (iç) ortalama`, f1(s.i), `µg/m³ (EPA) · ham değer ${f1(s.ci)} · ${s.all} saat`)}
+            ${tile("Dış, aynı saatler", f1(s.o), `µg/m³ (EPA) · ham değer ${f1(s.co)} · ${s.n} ortak saat`)}
+            ${tile("İç / dış", f2(s.io), `ham değerlerle · saatlik medyan ${f2(s.med)} · EPA ile ${f2(s.ioE)}`)}
             ${tile("Ders saatleri I/O", f2(s.cls.io), `hafta içi 08–18 · ${s.cls.n} saat · EPA ile ${f2(s.cls.ioE)}`)}
             ${tile("Gece I/O (boş bina)", f2(s.night.io), `23–05 · ${s.night.n} saat · sızmaya yaklaşık`)}
             ${tile("Ders − gece (iç)", s.cls.i != null && s.night.i != null ? f1(s.cls.i - s.night.i) : "–", "µg/m³ (EPA) · iç ortalamalar farkı")}
           </div>
-          <div class="who-cap">I/O = iç ham cf_1 ortalaması ÷ aynı saatlerin dış ham cf_1 ortalaması (A/B denetimli). EPA'lı oran yalnızca
+          <div class="who-cap">I/O = iç ham değer (CF=1) ortalaması ÷ aynı saatlerin dış ham değer ortalaması (A/B denetimli). EPA'lı oran yalnızca
             karşılaştırma içindir: denklemin sabit terimi ve nem terimi oranı temiz saatlerde büyütür. Gece I/O'su sızma faktörüne yaklaşır;
             maruziyet modelindeki F değerleri için en az 2 hafta veri (≥10 gece, 2 hafta sonu) birikmesi önerilir.</div>`;
     }
@@ -306,7 +306,7 @@ const Ic = (() => {
         const mk = (cid, sets, opts) => { const c = $(cid); if (c) charts.push(new Chart(c, { type: "line", data: { labels: ps.map(lab), datasets: sets }, options: opts })); };
         mk("ic-ts", [ds(`${name} (iç)`, ps.map(p => r1(p.i)), C_IN, false), ds("Dış · SUMER çatısı", ps.map(p => r1(p.o)), C_OUT, true)], tsOpts("µg/m³"));
         const io = ps.map(p => p.ci != null && p.co != null && p.co > 0 ? +(p.ci / p.co).toFixed(2) : null);
-        mk("ic-iots", [ds("İç / dış (ham cf_1)", io, C_IN, false), { ...ds("Eşit (1)", io.map(() => 1), "#8a93a6", true), borderWidth: 1, pointHoverRadius: 0 }], tsOpts("oran"));
+        mk("ic-iots", [ds("İç / dış (ham)", io, C_IN, false), { ...ds("Eşit (1)", io.map(() => 1), "#8a93a6", true), borderWidth: 1, pointHoverRadius: 0 }], tsOpts("oran"));
         mk("ic-temp", [ds(`${name} (iç)`, ps.map(p => r1(p.ti)), C_IN, false), ds("Dış · SUMER çatısı", ps.map(p => r1(p.to)), C_OUT, true)], tsOpts("°C"));
         mk("ic-rh", [ds(`${name} (iç)`, ps.map(p => r1(p.hi)), C_IN, false), ds("Dış · SUMER çatısı", ps.map(p => r1(p.ho)), C_OUT, true)], tsOpts("%"));
         const byH = Array.from({ length: 24 }, (_, h) => ps.filter(p => p.h === h));
@@ -357,11 +357,11 @@ const Ic = (() => {
                 return { dev, n: xs.length, a: mean(xs.map(x => x.a)), c: mean(xs.map(x => x.c)), r: mean(xs.map(x => x.a)) / mean(xs.map(x => x.c)),
                          re: ve.length ? mean(ve.map(x => x.a)) / mean(ve.map(x => x.v)) : null }; });
             box.innerHTML = rows.length ? `<table class="ic-table"><thead><tr><th>Cihaz</th><th class="sayi">Eşleşme</th><th class="sayi">Atmotube</th>
-                <th class="sayi">PurpleAir ham cf_1</th><th class="sayi">Oran</th><th class="sayi">EPA'lı ile</th></tr></thead>
+                <th class="sayi">PurpleAir (ham)</th><th class="sayi">Oran</th><th class="sayi">EPA'lı ile</th></tr></thead>
                 <tbody>${rows.map(r => `<tr${r.n < MIN_PAIRS ? ' class="few"' : ""}><td><i class="ic-dot" style="background:${C_ATP}"></i>${r.dev}</td><td class="sayi">${r.n}</td>
                   <td class="sayi">${f1(r.a)}</td><td class="sayi">${f1(r.c)}</td><td class="sayi">${r.n < MIN_PAIRS ? "–" : f2(r.r)}</td><td class="sayi">${r.n < MIN_PAIRS ? "az" : f2(r.re)}</td></tr>`).join("")}</tbody></table>
-                <div class="who-cap">Ortalamalar µg/m³. Oran = Atmotube ortalaması ÷ eşleşen iç PurpleAir ham cf_1 ortalaması; "EPA'lı ile" aynı oran düzeltilmiş
-                  PurpleAir'e göre (duyarlılık). Literatür beklentisi: ham cf_1'e göre ≈0,55–0,75, EPA'lıya göre ≈1 (Shittu vd. 2025; Tryner vd. 2021).
+                <div class="who-cap">Ortalamalar µg/m³. Oran = Atmotube ortalaması ÷ eşleşen iç PurpleAir ham değer (CF=1) ortalaması; "EPA'lı ile" aynı oran düzeltilmiş
+                  PurpleAir'e göre (duyarlılık). Literatür beklentisi: ham değere göre ≈0,55–0,75, EPA'lıya göre ≈1 (Shittu vd. 2025; Tryner vd. 2021).
                   Eşleme: Atmotube ölçümü ${esc(bld.name)} içinde (ya da sınırına ≤15 m) ve ±3 dk içinde bir iç PurpleAir ölçümü varsa; en az ${MIN_PAIRS} eşleşme.
                   Atmotube'un tam olarak ${esc(name)}'de olduğu GPS'ten doğrulanamaz. Bu iç ortam karşılaştırması "fark var mı" sorusunu yanıtlar, cihaz çarpanı
                   üretmez (çarpanın dayanağı SUMER çatısındaki yan yana ölçüm, §5). Kesin sonuç için cihazları sensörün yanında ≥24–48 saat (en az 2 ders bloğu ve 1 gece) ölçün.</div>`
@@ -384,13 +384,13 @@ const Ic = (() => {
             const firstDay = new Date(inHourly[0].recorded_at).toLocaleDateString("tr-TR", { day: "numeric", month: "long", timeZone: "Europe/Istanbul" });
             body.innerHTML = `<div class="pd-chips tr-period">${chips}</div>
               <p class="tr-sub">${esc(name)} (Kimya ve Çevre Müh. binası) iç ortam PurpleAir'i ile SUMER çatısındaki dış sensör, aynı saatlerin saatlik
-                ortalamalarıyla karşılaştırılır. Değerler US EPA düzeltmeli gösterilir; iç/dış oranları ham cf_1 ile hesaplanır. Ölçüm başlangıcı: ${firstDay}.</p>
+                ortalamalarıyla karşılaştırılır. Değerler US EPA düzeltmeli gösterilir; iç/dış oranları ham (CF=1) değerlerle hesaplanır. Ölçüm başlangıcı: ${firstDay}.</p>
               ${ps.length ? tilesHtml(s) : `<div class="wh-empty">Seçilen dönemde iç ölçüm yok.</div>`}
               <section class="tr-sec"><h3>${ico("activity")} Saatlik seyir</h3>
                 <div class="tr-chart"><canvas id="ic-ts" aria-label="İç ve dış saatlik PM₂.₅"></canvas></div>
                 <div class="who-legend"><span><i style="background:${C_IN}"></i>${esc(name)} (iç)</span><span><i class="dash" style="border-color:${C_OUT}"></i>Dış · SUMER çatısı</span></div></section>
               <section class="tr-sec"><h3>${ico("scale")} İç / dış oranı (I/O) zamana karşı</h3>
-                <p class="tr-sub">Her saat için iç ham cf_1 ÷ dış ham cf_1. Kesikli çizgi 1: altında içerisi dışarıdan temiz, üstünde kirli
+                <p class="tr-sub">Her saat için iç ham değer ÷ dış ham değer (CF=1). Kesikli çizgi 1: altında içerisi dışarıdan temiz, üstünde kirli
                   (iç kaynak: insan, toz). Gece değerleri dış havanın içeri sızma oranına yaklaşır.</p>
                 <div class="tr-chart"><canvas id="ic-iots" aria-label="Saatlik iç/dış PM₂.₅ oranı"></canvas></div>
                 <div class="who-legend"><span><i style="background:${C_IN}"></i>İç / dış</span><span><i class="dash" style="border-color:#8a93a6"></i>Eşit (1)</span></div></section>
@@ -407,8 +407,8 @@ const Ic = (() => {
               <section class="tr-sec"><h3>${ico("scale")} Atmotube ile karşılaştırma</h3>
                 <div id="ic-atp"><div class="news-empty">Atmotube ölçümleri eşleştiriliyor…</div></div></section>
               <div class="who-cap" style="margin-top:12px">Sınırlılıklar: Grafiklerdeki değerler US EPA düzeltmelidir; denklem dış ortam verisiyle geliştirildi,
-                iç ortamda doğrulanmadı (insan kaynaklı iri parçacık, toz ve yemek kaynaklı çok ince parçacıklarda optik sensör sapabilir). Bu yüzden oranlar ham
-                cf_1 ile hesaplanır. Dış sensör çatıda (141 m uzakta), iç sensör derslikte; yükseklik ve gecikme farkı tek tek saatlerde I/O'yu oynatabilir.
+                iç ortamda doğrulanmadı (insan kaynaklı iri parçacık, toz ve yemek kaynaklı çok ince parçacıklarda optik sensör sapabilir). Bu yüzden oranlar ham (CF=1)
+                değerlerle hesaplanır. Dış sensör çatıda (141 m uzakta), iç sensör derslikte; yükseklik ve gecikme farkı tek tek saatlerde I/O'yu oynatabilir.
                 Sensörün sıcaklık/nem değerleri cihaz gövdesinin içinden ölçülür. Kurulumun ilk saati analize girmez. Ayrıntı: docs/hesaplama_ve_kaynaklar.md §1b.</div>`;
             body.querySelectorAll("[data-p]").forEach(b => b.addEventListener("click", () => { period = +b.dataset.p; render(); }));
             drawCharts(ps);
