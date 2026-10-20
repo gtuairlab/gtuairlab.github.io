@@ -1,0 +1,21 @@
+{
+  "derslik": "Amfi 1",
+  "kaynak": "GTÜ Çevre Mühendisliği Bölümü, 2026-2027 Güz Lisans Ders Programı (son güncelleme 25.09.2026)",
+  "kaynak_url": "https://www.gtu.edu.tr/fileman/Files/UserFiles/cevre_muhendisligi_bolumu/2026-27%20G%C3%9CZ%20L%C4%B0SANS%20(REV%2025092026).pdf",
+  "not": "Bölümün lisans programında Amfi-1'e yazılmış dersler; kullanıcıya göre (20 Ekim 2026) Amfi 1'i başka ders kullanmıyor. Sınav haftaları ve tek seferlik etkinlikler yoktur. Saatler programdaki bloklardır (Türkiye saati). gun: 1 = Pazartesi … 5 = Cuma.",
+  "donem": { "baslangic": "2026-09-21", "bitis": "2027-01-19", "not": "kullanıcının bildirdiği dönem (20 Ekim 2026)" },
+  "tatiller": ["2026-10-29", "2027-01-01"],
+  "dersler": [
+    { "gun": 1, "bas": "09:30", "bit": "12:30", "ders": "ENVE 302" },
+    { "gun": 1, "bas": "13:30", "bit": "15:30", "ders": "ENVE 307" },
+    { "gun": 1, "bas": "15:30", "bit": "16:30", "ders": "ENVE 305" },
+    { "gun": 2, "bas": "09:30", "bit": "11:30", "ders": "ENVE 305" },
+    { "gun": 2, "bas": "11:30", "bit": "12:30", "ders": "ENVE 307" },
+    { "gun": 3, "bas": "10:30", "bit": "12:30", "ders": "ENVE 201" },
+    { "gun": 3, "bas": "13:30", "bit": "16:30", "ders": "ENVE 303" },
+    { "gun": 4, "bas": "10:30", "bit": "12:30", "ders": "ENVE 204" },
+    { "gun": 4, "bas": "13:30", "bit": "16:30", "ders": "ENVE 317" },
+    { "gun": 5, "bas": "09:30", "bit": "12:30", "ders": "ENVE 403" },
+    { "gun": 5, "bas": "14:30", "bit": "16:30", "ders": "ENVE 101", "not": "programda \"14.00 başlayabilir\" notu var" }
+  ]
+}

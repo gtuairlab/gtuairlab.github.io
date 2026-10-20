@@ -368,7 +368,7 @@ async function loadComparison() {
                 const dl = d => new Date(d + "T12:00:00").toLocaleDateString("tr-TR", { day: "numeric", month: "short" });
                 paEl.textContent = f1tr(hs.c); paEl.style.color = pm25Color(hs.c);
                 csbEl.textContent = f1tr(hs.r); csbEl.style.color = pm25Color(hs.r);
-                verdict.innerHTML = `${v.icon} ${v.txt} <span style="font-weight:500;opacity:.85">· geçmiş ölçümler</span>`;
+                verdict.innerHTML = `${v.icon} ${v.txt} <span style="font-weight:500;opacity:.85">· geçmiş ölçümler · ${v.not}</span>`;
                 verdict.style.cssText = v.cls === "ok" ? "background:rgba(52,210,123,0.13);color:#34d27b;border:1px solid rgba(52,210,123,0.35)"
                     : v.cls === "bad" ? "background:rgba(244,97,94,0.13);color:#f4615e;border:1px solid rgba(244,97,94,0.35)"
                     : "background:rgba(245,184,64,0.13);color:#f5b840;border:1px solid rgba(245,184,64,0.35)";

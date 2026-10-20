@@ -171,7 +171,7 @@ const Ozet = (() => {
         const v = Kiyas.verdict(s);
         if (!v) return "";
         return `<div class="oz-region">${v.icon} Aynı saatlerde ${v.txt.charAt(0).toLowerCase() + v.txt.slice(1)}
-            <small>(kampüs ${f1(s.c)} · Tuzla ${f1(s.r)} · ${s.n} saat)</small></div>`;
+            <small>(kampüs ${f1(s.c)} · Tuzla ${f1(s.r)} · ${s.n} saat · ${v.not})</small></div>`;
     }
 
     function monthlyHtml() {

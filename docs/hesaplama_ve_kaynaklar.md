@@ -77,9 +77,24 @@ Atmotube ölçümleriyle karşılaştırma.
   eğimi (F_inf) korunur, kesişim bozulur. Bu yüzden I/O ve Atmotube oranları ham cf_1 ile; EPA'lı oran duyarlılık için ikincil gösterilir.
   ALT-CF3 (`pm2.5_alt`) ayrıca duyarlılık için önerildi (Wallace 2022); şimdilik kaydedilmiyor.
 - **İç/dış oranı (I/O):** Aynı saatin saatlik ortalamaları; dönem değeri = iç ham cf_1 ortalaması ÷ dış ham cf_1 ortalaması (ortalamaların
-  oranı; saatlik oranların medyanı ikincil). Ders saatleri = hafta içi 08:00–18:00; gece (boş bina) = 23:00–05:00 (Bi vd. 2021).
-  Gece I/O'su sızma faktörüne (F_inf) yaklaşır; ders saati I/O'su iç kaynakları da içerir (Chen & Zhao 2011). Kurulumun ilk saati
-  (ısınma, kurulum tozu) analize girmez. Sensör panelindeki anlık oran: ham cf_1, dış sensörün ±15 dk içindeki son ölçümüyle.
+  oranı; saatlik oranların medyanı ikincil). Gece (boş bina) = 23:00–05:00 (Bi vd. 2021).
+  **Ders saatleri (20 Ekim 2026, kullanıcının isteği):** Çevre Mühendisliği Bölümü 2026-2027 Güz Lisans Ders Programı'nda (son güncelleme
+  25.09.2026; [PDF](https://www.gtu.edu.tr/fileman/Files/UserFiles/cevre_muhendisligi_bolumu/2026-27%20G%C3%9CZ%20L%C4%B0SANS%20(REV%2025092026).pdf))
+  Amfi-1'e yazılmış dersler, `frontend_v2/data/amfi1_program.json` (yalnızca gün, saat, ders kodu; öğretim üyesi adı yok):
+  Pzt 09:30–12:30 ve 13:30–16:30; Sal 09:30–12:30; Çar 10:30–12:30 ve 13:30–16:30; Per 10:30–12:30 ve 13:30–16:30; Cum 09:30–12:30 ve
+  14:30–16:30 (programda "14.00 başlayabilir" notu). Analiz saatlik ortalamalarla yapıldığından **yalnızca tamamı derse denk gelen saatler**
+  ders saati sayılır (haftada 15 saat: Pzt 10, 11, 14, 15; Sal 10, 11; Çar 11, 14, 15; Per 11, 14, 15; Cum 10, 11, 15); ders başı ve
+  sonundaki yarım saatler karışık olduğundan ne ders ne boş derslik sayılır. Dönem 21 Eylül 2026 – 19 Ocak 2027 (kullanıcının
+  bildirdiği, 20 Ekim 2026); 29 Ekim ve 1 Ocak resmî tatil, ders sayılmaz. Kullanıcıya göre Amfi 1'i
+  başka ders kullanmıyor (20 Ekim 2026). **Boş derslik:** hafta içi 08:00–18:00'de programda hiç ders olmayan saatler (tatil ve dönem
+  dışı günler dahil); ders ile gece arasındaki üçüncü sınıf (Ajan 1 önerisi). Sınırlılık: program gerçekleşen doluluğu göstermez (iptal, telafi,
+  sınav haftası, katılım); 28 Ekim öğleden sonrası ayrıca işaretlenmedi. Program dosyası yoksa yedek kural: ders = hafta içi 08:00–18:00,
+  boş derslik sınıfı yok. Grafiklerde ders saatleri soluk dikey bantla gösterilir (2 dakikalık grafiklerde dakika düzeyinde, saatlik
+  grafiklerde yukarıdaki tam saat kuralıyla); en az 2 hafta kuralı ders grubu için ayrıca sayılır (≥ ~10 ders saati ve ≥10 gece).
+  Gece I/O'su sızma faktörüne (F_inf) yaklaşır; ders saati I/O'su iç kaynakları da içerir (Chen & Zhao 2011). Kurulumdan sonraki ilk
+  saat (ısınma, kurulum tozu) analize girmez: saatlik veride kurulum anı bilinmediğinden ilk (kısmi) saat dilimi ve ardından gelen tam
+  saat atlanır (20 Ekim 2026, Ajan 1: önceki kod yalnızca ilk kısmi dilimi, fiilen 22 dk'yı atlıyordu). Sensör panelindeki anlık oran:
+  ham cf_1, dış sensörün ±15 dk içindeki son ölçümüyle.
 - **Grafikler (20 Ekim 2026):** Haritadaki iç sensör işareti ve sensör paneli: PM₂.₅ / iç-dış oranı / sıcaklık / nem, son 6 sa ve 24 sa
   2 dk'lık ölçümlerle (dış sensörle ±2,5 dk en yakın eşleme), 7 gün saatlik ortalamalarla (aynı saat). Analiz panelinde saatlik I/O
   (ham cf_1, 1 çizgisiyle) ve iç–dış sıcaklık ile nem. Sıcaklık/nem PurpleAir gövdesinin içinden ölçülür (sıcaklık yüksek, nem düşük
@@ -221,7 +236,9 @@ I  = (I_üst − I_alt) / (C_üst − C_alt) × (C − C_alt) + I_alt     → en
     Güney Kaliforniya AQMD saha testinde R² 0,79–0,90 (PM₁₀ zayıf).
   - Bu yüzden PurpleAir'in EPA formülü Atmotube'a uygulanmaz; uygulansa değerleri haksız yere ~%35 düşürürdü
     (ör. 20 µg/m³, nem %35 → 13,2).
-  - Bilinen zayıflıklar: nem > %80'de fazla okur (bizim saha verimizde nem hiç %80'i geçmedi: en yüksek %65, ortanca %35);
+  - Bilinen zayıflıklar: nem > %80'de fazla okur (bizim saha verimizde nem hiç %80'i geçmedi; 20 Ekim 2026 itibarıyla kampüs içi
+    2 370 geçerli kayıtta ortanca %36, %90'ı ≤ %49, %70 üstü tek kayıt; ayrıca 64 kayıtta geçersiz eksi nem değeri var, ör. −128 —
+    PM'yi etkilemez, nem kullanılırsa ayıklanır). Bu yüzden saha ölçümlerine nem düzeltmesi uygulanmaz;
     cihazdan cihaza fark olabilir (Leeds'te 8 cihazdan biri belirgin sapmış; bizde kısa yan yana ölçümlerde ATP-2/ATP-4 yakın,
     ATP-3/ATP-4 uzak); PM₁₀ güvenilir değildir; düşük derişimde tek ölçümün belirsizliği büyüktür (üretici: ±(5 µg/m³ + %5)).
   - **Yan yana ölçüm (karar: 8 Ekim 2026; sonuç bekleniyor):** beş cihaz SUMER çatısında PurpleAir'in yanında en az 24 saat
@@ -234,7 +251,9 @@ I  = (I_üst − I_alt) / (C_üst − C_alt) × (C − C_alt) + I_alt     → en
       telefona bağlanınca kayıt buluta gider. Yedek: uygulamadan CSV (Settings → Export Data to File).
     - Analiz: saatlik ortalamalar (saatin en az 45 dakikası dolu). Önce her cihaz beş cihazın ortancasıyla, sonra düzeltilmiş
       PurpleAir'le karşılaştırılır (oran, eğim, kesişim, R², ortalama fark). Oran 1 ± %10 içindeyse cihaza dokunulmaz (uygulama kuralı);
-      dışındaysa o cihazın değerleri tek bir çarpanla ölçeklenir, ham değer veritabanında kalır.
+      dışındaysa o cihazın değerleri tek bir çarpanla ölçeklenir, ham değer veritabanında kalır. Oranın neme bağlı değişip
+      değişmediğine de bakılır (çatıda gece/sabah nemi yüksek olabilir): bağımlılık yoksa nem düzeltmesi yapılmaz; varsa
+      (özellikle %70 üstünde) cihaza nem terimi eklenmesi ayrıca değerlendirilir (20 Ekim 2026, kullanıcının sorusu).
     - Derişimler düşük ve dar aralıkta kalırsa (ör. hep 10 µg/m³'ün altında) üreticinin ±(5 µg/m³ + %5) belirsizliği oranı
       bozar; o zaman çarpan uygulanmaz, ölçüm uzatılır. Sonuçlar bu bölüme ve `purpleair_epa_duzeltmesi.md` §9'a yazılır.
 * **Ani yükselmeler ayıklanmaz (ekip kararı, 8 Ekim 2026):** Yürüyüş sırasındaki tek noktalık yüksek değerler
@@ -252,7 +271,11 @@ I  = (I_üst − I_alt) / (C_üst − C_alt) × (C − C_alt) + I_alt     → en
 * Kampüs PurpleAir saatlik PM₂.₅ ile Tuzla istasyonu PM₂.₅ **aynı saatlerde** eşleştirilir; yalnızca iki tarafın da
   ölçüm yaptığı saatler kullanılır.
 * Fark yüzdesi = (kampüs ortalaması − Tuzla ortalaması) / Tuzla ortalaması × 100.
-* Yorum: fark ≤ −%5 → "daha temiz"; ≥ +%5 → "daha kirli"; arası → "benzer".
+* Yorum: fark ≤ −%5 → "Kampüs ortalaması Tuzla'dan %x düşük"; ≥ +%5 → "%x yüksek"; arası → "benzer". "Ölçüm yöntemleri farklı"
+  notu her gösterimde ayrıntı parantezine yazılır (Trendler, Sağlık, Özet aylık satırı, Canlı geçmiş); "temiz/kirli" hükmü verilmez
+  (20 Ekim 2026, Ajan 1: yöntemler farklı, istasyon 6,4 km uzakta, fark EPA düzeltmesinin hata payıyla aynı büyüklükte olabilir).
+  Yüzde yuvarlanmamış ortalamalardan hesaplanır (ekrandaki 16,2 / 18,7'den elle hesap %1 kadar farklı çıkabilir). Özet'in günlük
+  satırı ve Canlı paneldeki anlık karşılaştırma sade dille "daha temiz/kirli" demeye devam eder.
 * Anlık karşılaştırmada (Özet, Canlı) ±0,5 µg/m³ eşiği kullanılır. Burada da **aynı saat** eşleştirilir: Tuzla'nın son
   yayımlanan saatlik değeri, o saatin PurpleAir saatlik ortalamasıyla karşılaştırılır (8 Ekim 2026). Tuzla değeri İBB yayın
   gecikmesi yüzünden 1–3 saat geride olabildiğinden, önceden kampüsün son (çoğu zaman henüz dolmamış) saati ya da anlık değeri
@@ -267,10 +290,13 @@ I  = (I_üst − I_alt) / (C_üst − C_alt) × (C − C_alt) + I_alt     → en
 **Trendler sekmesi (20 Ekim 2026):** Aynı eşleştirmeyle günlük ortalamalar çizgi grafiği olarak gösterilir (dönem: son 30 / 90 gün,
 tüm dönem). "Eğilim" cümlesi: dönemin ikinci yarısındaki ortalama günlük fark (kampüs − Tuzla) ile ilk yarısındaki arasındaki değişim;
 |değişim| < 0,5 µg/m³ ise "yaklaşık aynı" denir (en az 6 gün gerekir). Betimseldir, istatistiksel anlamlılık testi yapılmaz.
+Grafik takvim eksenindedir: ilk ve son gün arasındaki her gün eksende yer alır, ortak ölçümü olmayan gün boş kalır ve çizgi boşluğun
+üstünden birleştirilmez (§9).
 
 **Gün × saat ısı haritası (Trendler):** Kampüs PurpleAir saatlik PM₂.₅'i (US EPA düzeltmeli) Türkiye saatine göre haftanın günü ve
 saate ayrılır; her hücre o gün-saatteki saatlik değerlerin aritmetik ortalamasıdır. 2'den az saatlik değeri olan hücre boş bırakılır.
-Renk HKİ sınıf rengidir (§9); aynı sınıf içinde hücre saydamlığı değere göre doğrusal artar (yalnızca görsel ayrım, ek sınıf değildir).
+Renk HKİ sınıf rengidir (§9); aynı sınıf içinde hücre saydamlığı değere göre doğrusal artar: koyu zeminde yüksek değer daha canlı,
+düşük değer daha soluk görünür (yalnızca görsel ayrım, ek sınıf değildir).
 Hafta içi / hafta sonu ortalaması hücre ortalamalarının ortalamasıdır. **Kodda:** `trend.js` → `grid()`, `heatHtml()`, `regionHtml()`.
 
 ## 7. Özet ekranı kuralları
@@ -388,6 +414,8 @@ Afroz ve ark. (2025), Branco ve ark. (2024). Ayrıntılar, sayısal örnek ve ka
 
 | Sürüm | Tarih | Değişiklik |
 |---|---|---|
+| 2.3 | 20 Ekim 2026 | §1b: Amfi 1 ders saatleri bölümün 2026-27 güz lisans ders programından (`data/amfi1_program.json`; yalnızca tamamı derse denk gelen saatler; dönem 21.09.2026–19.01.2027); yeni "boş derslik" sınıfı; grafiklerde ders bantları; ısınma kuralı düzeltildi (ilk kısmi saat + 1 saat). §6: Tuzla yorumu "düşük/yüksek (ölçüm yöntemleri farklı)". |
+| 2.2 | 20 Ekim 2026 | §6: kampüs–Tuzla günlük grafiği takvim ekseninde (boş gün boş kalır); ısı haritası lejantı düzeltildi ("canlı hücre daha yüksek"). |
 | 2.1 | 20 Ekim 2026 | §1b: iç ortam PurpleAir (Amfi 1): toplama; gösterimde EPA (notla), analizde ham cf_1 (Ajan 1); I/O, gece 23–05, Atmotube eşleştirmesi. |
 | 2.0 | 20 Ekim 2026 | §6: Trendler sekmesi (gün × saat ısı haritası, kampüs–Tuzla günlük eğilimi ve eğilim cümlesi kuralı). §7: Özet'te son 24 saat şeridi. |
 | 1.9 | 12 Ekim 2026 | §1a: PurpleAir düzeltmesi EPA'nın ABD geneli denklemine, yayımlandığı girdi cf_1 ile geçti (PurpleAir haritasındaki "US EPA" ile aynı); cf_1'i olmayan eski kayıtlarda genişletilmiş denklem (yedek). |

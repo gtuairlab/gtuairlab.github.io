@@ -63,13 +63,15 @@ const Kiyas = (() => {
                  first: pairs[0].day, last: pairs[pairs.length - 1].day };
     }
 
-    // Sade cümle: "%12 daha temiz" (±%5 içi "benzer")
+    // Sade cümle: "%12 düşük" (±%5 içi "benzer"). "Temiz/kirli" hükmü verilmez: ölçüm yöntemleri farklı, fark EPA düzeltmesinin
+    // hata payıyla aynı büyüklükte olabilir (Ajan 1, 20 Ekim 2026). `not` her gösterimde ayrıntı parantezinin içine yazılır.
+    const NOT = "ölçüm yöntemleri farklı";
     function verdict(s) {
         if (!s) return null;
         const a = Math.abs(s.pct).toFixed(0);
-        if (s.pct <= -5) return { cls: "ok", icon: ico("trending-down"), txt: `Kampüs, Tuzla'dan ortalama %${a} daha temiz` };
-        if (s.pct >= 5) return { cls: "bad", icon: ico("trending-up"), txt: `Kampüs, Tuzla'dan ortalama %${a} daha kirli` };
-        return { cls: "", icon: ico("equal"), txt: "Kampüs ve Tuzla benzer seviyede" };
+        if (s.pct <= -5) return { cls: "ok", icon: ico("trending-down"), txt: `Kampüs ortalaması Tuzla'dan %${a} düşük`, not: NOT };
+        if (s.pct >= 5) return { cls: "bad", icon: ico("trending-up"), txt: `Kampüs ortalaması Tuzla'dan %${a} yüksek`, not: NOT };
+        return { cls: "", icon: ico("equal"), txt: "Kampüs ve Tuzla benzer seviyede", not: NOT };
     }
 
     function daily(pairs) {

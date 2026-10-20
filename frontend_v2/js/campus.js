@@ -812,7 +812,8 @@ const Campus = (() => {
         return b ? { gk: b.gk, name: b.feature.properties.name || "İsimsiz bina" } : null;
     }
     function campusOutline() { return ready ? features.filter(e => e.cat === "sinir").map(e => e.feature) : []; }
+    function buildingsGeo() { return ready ? features.filter(e => e.cat === "bina").map(e => e.feature) : []; }
 
     return { init, colorByPoints, setVisible, setChoropleth, setPeriod, getPeriod, monthOf, fitCampus, buildingStats, focusByKey,
-             buildingShape, campusOutline, buildingAt };
+             buildingShape, campusOutline, buildingsGeo, buildingAt };
 })();

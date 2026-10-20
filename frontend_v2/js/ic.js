@@ -28,6 +28,7 @@ const Ic = (() => {
         return (a + b) / 2;
     };
     const WARMUP = 60 * 60e3;                             // kurulumdan sonraki ilk saat analize girmez
+    const SKIP = 60 * 60e3 + WARMUP;                      // saatlik veride kurulum anı bilinmez: ilk (kısmi) saat dilimi + ısınma saati
     const ATP_WIN = 3 * 60e3;                             // Atmotube–PurpleAir eşleme penceresi (dış sensörle aynı kural)
     const MIN_PAIRS = 3;
 
@@ -35,6 +36,9 @@ const Ic = (() => {
     const tsCharts = {};
     let panelHours = 24, panelMetric = "pm";   // zaman grafiği örnekleri (kanvas kimliğine göre): açılır kutu ve sensör paneli
     let period = 7, inHourly = null, busy = false, charts = [];
+    let program = null;   // Amfi 1 ders programı (yoksa null → hafta içi 08–18 varsayımı)
+    const programReady = fetch("data/amfi1_program.json", { cache: "no-cache" })
+        .then(r => r.ok ? r.json() : null).then(p => { if (p && Array.isArray(p.dersler) && p.dersler.length) program = p; }).catch(() => {});
 
     // ── Sensör paneli ──────────────────────────────────────────────
     async function loadPanel() {
@@ -126,6 +130,21 @@ const Ic = (() => {
         });
     }
     const num = v => v == null || v === "" || isNaN(v) ? null : +v;
+    // Ders saatleri: grafiğin arkasında soluk dikey bantlar (ders programına göre; yeni renk değil, nötr saydam beyaz)
+    const BAND = "rgba(255,255,255,0.07)";
+    const BAND_LEG = `<span><i style="background:rgba(255,255,255,0.22)"></i>Ders (programa göre)</span>`;
+    const bandPlugin = flags => ({ id: "dersBand", beforeDatasetsDraw(c) {
+        if (!flags || !flags.some(Boolean)) return;
+        const { ctx, chartArea: a, scales: { x } } = c, n = flags.length;
+        const half = n > 1 ? Math.abs(x.getPixelForValue(1) - x.getPixelForValue(0)) / 2 : 0;
+        ctx.save(); ctx.fillStyle = BAND;
+        for (let i = 0; i < n; i++) {
+            if (!flags[i]) continue;
+            let j = i; while (j + 1 < n && flags[j + 1]) j++;
+            const l = Math.max(a.left, x.getPixelForValue(i) - half), r = Math.min(a.right, x.getPixelForValue(j) + half);
+            ctx.fillRect(l, a.top, r - l, a.bottom - a.top); i = j;
+        }
+        ctx.restore(); } });
     async function drawTs(id, hours, metric) {
         const st = tsState[id] || (tsState[id] = { hours: 24, metric: "pm" });
         if (hours != null) st.hours = hours;
@@ -146,6 +165,8 @@ const Ic = (() => {
         const om = M === "pm" ? [] : matchOut(rows, outs, H > 24);
         const fmt = H > 24 ? { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" } : { hour: "2-digit", minute: "2-digit" };
         const labels = rows.map(r => new Date(r.recorded_at).toLocaleString("tr-TR", { timeZone: "Europe/Istanbul", ...fmt }));
+        const flags = program ? rows.map(r => { const t = new Date(r.recorded_at); return H > 24 ? isClass(hourPoint(t)) : inClassAt(t); }) : null;
+        const bandLeg = flags && flags.some(Boolean) ? BAND_LEG : "";
         const r1 = v => v == null ? null : +v.toFixed(1), r2 = v => v == null ? null : +v.toFixed(2);
         const line = (label, data, color, dashed) => ({ label, data, borderColor: color, backgroundColor: color, borderWidth: dashed ? 1.6 : 2,
             borderDash: dashed ? [5, 4] : [], pointRadius: 0, pointHoverRadius: 4, tension: 0.25, spanGaps: H > 24 ? false : 6 * 60e3 });
@@ -163,7 +184,7 @@ const Ic = (() => {
             const ok = ci.map((x, i) => x != null && co[i] != null && co[i] > 0 ? i : -1).filter(i => i >= 0);
             const rom = ok.length ? mean(ok.map(i => ci[i])) / mean(ok.map(i => co[i])) : null, s = stats(v);
             capTxt = s ? `İç ÷ dış, ham değerler (CF=1, A/B denetimli; ${H > 24 ? "aynı saat" : "±2 dk"} eşleme) · aralık <b>${f2(s.lo)}</b>–<b>${f2(s.hi)}</b> ·
-                dönem oranı (ortalamaların oranı) <b>${f2(rom)}</b> · 1'in altı: içerisi dışarıdan temiz` : "Bu aralıkta eşleşen dış ölçüm yok.";
+                dönem oranı (ortalamaların oranı) <b>${f2(rom)}</b> · 1'in altı: içerideki derişim dışarıdakinden düşük` : "Bu aralıkta eşleşen dış ölçüm yok.";
         } else {
             const key = M === "t" ? "temperature_c" : "humidity_pct";
             const vi = rows.map(r => r1(num(r[key]))), vo = om.map(o => o ? r1(num(o[key])) : null);
@@ -173,12 +194,12 @@ const Ic = (() => {
             capTxt = si ? `${M === "t" ? "Sıcaklık" : "Bağıl nem"}: iç ortalama <b>${f1(si.m)}${u}</b> (${f1(si.lo)}–${f1(si.hi)})${so ? ` · dış <b>${f1(so.m)}${u}</b>` : ""}.
                 PurpleAir bunu cihaz gövdesinin içinden ölçer: sıcaklık ortamdan yüksek, nem düşük okunur (iki sensörde benzer sapma).` : null;
         }
-        if (leg) leg.innerHTML = M === "pm" ? "" : M === "io"
+        if (leg) leg.innerHTML = (M === "pm" ? "" : M === "io"
             ? `<span><i style="background:${C_IN}"></i>İç / dış</span><span><i class="dash" style="border-color:#8a93a6"></i>Eşit (1)</span>`
-            : `<span><i style="background:${C_IN}"></i>${esc(name)} (iç)</span><span><i class="dash" style="border-color:${C_OUT}"></i>Dış · SUMER çatısı</span>`;
+            : `<span><i style="background:${C_IN}"></i>${esc(name)} (iç)</span><span><i class="dash" style="border-color:${C_OUT}"></i>Dış · SUMER çatısı</span>`) + bandLeg;
         const fmtV = v => v == null ? "–" : unit === "oran" ? f2(v) : `${f1(v)} ${unit}`;
         tsCharts[id] = new Chart(cv, {
-            type: "line", data: { labels, datasets: sets },
+            type: "line", data: { labels, datasets: sets }, plugins: [bandPlugin(flags)],
             options: {
                 responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: "index", intersect: false },
                 plugins: { legend: { display: false }, tooltip: {
@@ -235,7 +256,7 @@ const Ic = (() => {
         for (const r of outRows) out.set(hourKey(new Date(r.recorded_at)), { e: r.pm2_5 == null ? null : +r.pm2_5, c: cf1(r),
                                                                          t: num(r.temperature_c), rh: num(r.humidity_pct) });
         const first = inHourly && inHourly.length ? +new Date(inHourly[0].recorded_at) : 0;
-        const from = Math.max(since(), first + WARMUP), res = [];
+        const from = Math.max(since(), first + SKIP), res = [];
         for (const r of inHourly || []) {
             const t = new Date(r.recorded_at);
             if (+t < from) continue;
@@ -247,7 +268,31 @@ const Ic = (() => {
         return res;
     }
 
-    const isClass = p => !["Sat", "Sun"].includes(p.wd) && p.h >= 8 && p.h < 18;   // hafta içi 08:00–18:00
+    // Ders saati: Amfi 1 ders programı (data/amfi1_program.json, bölümün dönem ders programından; yalnızca gün, saat, ders kodu) varsa
+    // programdaki saatler — saatlik ortalamanın tamamı derse denk gelen saatler (09:30–12:30 bloğundan 10 ve 11); yarım saatler
+    // (ders başı/sonu) karışık olduğundan hiçbir gruba girmez. Dönem dışı ve tatil günleri ders sayılmaz. Program yoksa hafta içi 08–18.
+    // Boş derslik: hafta içi 08–18'de programda hiç ders olmayan saatler (yalnızca program varsa).
+    const WD_NUM = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
+    const toMin = s => { const [h, m] = String(s).split(":").map(Number); return h * 60 + (m || 0); };
+    const offDay = d => { const dn = program.donem || {};
+        return (dn.baslangic && d < dn.baslangic) || (dn.bitis && d > dn.bitis) || (program.tatiller || []).includes(d); };
+    function classMin(p) {   // saatlik dilimin kaç dakikası programdaki derse denk geliyor
+        if (!program || offDay(p.k.slice(0, 10))) return 0;
+        const a = p.h * 60, b = a + 60;
+        return program.dersler.filter(x => x.gun === WD_NUM[p.wd])
+            .reduce((m, x) => m + Math.max(0, Math.min(b, toMin(x.bit)) - Math.max(a, toMin(x.bas))), 0);
+    }
+    function inClassAt(t) {   // o an programdaki bir dersin içinde mi (dakika düzeyinde; 2 dakikalık grafiklerin bantları için)
+        if (!program) return false;
+        const k = hourKey(t);
+        if (offDay(k.slice(0, 10))) return false;
+        const m = hourOf(k) * 60 + t.getUTCMinutes(), g = WD_NUM[wdFmt.format(t)];   // Türkiye UTC+3, dakika UTC ile aynı
+        return program.dersler.some(x => x.gun === g && m >= toMin(x.bas) && m < toMin(x.bit));
+    }
+    const hourPoint = t => { const k = hourKey(t); return { k, h: hourOf(k), wd: wdFmt.format(t) }; };
+    const weekdayDay = p => !["Sat", "Sun"].includes(p.wd) && p.h >= 8 && p.h < 18;
+    const isClass = p => program ? classMin(p) >= 60 : weekdayDay(p);
+    const isIdle = p => !!program && weekdayDay(p) && classMin(p) === 0;
     const isNight = p => p.h >= 23 || p.h < 5;                                       // 23:00–05:00, bina boş (Bi vd. 2021)
 
     // I/O birincil: ham cf_1 (ΣC_iç / ΣC_dış = ortalamaların oranı, saatlik oranların medyanı ikincil); EPA'lı oran duyarlılık
@@ -261,7 +306,7 @@ const Ic = (() => {
         return { n: raw.length, all: ps.length, i: mean(ps.filter(p => p.i != null).map(p => p.i)),
                  o: mean(epa.map(p => p.o)), ci: mean(raw.map(p => p.ci)), co: mean(raw.map(p => p.co)),
                  io: ratioOfMeans(raw), med: median(raw.map(p => p.ci / p.co)), ioE: median(epa.map(p => p.i / p.o)),
-                 cls: grp(isClass), night: grp(isNight) };
+                 cls: grp(isClass), idle: grp(isIdle), night: grp(isNight) };
     }
 
     function tilesHtml(s) {
@@ -270,12 +315,15 @@ const Ic = (() => {
             ${tile(`${esc(name)} (iç) ortalama`, f1(s.i), `µg/m³ (EPA) · ham değer ${f1(s.ci)} · ${s.all} saat`)}
             ${tile("Dış, aynı saatler", f1(s.o), `µg/m³ (EPA) · ham değer ${f1(s.co)} · ${s.n} ortak saat`)}
             ${tile("İç / dış", f2(s.io), `ham değerlerle · saatlik medyan ${f2(s.med)} · EPA ile ${f2(s.ioE)}`)}
-            ${tile("Ders saatleri I/O", f2(s.cls.io), `hafta içi 08–18 · ${s.cls.n} saat · EPA ile ${f2(s.cls.ioE)}`)}
+            ${tile("Ders saatleri I/O", f2(s.cls.io), `${program ? "ders programındaki saatler" : "hafta içi 08–18"} · ${s.cls.n} saat · EPA ile ${f2(s.cls.ioE)}`)}
+            ${program ? tile("Boş derslik I/O", f2(s.idle.io), `hafta içi 08–18, programda ders yok · ${s.idle.n} saat · EPA ile ${f2(s.idle.ioE)}`) : ""}
             ${tile("Gece I/O (boş bina)", f2(s.night.io), `23–05 · ${s.night.n} saat · sızmaya yaklaşık`)}
             ${tile("Ders − gece (iç)", s.cls.i != null && s.night.i != null ? f1(s.cls.i - s.night.i) : "–", "µg/m³ (EPA) · iç ortalamalar farkı")}
           </div>
-          <div class="who-cap">I/O = iç ham değer (CF=1) ortalaması ÷ aynı saatlerin dış ham değer ortalaması (A/B denetimli). EPA'lı oran yalnızca
-            karşılaştırma içindir: denklemin sabit terimi ve nem terimi oranı temiz saatlerde büyütür. Gece I/O'su sızma faktörüne yaklaşır;
+          <div class="who-cap">${program ? `Ders saatleri: ${esc(program.kaynak || "ders programı")} içindeki ${esc(name)} dersleri; yalnızca tamamı derse denk
+            gelen saatler (sınav haftaları ve iptaller programda yok). ` : ""}I/O = iç ham değer (CF=1) ortalaması ÷ aynı saatlerin dış ham değer ortalaması (A/B denetimli). EPA'lı oran yalnızca
+            karşılaştırma içindir: düzeltme iki değere aynı sabiti (+5,75) ekler ve nem terimi iç/dış nem farkıyla değişir; oran 1'e doğru
+            kayar, en çok temiz saatlerde (ör. nem %50'de ham oran 0,50 iken ham 10/20 → EPA'lı 0,56; ham 4/8 → 0,63). Gece I/O'su sızma faktörüne yaklaşır;
             maruziyet modelindeki F değerleri için en az 2 hafta veri (≥10 gece, 2 hafta sonu) birikmesi önerilir.</div>`;
     }
 
@@ -300,10 +348,13 @@ const Ic = (() => {
         charts.forEach(c => c.destroy()); charts = [];
         if (typeof Chart === "undefined") return;
         const lab = p => p.t.toLocaleString("tr-TR", { timeZone: "Europe/Istanbul", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-        // Zaman eksenli grafikler: eksende yalnızca gün ("14 Eki"); ayrıntılı saat ipucunda
-        const tsOpts = unit => { const o = chartBase(unit); o.scales.x.ticks.callback = function (v) { return String(this.getLabelForValue(v)).split(" ").slice(0, 2).join(" "); }; return o; };
+        // Zaman eksenli grafikler: eksende gün ("14 Eki"); dönem 36 saatten kısaysa saat ("16:00"); ayrıntı ipucunda
+        const short = ps.length > 1 && ps[ps.length - 1].t - ps[0].t <= 36 * 3600e3;
+        const tsOpts = unit => { const o = chartBase(unit); o.scales.x.ticks.callback = function (v) {
+            const p = String(this.getLabelForValue(v)).split(" "); return short ? p.slice(2).join(" ") : p.slice(0, 2).join(" "); }; return o; };
         const r1 = v => v == null ? null : +v.toFixed(1);
-        const mk = (cid, sets, opts) => { const c = $(cid); if (c) charts.push(new Chart(c, { type: "line", data: { labels: ps.map(lab), datasets: sets }, options: opts })); };
+        const flags = program ? ps.map(isClass) : null;
+        const mk = (cid, sets, opts) => { const c = $(cid); if (c) charts.push(new Chart(c, { type: "line", data: { labels: ps.map(lab), datasets: sets }, options: opts, plugins: [bandPlugin(flags)] })); };
         mk("ic-ts", [ds(`${name} (iç)`, ps.map(p => r1(p.i)), C_IN, false), ds("Dış · SUMER çatısı", ps.map(p => r1(p.o)), C_OUT, true)], tsOpts("µg/m³"));
         const io = ps.map(p => p.ci != null && p.co != null && p.co > 0 ? +(p.ci / p.co).toFixed(2) : null);
         mk("ic-iots", [ds("İç / dış (ham)", io, C_IN, false), { ...ds("Eşit (1)", io.map(() => 1), "#8a93a6", true), borderWidth: 1, pointHoverRadius: 0 }], tsOpts("oran"));
@@ -327,7 +378,7 @@ const Ic = (() => {
         try {
             const tr = await API.mapTracks();
             const first = inHourly && inHourly.length ? +new Date(inHourly[0].recorded_at) : Date.now();
-            const from = Math.max(since(), first + WARMUP);
+            const from = Math.max(since(), first + SKIP);
             const pts = [];
             for (const t of tr.tracks || []) {
                 const dev = String(t.session_name || "").split("_")[0];
@@ -346,7 +397,7 @@ const Ic = (() => {
             }
             const t0 = Math.min(...pts.map(p => p.ts)) - ATP_WIN, t1 = Math.max(...pts.map(p => p.ts)) + ATP_WIN;
             const raw = ((await API.indoorHistory(new Date(t0).toISOString(), new Date(t1).toISOString(), "raw")).data || [])
-                .filter(r => +new Date(r.recorded_at) >= first + WARMUP)
+                .filter(r => +new Date(r.recorded_at) >= first + SKIP)
                 .map(r => ({ ts: +new Date(r.recorded_at), v: r.pm2_5 == null ? null : +r.pm2_5, c: cf1(r) })).filter(r => r.c != null)
                 .sort((x, y) => x.ts - y.ts);
             const near = ts => { let best = null; for (const r of raw) { const d = Math.abs(r.ts - ts); if (d <= ATP_WIN && (!best || d < best.d)) best = { ...r, d }; } return best; };
@@ -382,24 +433,25 @@ const Ic = (() => {
             const chips = [[1, "Son 24 saat"], [7, "Son 7 gün"], [30, "Son 30 gün"], [0, "Tümü"]]
                 .map(([d, t]) => `<button type="button" class="pd-chip${period === d ? " on" : ""}" data-p="${d}">${t}</button>`).join("");
             const firstDay = new Date(inHourly[0].recorded_at).toLocaleDateString("tr-TR", { day: "numeric", month: "long", timeZone: "Europe/Istanbul" });
+            const bandLeg = program && ps.some(isClass) ? BAND_LEG : "";
             body.innerHTML = `<div class="pd-chips tr-period">${chips}</div>
               <p class="tr-sub">${esc(name)} (Kimya ve Çevre Müh. binası) iç ortam PurpleAir'i ile SUMER çatısındaki dış sensör, aynı saatlerin saatlik
                 ortalamalarıyla karşılaştırılır. Değerler US EPA düzeltmeli gösterilir; iç/dış oranları ham (CF=1) değerlerle hesaplanır. Ölçüm başlangıcı: ${firstDay}.</p>
               ${ps.length ? tilesHtml(s) : `<div class="wh-empty">Seçilen dönemde iç ölçüm yok.</div>`}
               <section class="tr-sec"><h3>${ico("activity")} Saatlik seyir</h3>
                 <div class="tr-chart"><canvas id="ic-ts" aria-label="İç ve dış saatlik PM₂.₅"></canvas></div>
-                <div class="who-legend"><span><i style="background:${C_IN}"></i>${esc(name)} (iç)</span><span><i class="dash" style="border-color:${C_OUT}"></i>Dış · SUMER çatısı</span></div></section>
+                <div class="who-legend"><span><i style="background:${C_IN}"></i>${esc(name)} (iç)</span><span><i class="dash" style="border-color:${C_OUT}"></i>Dış · SUMER çatısı</span>${bandLeg}</div></section>
               <section class="tr-sec"><h3>${ico("scale")} İç / dış oranı (I/O) zamana karşı</h3>
-                <p class="tr-sub">Her saat için iç ham değer ÷ dış ham değer (CF=1). Kesikli çizgi 1: altında içerisi dışarıdan temiz, üstünde kirli
-                  (iç kaynak: insan, toz). Gece değerleri dış havanın içeri sızma oranına yaklaşır.</p>
+                <p class="tr-sub">Her saat için iç ham değer ÷ dış ham değer (CF=1). Kesikli çizgi 1: altında içerideki derişim dışarıdakinden düşük,
+                  üstünde yüksek (iç kaynak: insan, toz). Gece değerleri dış havanın içeri sızma oranına yaklaşır.</p>
                 <div class="tr-chart"><canvas id="ic-iots" aria-label="Saatlik iç/dış PM₂.₅ oranı"></canvas></div>
-                <div class="who-legend"><span><i style="background:${C_IN}"></i>İç / dış</span><span><i class="dash" style="border-color:#8a93a6"></i>Eşit (1)</span></div></section>
+                <div class="who-legend"><span><i style="background:${C_IN}"></i>İç / dış</span><span><i class="dash" style="border-color:#8a93a6"></i>Eşit (1)</span>${bandLeg}</div></section>
               <section class="tr-sec"><h3>${ico("activity")} Sıcaklık ve nem</h3>
                 <p class="tr-sub">Saatlik ortalamalar. PurpleAir sıcaklık ve nemi cihaz gövdesinin içinden ölçer: sıcaklık ortamdan yüksek, nem düşük
                   okunur (iki sensörde benzer sapma); karşılaştırma için uygundur, mutlak değer için değil.</p>
                 <div class="tr-chart ic-small"><canvas id="ic-temp" aria-label="İç ve dış sıcaklık"></canvas></div>
                 <div class="tr-chart ic-small"><canvas id="ic-rh" aria-label="İç ve dış bağıl nem"></canvas></div>
-                <div class="who-legend"><span><i style="background:${C_IN}"></i>${esc(name)} (iç)</span><span><i class="dash" style="border-color:${C_OUT}"></i>Dış · SUMER çatısı</span></div></section>
+                <div class="who-legend"><span><i style="background:${C_IN}"></i>${esc(name)} (iç)</span><span><i class="dash" style="border-color:${C_OUT}"></i>Dış · SUMER çatısı</span>${bandLeg}</div></section>
               <section class="tr-sec"><h3>${ico("clock")} Günün saatine göre</h3>
                 <p class="tr-sub">Her saatin dönem ortalaması (Türkiye saati). Ders saatlerinde içerideki artış, insan hareketi ve kapı/pencere açılmasıyla ilişkili olabilir.</p>
                 <div class="tr-chart"><canvas id="ic-hod" aria-label="Günün saatine göre iç ve dış ortalama PM₂.₅"></canvas></div>
@@ -424,6 +476,7 @@ const Ic = (() => {
             if (!latest) { const r = await API.indoorLatest(); latest = r.data; name = r.name || name; status = r.status; }
             const start = new Date(Date.now() - 400 * 864e5).toISOString();
             inHourly = (await API.indoorHistory(start, new Date().toISOString(), "hourly")).data || [];
+            await programReady;
             render();
         } catch (e) {
             console.warn("[ic]", e);

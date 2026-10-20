@@ -282,7 +282,7 @@ const WHO = (() => {
                 <td class="${m.pct >= 5 ? "bad" : ""}">${m.pct > 0 ? "+" : "−"}%${Math.abs(m.pct).toFixed(0)}</td></tr>`;
         };
         box.innerHTML = head + `
-            <div class="oz-line ${v.cls}">${v.icon} ${v.txt} <small>(${s.n} ortak saat · kampüsün daha temiz olduğu saat oranı: %${(s.cleaner * 100).toFixed(0)})</small></div>
+            <div class="oz-line ${v.cls}">${v.icon} ${v.txt} <small>(${s.n} ortak saat · kampüsün daha düşük olduğu saat oranı: %${(s.cleaner * 100).toFixed(0)} · ${v.not})</small></div>
             <div class="kx-pair">
               <div><i style="background:${Kiyas.C_CAMPUS}"></i><span>Kampüs (PurpleAir)</span><b>${f1(s.c)}</b></div>
               <div><i style="background:${Kiyas.C_REGION}"></i><span>Tuzla istasyonu</span><b>${f1(s.r)}</b></div>

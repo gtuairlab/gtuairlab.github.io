@@ -60,9 +60,9 @@ const Trend = (() => {
             return `<i class="th-c" style="--c:${pm25Color(c.v)};--a:${alpha(c.v).toFixed(2)}"
                        title="${DAYS[d]} ${hh(h)} · ${f1(c.v)} µg/m³ · ${c.n} saatlik ölçüm"></i>`;
         }).join("")).join("");
-        return `<div class="th-grid" role="img" aria-label="Haftanın günü ve saate göre ortalama PM₂.₅ ısı haritası">${head}${body}</div>
+        return `<div class="th-grid" role="img" aria-label="Haftanın gününe ve saatine göre ortalama PM₂.₅ ısı haritası">${head}${body}</div>
             <div class="th-legend">${classes(vals).map(c => `<span class="th-k"><i style="--c:${c.col};--a:0.85"></i>${c.ad}</span>`).join("")}
-              <small>Renk HKİ sınıfı; aynı renkte koyu hücre daha yüksek değer (${f1(lo)}–${f1(hi)} µg/m³).</small></div>
+              <small>Renk HKİ sınıfı; aynı renkte canlı hücre daha yüksek, soluk hücre daha düşük değer (${f1(lo)}–${f1(hi)} µg/m³).</small></div>
             <div class="oz-line">${ico("trending-up")} En yüksek: <b>${DAYS[max.d]} ${hh(max.h)}</b> (${f1(max.v)} µg/m³) ·
               en düşük: <b>${DAYS[min.d]} ${hh(min.h)}</b> (${f1(min.v)} µg/m³)</div>
             ${we.length ? `<div class="oz-line">${ico("clock")} Hafta içi ortalama <b>${f1(wk)}</b>, hafta sonu <b>${f1(mean(we))}</b> µg/m³</div>` : ""}`;
@@ -87,27 +87,39 @@ const Trend = (() => {
         return `<div class="tr-chart"><canvas id="tr-region" aria-label="Kampüs ve Tuzla günlük ortalama PM₂.₅"></canvas></div>
             <div class="who-legend"><span><i style="background:${Kiyas.C_CAMPUS}"></i>Kampüs (PurpleAir)</span>
               <span><i style="background:${Kiyas.C_REGION}"></i>Tuzla istasyonu</span></div>
-            ${v ? `<div class="oz-line ${v.cls}">${v.icon} ${v.txt} (${f1(r.s.c)} / ${f1(r.s.r)} µg/m³)</div>` : ""}
+            ${v ? `<div class="oz-line ${v.cls}">${v.icon} ${v.txt} (${f1(r.s.c)} / ${f1(r.s.r)} µg/m³; ${v.not})</div>` : ""}
             ${trTxt ? `<div class="oz-line">${ico("info")} ${trTxt}</div>` : ""}
             <div class="who-cap">${r.s.n} ortak saat · ${dayLabel(r.s.first)} – ${dayLabel(r.s.last)}. Yalnızca iki tarafın da ölçtüğü saatler
               karşılaştırılır. Tuzla istasyonu kampüse yaklaşık 6,4 km uzaktadır; PM₂.₅ ölçüm yöntemleri farklıdır (kampüs düşük maliyetli
               sensör + US EPA düzeltmesi, Tuzla referans istasyon).</div>`;
     }
 
+    // Takvim ekseni: ilk ve son gün arasındaki her gün; ortak ölçümü olmayan gün boş kalır (çizgi boşluğun üstünden birleşmez)
+    function calendar(days) {
+        if (!days.length) return [];
+        const by = new Map(days.map(x => [x.day, x])), keys = [...by.keys()].sort(), out = [];
+        for (let t = Date.parse(keys[0] + "T12:00:00Z"), end = Date.parse(keys[keys.length - 1] + "T12:00:00Z"); t <= end; t += 864e5) {
+            const k = new Date(t).toISOString().slice(0, 10);
+            out.push(by.get(k) || { day: k, c: null, r: null, n: 0 });
+        }
+        return out;
+    }
+
     function drawRegion(r) {
         if (chart) { chart.destroy(); chart = null; }
         const cv = $("tr-region");
         if (!cv || typeof Chart === "undefined") return;
-        const line = (label, key, color) => ({ label, data: r.days.map(x => +x[key].toFixed(1)), borderColor: color, backgroundColor: color,
-            borderWidth: 2, pointRadius: r.days.length > 40 ? 0 : 2.5, pointHoverRadius: 5, tension: 0.25, spanGaps: true });
+        const cal = calendar(r.days);
+        const line = (label, key, color) => ({ label, data: cal.map(x => x[key] == null ? null : +x[key].toFixed(1)), borderColor: color, backgroundColor: color,
+            borderWidth: 2, pointRadius: cal.length > 60 ? 1.5 : 2.5, pointHoverRadius: 5, tension: 0.25, spanGaps: false });
         chart = new Chart(cv, {
             type: "line",
-            data: { labels: r.days.map(x => dayLabel(x.day)), datasets: [line("Kampüs", "c", Kiyas.C_CAMPUS), line("Tuzla", "r", Kiyas.C_REGION)] },
+            data: { labels: cal.map(x => dayLabel(x.day)), datasets: [line("Kampüs", "c", Kiyas.C_CAMPUS), line("Tuzla", "r", Kiyas.C_REGION)] },
             options: {
                 responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: "index", intersect: false },
                 plugins: { legend: { display: false }, tooltip: { callbacks: {
                     label: it => ` ${it.dataset.label}: ${f1(it.raw)} µg/m³`,
-                    afterBody: it => `${r.days[it[0].dataIndex].n} ortak saat` } } },
+                    afterBody: it => `${cal[it[0].dataIndex].n} ortak saat` } } },
                 scales: {
                     x: { grid: { display: false }, ticks: { color: "#9aa4b8", font: { size: 9.5 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 6 } },
                     y: { min: 0, grid: { color: "rgba(255,255,255,0.06)" }, border: { display: false },
@@ -126,7 +138,7 @@ const Trend = (() => {
         $("trend-body").innerHTML = `<div class="pd-chips tr-period">${chips}</div>
             <section class="tr-sec">
               <h3>${ico("clock")} Hangi gün, hangi saat?</h3>
-              <p class="tr-sub">Kampüs PM₂.₅'inin haftanın günü ve saate göre ortalaması (Türkiye saati, US EPA düzeltmeli saatlik değerler).</p>
+              <p class="tr-sub">Kampüs PM₂.₅'inin haftanın gününe ve saatine göre ortalaması (Türkiye saati, US EPA düzeltmeli saatlik değerler).</p>
               ${heatHtml(grid(hist || []))}
             </section>
             <section class="tr-sec">

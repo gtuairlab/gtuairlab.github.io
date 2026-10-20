@@ -364,6 +364,10 @@ const Maruziyet = (() => {
         L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
             { attribution: "© CARTO © OpenStreetMap", maxZoom: 20, subdomains: "abcd" }).addTo(jmap);
         const outline = typeof Campus !== "undefined" ? Campus.campusOutline() : [];
+        // Kampüs binaları soluk çizgiyle: altlık karolar yüklenemediğinde (çevrimdışı, yavaş bağlantı) de harita okunur kalır
+        const blds = typeof Campus !== "undefined" && Campus.buildingsGeo ? Campus.buildingsGeo() : [];
+        if (blds.length) L.geoJSON(blds, { interactive: false,
+            style: { color: "#7aa3f5", weight: 0.8, opacity: 0.3, fillColor: "#7aa3f5", fillOpacity: 0.05 } }).addTo(jmap);
         // "Kampüs geneli" (bina seçilmemiş) dilimler tek noktaya konmaz: kampüs alanı o dilimin rengiyle boyanır
         const camp = outline.length ? L.geoJSON(outline, { interactive: false,
             style: { color: "#7aa3f5", weight: 1.2, opacity: 0.5, fillColor: "#7aa3f5", fillOpacity: 0, dashArray: "4 4" } }).addTo(jmap) : null;
@@ -398,14 +402,21 @@ const Maruziyet = (() => {
         const finish = () => {
             if (gen) setBadge(gen.dose);
             if (camp && gen) camp.setStyle({ fillColor: pm25Color(gen.ch / gen.h), fillOpacity: 0.07 });
+            // Etiket sağa yazılır; sağında yakın bir daire varsa üstüne binmesin diye sola alınır
+            const named = [...places.entries()].filter(([key]) => key).map(([, p]) => p);
+            const px = p => jmap.latLngToContainerPoint(p.ll);
+            const side = p => { const a = px(p);
+                return named.some(q => { if (q === p) return false; const b = px(q), gap = rad(p.dose) + rad(q.dose);
+                    return b.x >= a.x && b.x - a.x < gap + 34 && Math.abs(b.y - a.y) < gap + 8; }) ? "left" : "right"; };
             for (const [key, p] of places) {
                 if (!key) continue;
                 p.circle.setRadius(rad(p.dose));
                 if (p.shape) p.shape.setStyle({ opacity: 0.8, fillOpacity: 0.3 });
                 // kalıcı kısa etiket: yüzde pay
+                const dir = side(p);
                 p.circle.unbindTooltip();
                 p.circle.bindTooltip(pct(p.dose),
-                    { permanent: true, direction: "right", offset: [rad(p.dose) - 2, 0], className: "mx-jtip" }).openTooltip();
+                    { permanent: true, direction: dir, offset: [(dir === "right" ? 1 : -1) * (rad(p.dose) - 2), 0], className: "mx-jtip" }).openTooltip();
                 p.circle.bindPopup(`<b>${esc(p.name)}</b><br>${f0(p.dose)} µg · ${f1(p.ch / p.h)} µg/m³`);
             }
             path.setLatLngs(steps.filter(s => s.key).map(s => llOf(s.key)));

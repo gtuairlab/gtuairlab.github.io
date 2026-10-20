@@ -22,6 +22,9 @@ Tek bir güncel sürüm olması için **tek kaynak `main` branch'idir**.
   (panel, harita, lejant, Özet çipi, kesinti duyurusu gizli; veri silinmedi) ve rapordan çıkarıldı. Sensörler yeniden tanımlanınca
   `CO2_AKTIF = true` yap. Not: 22 Haziran 15:01'den sonraki 2 798 kayıt donmuş değer (toplayıcı çevrimdışı cihazın son değerini
   yeniden yazıyor, `backend/tuya_co2.py`); yeniden açmadan önce toplayıcı düzeltilmeli.
+  **CO₂ yok sayılmaz (kullanıcı, 20 Ekim 2026):** kullanıcı CO₂ ölçen **Atmotube Pro 2** alacak; yaklaşık bir ay sonra işlenecek.
+  O zaman Atmotube toplayıcısına CO₂ alanı eklenmeli (`measurements.co2_ppm` sütunu var). Tanıtımlarda/duyurularda şimdilik
+  Atmotube Pro 2'den ya da "eklenecek CO₂"den söz edilmez (kullanıcının isteği; odak orası değil).
 - **Tuzla PM₂.₅ geçmişi (kampüs–bölge karşılaştırması için):** İBB açık verisi Tuzla'nın PM₂.₅ geçmişini vermiyor,
   ÇŞB sitesi yalnızca Türkiye'den erişilebiliyor. **Masaüstü oturumunda** (kullanıcının Türkiye'deki bilgisayarı) çalıştır:
   `pip install requests && python scripts/csb_gecmis.py 2026-04-01`, sonra `frontend_v2/data/tuzla_saatlik.json`'u commit'leyip
@@ -39,8 +42,12 @@ Tek bir güncel sürüm olması için **tek kaynak `main` branch'idir**.
      önce ekipte elle CSV yükleyen var mı sor (eski arayüzdeki form kapandı, yükleme için yeni yol gerekebilir).
   2. `ADMIN_TOKEN` varsayılanı `"changeme"` (`backend/config.py`): Render → Environment'ta uzun, rastgele bir değerle tanımlı mı,
      kullanıcı kontrol etmeli (değeri isteme).
-- **Tanıtım videoları (6 Ekim 2026 deneme sürümü hazır):** `scripts/tanitim_video/` (Shorts 9:16 → Instagram/LinkedIn, uzun 16:9 → YouTube).
-  Yayın sürümü PurpleAir veri göndermeye başlayınca `GERCEK=1` ile ve kalıcı adres (gtuairlab / airlab.gtu.edu.tr) karekodla yeniden kaydedilecek.
+- **Amfi 1 ders programı 19 Ocak 2027'de bitiyor:** bahar programı gelince `frontend_v2/data/amfi1_program.json` güncellenmeli
+  (yalnızca gün, saat, ders kodu; öğretim üyesi adı ve PDF repoya girmez). Güncellenmezse bahar dersleri sessizce "boş derslik" sayılır.
+- **Tanıtım videoları:** `scripts/tanitim_video/` (README). LinkedIn sürümü (9:16, ~90 sn) 20 Ekim 2026'da gerçek veri anlık
+  görüntüsüyle (`TAKLIT=`, bulut oturumu sunucuya erişemediği için) kaydedildi; Ajan 1 + 4 + 3 denetiminden geçti. Kapanışta
+  karekod https://gtuairlab.github.io/frontend_v2/ ve kayıt tarihi. Uzun 16:9 sürüm (YouTube) yeniden kaydedilmedi. Altlık harita karolu
+  kayıt yalnızca masaüstünde (`HD=1 GERCEK=1`); bulutta karolar erişilemez, kampüs vektör haritası görünür.
 - **airlab.gtu.edu.tr (14 Ekim 2026):** GTÜ ana sayfa editöründeki birim sayfasına yönlenir (`gtu.edu.tr/kategori/9611`); kullanıcı bunu
   vitrin olarak kullanacak (tanıtım metni + uygulamaya "URL" hedefli kategori bağlantısı). Uygulama GitHub Pages'te kalır; birim sayfasındaki
   bağlantı https://gtuairlab.github.io olmalı (eski ilkerakmirza adresi yazılıysa kullanıcıya hatırlat).

@@ -19,6 +19,19 @@
   terimi temiz saatlerde I/O'yu 0,50'den 0,90'a çıkarıyor; regresyon eğimi korunuyor). Dış referans (6–20 Ekim): saatlik cf_1 p10/p50/p90
   7,58/27,48/83,83; nem %57,5; |A−B| 1,50; cf_1 sıfırı 0; tamlık %89,3 (2 dk), %96,7 (saatlik). Kimya ve Çevre binası SUMER'e 141 m.
   Atmotube Pro = SPS30 (ikincil); beklenti Atmotube/ham PA ≈ 0,55–0,75, /EPA'lı ≈ 1; iç ortam yan yana çarpan üretmez.
+- **Tanıtım videosu denetimi (20 Ekim 2026):** Özet 16,0 / HKİ 59, bugün 19,25 (17 saat), Amfi 1 15,35 / I/O 1,000, analiz
+  15,30 / 16,22 / 0,967; ısı haritası 33,28 (n=4) / 4,34 (n=2) / 15,61 / 15,95; kampüs–Tuzla 16,163 / 18,709, −%13,6, 571 saat —
+  hepsi bağımsız hesapla tuttu. Anlık görüntüde dış son ölçüm 13:20:26Z, ham dış 13:22:26Z, iç 13:24:21Z (fark ≤0,1 µg/m³).
+- **Dış sensör B kanalı** 16–18 Ekim 2026'da ayrıştı: 2 dk düzeyinde 100 kayıt kuralı geçemiyor, saatlik kural yalnızca 3 saati
+  düşürüyor (izlenmeli). Son 30 günde tamlık %81,4 (kayıt), %85,4 (saat).
+- **Maruziyet modeli:** P tüm dönemin saatlik profili (09–11 ≈ 13,2; 12–13 ≈ 12,2), o günün ölçümü değil; R(Güzide) = 2,00 (üst sınır),
+  R(Kütüphane) ≈ 0,63, R(Kimya) ≈ 0,92. "Soludum" dili tahmin olduğunu belirtmeli.
+- **Amfi 1 ısınma kuralı** ilk saat dilimini atlıyordu (fiilen 22 dk); düzeltildi (ilk kısmi saat + 1 saat): 20 Ekim I/O 0,99 (3 saat),
+  iç/dış 14,8 / 15,5.
+- **Amfi 1 ders saatleri** bölümün 2026-27 güz programından (`data/amfi1_program.json`). Ajan 1 ≥30 dk örtüşme önermişti; ana ajan
+  tam saat kuralını seçti (ders başı/sonu yarım saatleri karışık). Sınıflar: ders / boş derslik / gece. PDF ve öğretim üyesi adları repoya girmez.
+- Tuzla yorumunda "temiz/kirli" hükmü verilmez ("%x düşük/yüksek, ölçüm yöntemleri farklı"): fark (2,5 µg/m³) EPA düzeltmesinin
+  hata payı (~3 µg/m³, ikincil) büyüklüğünde.
 
 ## Literatür durumu
 - Barkjohn, Gantt, Clements (2021), *AMT* 14:4617–4637, doi:10.5194/amt-14-4617-2021: girdi cf_1 ve PurpleAir nemi, %90 günlük
@@ -28,6 +41,7 @@
 - Üretici arşivi ile canlı API kaydının eşdeğerliği için literatür kaynağı bulunamadı; veriyle gösterildi.
 - Kaynak denetimi (13 Ekim 2026): Shittu 2025, Künsch 1989, Dons 2011 gerçek (Dons kara karbon içindir, PM₂.₅ diye anılmaz). Kitagawa 1955'in geçerli DOI'si yok; DOI yazma.
 - Bu ortamda WebFetch/curl dış sitelere erişemiyor; iç ortam literatürü yalnızca arama özetlerinden (hepsi ikincil), tam metin masaüstünde.
+- US EPA EFH 2011 Tablo 6-2 başlığı teyitli, değerleri ikincil. US EPA 2024 AQI "İyi" üst sınırı 9,0 µg/m³ (ikincil); HKİ tablosu 2012 EPA AQI ile aynı.
 
 ## Açık sorular
 - Katsayıları masaüstü oturumunda makalenin tam metninden teyit et.

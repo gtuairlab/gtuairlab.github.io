@@ -3,15 +3,23 @@
 > Durum: içe aktarmanın 27–30 Nisan adımı tamamlanınca aşağıdaki sayılar kesinleşir (`scripts/purpleair_arsiv/BENIOKU.md`).
 
 ## Proje ne ölçüyor?
-GTÜ kampüsünde dış ortam havasındaki ince partikül maddeyi (PM₂.₅, µg/m³) sürekli izliyoruz; ayrıca PM₁₀, sıcaklık, nem,
-bazı binalarda CO₂ (ppm) ve taşınabilir cihazlarla kısa saha ölçümleri var. Sonuçlar herkese açık bir uygulamada Ulusal Hava
-Kalitesi İndeksi (HKİ) sınıflarıyla ve WHO 2021 kılavuz değerleriyle karşılaştırılarak gösteriliyor.
+GTÜ kampüsünde dış ortam havasındaki ince partikül maddeyi (PM₂.₅, µg/m³) sürekli izliyoruz; ayrıca PM₁₀, sıcaklık, nem ve
+taşınabilir cihazlarla kısa saha ölçümleri var. 20 Ekim 2026'dan beri Amfi 1'de (Kimya ve Çevre Müh. binası) iç ortam PurpleAir'i
+de var; derslik havası dış sensörle aynı saatlerde karşılaştırılıyor. CO₂ ölçümü şimdilik kapalı. Sonuçlar herkese açık bir
+uygulamada Ulusal Hava Kalitesi İndeksi (HKİ) sınıflarıyla ve WHO 2021 kılavuz değerleriyle karşılaştırılarak gösteriliyor.
 
 ## Veri kaynakları
 - **PurpleAir PA-II** (SUMER çatısı, sensör 229263): kampüsün sabit dış ortam sensörü. Sunucumuz 2 dakikada bir okur.
+- **PurpleAir PA-II, iç ortam** (Amfi 1, sensör 228591): 20 Ekim 2026'dan beri, 2 dakikada bir.
 - **Tuzla istasyonu** (İBB / ÇŞB, ~6,4 km): bölge karşılaştırması için resmî istasyon.
 - **Atmotube** taşınabilir cihazlar: saha yürüyüşleri (düzeltilmeden, göreli kullanılır).
-- **CO₂ sensörleri** (Tuya): iç ortam havalandırma göstergesi.
+
+## İç ortam ölçümü (3 cümlede)
+1. İç/dış oranı, aynı saatlerin ham (CF=1) ortalamalarının oranıdır; EPA düzeltmesindeki sabit terim temiz saatlerde oranı yapay
+   olarak 1'e yaklaştırdığı için oran ham değerle hesaplanır (ör. %50 nemde ham 10/20 = 0,50 iken EPA'lı oran 0,56).
+2. Saatler bölümün güz ders programına göre üçe ayrılır: ders (tamamı derse denk gelen saatler, haftada 15), boş derslik (hafta içi
+   08–18'de programda ders olmayan saatler) ve gece (23–05); gece oranı dış havanın içeri sızma oranına yaklaşır.
+3. Kurulumdan sonraki ilk saat (ısınma, kurulum tozu) analize girmez; ilk günde oran yaklaşık 1'dir (0,99, boş derslik saatleri).
 
 ## PurpleAir neden ve nasıl düzeltiliyor? (3 cümlede)
 1. Düşük maliyetli optik sensörler PM₂.₅'i resmî cihazlara göre yüksek okur ve nemden etkilenir; ABD genelinde fark yaklaşık %40'tır.
@@ -39,6 +47,10 @@ Kalitesi İndeksi (HKİ) sınıflarıyla ve WHO 2021 kılavuz değerleriyle kar�
   bunu "yetersiz PM₁₀ verisi" diye açıkça yazıyor. PM₁₀ ve Atmotube değerleri düzeltilmez.
 - Sensör 5–7 Temmuz ve 3–5 Ekim'de kapalıydı; bu günler boş kalır. Çöl tozu günlerinde PM₂.₅ olduğundan düşük görünebilir.
 - 7 kayıtta cf_1 yok (6'sı arşivle 1 saniye kayık, 1'inde iki kaynak farklı); bunlar EPA'nın yedek biçimiyle hesaplanır.
+- EPA denklemi iç ortamda doğrulanmadı; ders programı gerçek doluluğu göstermez (iptal, sınav, katılım); anlamlı bir ders/gece
+  karşılaştırması için en az 2 hafta veri gerekir. İki PurpleAir henüz yan yana konmadı.
+- Tuzla istasyonu 6,4 km uzakta ve ölçüm yöntemi farklı; aradaki fark EPA düzeltmesinin hata payı büyüklüğünde, bu yüzden
+  "temiz/kirli" hükmü verilmez. Kişisel maruziyet hesabı o günün ölçümünü değil, tüm dönemin saatlik profilini kullanır.
 
 ## Jüri / hakemden beklenen 5 soru
 1. **"Neden ham sensör değerini göstermiyorsunuz?"** Ham değer resmî cihazlara göre sistematik olarak yüksek; EPA düzeltmesi
@@ -53,3 +65,15 @@ Kalitesi İndeksi (HKİ) sınıflarıyla ve WHO 2021 kılavuz değerleriyle kar�
    6–17 saat ölçülen günler "gösterge gün" olarak ayrıca işaretlenir. Dönemde 153 tam, 4 gösterge gün var.
 5. **"Ani yükselmeleri neden ayıklamadınız?"** İki kanalın birlikte gördüğü kısa yükselmeler (ör. yakında sigara, egzoz)
    gerçek maruziyet olabilir; yalnızca iki kanalın uyuşmadığı ölçümler (%0,12) dışarıda kalır.
+
+## Ek sorular (20 Ekim 2026, tanıtım videosu ve iç ortam)
+6. **"Kampüs Tuzla'dan daha mı temiz?"** Son 30 günde kampüs ortalaması %14 düşük (16,2 / 18,7 µg/m³); yöntemler ve konum farklı,
+   fark hata payı büyüklüğünde, hüküm vermiyoruz.
+7. **"Ders saatini nasıl belirlediniz?"** Bölümün yayımlanmış güz programından; ders başı/sonundaki yarım saatleri karışık sayıp
+   dışarıda bıraktık.
+8. **"İç/dış oranını neden ham değerle hesaplıyorsunuz?"** Düzeltmenin sabit terimi oranı bozar (%50 nemde ham 10/20 = 0,50 iken
+   EPA'lı 0,56).
+9. **"Videodaki veriler gerçek mi?"** Evet: 20 Ekim 2026 16:25 itibarıyla veritabanındaki ölçümler; bulut ortamı sunucuya
+   erişemediği için yanıtlar bu anlık görüntüden verildi. Ad ya da kampüs dışı konum yok.
+10. **"Kişisel maruziyet ne kadar güvenilir?"** Bir tahmindir: derişim × bina ve ortam katsayıları × solunum hızı (US EPA 2011)
+    × süre; kişisel ölçüm değildir, girilen bilgiler cihazdan çıkmaz.
