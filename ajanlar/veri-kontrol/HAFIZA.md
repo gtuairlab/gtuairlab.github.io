@@ -41,6 +41,12 @@
 - Üretici arşivi ile canlı API kaydının eşdeğerliği için literatür kaynağı bulunamadı; veriyle gösterildi.
 - Kaynak denetimi (13 Ekim 2026): Shittu 2025, Künsch 1989, Dons 2011 gerçek (Dons kara karbon içindir, PM₂.₅ diye anılmaz). Kitagawa 1955'in geçerli DOI'si yok; DOI yazma.
 - Bu ortamda WebFetch/curl dış sitelere erişemiyor; iç ortam literatürü yalnızca arama özetlerinden (hepsi ikincil), tam metin masaüstünde.
+- **İç ortam EPA literatürü (20 Ekim 2026):** Barkjohn 2021 dış ortam kolokasyonundan; EPA haritası yalnızca dış sensörleri kullanır;
+  iç ortamda doğrulanmış düzeltme yok. Singer & Delp 2018 (2 kat içinde), Demanega 2021 (%50'ye kadar düşük), Park 2023 (1 µm üstü
+  tutarsız), Bi 2021 ön baskı (kalibrasyon yok), Wallace & Ott 2023 (iki tarafa ALT-CF3). Hepsi ikincil. Karar: gösterimde EPA (iç
+  nemle, notla), oranlarda ham ÷ ham; değişiklik yok. 20 Ekim iç EPA ÷ ham ortanca 0,612 (0,562–0,669; 211 kayıt); %39 nemde EPA = ham
+  eşiği cf_1 ≈ 5; nem farkı 0,0862 µg/m³/puan (bugün ±0,85, kış +3,4–4,7). Couzo vd. 2024: PurpleAir nemi dışarıda −17,4 puan (ikincil).
+  İsteğe bağlı (kullanıcı kararı): `pm2.5_alt` kaydı, iki PurpleAir'in 24–48 sa yan yana ölçümü. İlk Amfi 1 ders saatleri 21 Ekim 11, 14, 15.
 - US EPA EFH 2011 Tablo 6-2 başlığı teyitli, değerleri ikincil. US EPA 2024 AQI "İyi" üst sınırı 9,0 µg/m³ (ikincil); HKİ tablosu 2012 EPA AQI ile aynı.
 
 ## Açık sorular

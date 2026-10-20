@@ -1566,7 +1566,7 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
       <div class="pa-grid">
         <div class="pa-cell"><div class="k">PM₁₀</div><div class="v" id="pa-pm10">--</div></div>
         <div class="pa-cell" title="Sensör gövdesinin içinden ölçülür; ortam sıcaklığından yüksek okunur (yaklaşık 4 °C)."><div class="k">Sıcaklık*</div><div class="v" id="pa-temp">--</div></div>
-        <div class="pa-cell" title="Sensör gövdesinin içinden ölçülür; ortam nemi biraz daha yüksektir (yaklaşık 4 puan)."><div class="k">Nem*</div><div class="v" id="pa-hum">--</div></div>
+        <div class="pa-cell" title="Sensör gövdesinin içinden ölçülür; ortam nemi daha yüksektir."><div class="k">Nem*</div><div class="v" id="pa-hum">--</div></div>
       </div>
       <div class="pa-foot">
         <span id="pa-time">—</span>
@@ -1878,7 +1878,9 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
         <li>Farklı Atmotube cihazları aynı havayı farklı okuyabilir. Cihazlar yan yana ölçülerek birbirine göre ayarlanana kadar,
           farklı cihazlarla ölçülmüş binaların karşılaştırması ek belirsizlik içerir.</li>
         <li>PurpleAir'in sıcaklık ve nem değerleri (*) sensör gövdesinin içinden ölçülür: sıcaklık ortamdan yaklaşık 4 °C yüksek,
-          nem yaklaşık 4 puan düşük okunur. Bu değerler düzeltilmeden gösterilir.</li>
+          nem düşük okunur (sapmanın büyüklüğü kaynaklara göre birkaç puandan yaklaşık 17 puana kadar değişir). Bu değerler düzeltilmeden gösterilir.</li>
+        <li>Amfi 1 iç ortam sensörüne de dış sensörle aynı US EPA düzeltmesi uygulanır (aynı ölçekte görünsünler diye); bu denklem
+          dış ortamda geliştirildi, iç ortamda doğrulanmadı. İç/dış oranları iki sensörün ham değerleriyle hesaplanır.</li>
         <li>Platformdaki değerlendirmeler bilgilendirme amaçlıdır; tıbbi tavsiye yerine geçmez.</li>
         <li>Otomatik durum duyuruları sensörlerin son veri zamanına göre oluşturulur; kısa kesintiler birkaç dakika gecikmeyle yansıyabilir.</li>
       </ul>

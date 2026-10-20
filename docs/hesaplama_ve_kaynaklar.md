@@ -16,7 +16,7 @@ ileride değerlerin ve kaynakların güncelliğini denetleyebilmek.
 | Veri | Kaynak | Not |
 |---|---|---|
 | Kampüs PM₂.₅, PM₁₀, sıcaklık, nem | PurpleAir PA-II (SUMER çatısı, sensör 229263); sunucu PurpleAir API'den 2 dakikada bir okur | Kampüsün genel (dış ortam) hava kalitesini temsil eder. Sunucu `pm2.5_atm` ve `pm2.5_cf_1` (A ve B kanalı) değerlerini **ham** kaydeder (cf_1, 12 Ekim 2026'dan beri); ekranda ve bütün hesaplarda PM₂.₅ **US EPA düzeltmeli** kullanılır (§1a). PM₁₀ düzeltilmez. 2 Ekim 16:59 – 6 Ekim 16:53 (TR) arasında sensör çevrimdışıydı, veri yok; 7 Ekim 2026'dan beri PurpleAir veri erişim kotası yeterli. |
-| Kampüs sıcaklık ve nem (PurpleAir) | PurpleAir PA-II gövde içi sensör | Düzeltilmeden gösterilir; sıcaklık ortamdan ~4 °C (8 °F) yüksek, nem ~4 puan düşük okunur (PurpleAir'in sensör açıklaması; **ikincil**, bu tarihte birincil kaynağa erişilemedi). Arayüzde "*" ve açıklama ile işaretli. |
+| Kampüs sıcaklık ve nem (PurpleAir) | PurpleAir PA-II gövde içi sensör | Düzeltilmeden gösterilir; sıcaklık ortamdan ~4 °C (8 °F) yüksek, nem düşük okunur. Nem sapmasının büyüklüğü kaynağa göre değişir: PurpleAir'in sensör açıklaması ~4 puan, Couzo vd. 2024 (*Atmosphere* 15:415) dış ortamda −17,4 puan (ikisi de **ikincil**; 20 Ekim 2026'da arayüzden sayı kaldırıldı). Arayüzde "*" ve açıklama ile işaretli. |
 | Saha ölçümleri | Atmotube Pro (yürüyüş ölçümleri, GPS'li) | Amaç: bina bazlı karakterizasyon (§5). Kısa süreli; WHO 24 saatlik değeriyle karşılaştırılmaz (§5). |
 | İç mekân CO₂ | Tuya CO₂ sensörleri | 21 Temmuz 2026'dan beri veri yok. |
 | Bölge (Tuzla istasyonu, ~6,4 km) | İBB hava kalitesi servisi (canlı); ÇŞB SİM arşivi (yerel toplayıcı); geçmiş için `data/tuzla_saatlik.json` | PM₁₀ geçmişi İBB açık verisinden (`scripts/tuzla_gecmis.py`), PM₂.₅ geçmişi ÇŞB'den (`scripts/csb_gecmis.py`, yalnızca Türkiye'den çalışır). |
@@ -69,8 +69,20 @@ Atmotube ölçümleriyle karşılaştırma.
 - **Toplama:** Sunucu 2 dakikada bir (dış sensörle aynı alanlar + konum, `location_type`) ayrı tabloya yazar
   (`purpleair_indoor_readings`, sensör numarası + zaman tekil; RLS açık). Dış sensörün ekranları ve hesapları etkilenmez.
   Sensör numarası 228591 (`config.py`; Render ortam değişkeni `PURPLEAIR_INDOOR_SENSOR_ID` ile değiştirilebilir; özel kayıtlıysa `PURPLEAIR_INDOOR_READ_KEY`).
-- **Düzeltme (gösterim):** Kullanıcının tercihiyle dış sensörle aynı US EPA düzeltmesi ve A/B kanal denetimi (§1a), "iç ortamda
-  doğrulanmadı" notuyla. Panelde ham değer olarak cf_1 gösterilir (PurpleAir haritası iç sensörde cf_1 gösterir; dışta cf_atm).
+- **Düzeltme (gösterim):** Kullanıcının tercihiyle dış sensörle aynı US EPA düzeltmesi ve A/B kanal denetimi (§1a), iç sensörün
+  kendi nemiyle ve "iç ortamda doğrulanmadı" notuyla. Panelde ham değer olarak cf_1 gösterilir (PurpleAir haritası iç sensörde cf_1
+  gösterir; dışta cf_atm). **Literatür değerlendirmesi (20 Ekim 2026, Ajan 1; kaynakların hepsi ikincil, tam metin bu ortamdan
+  açılamadı):** EPA denklemi dış ortam kolokasyonlarından türetildi ve EPA'nın haritası yalnızca dış sensörleri kullanır; iç ortamda
+  doğrulanmış bir PurpleAir düzeltmesi yoktur. İç kaynaklarda hata yönü kaynağa bağlıdır: ev içi kaynaklarda referansın 2 katı içinde
+  (Singer & Delp 2018), %50'ye kadar düşük okuma (Demanega vd. 2021), 1 µm üstünde düşük tutarlılık (Park vd. 2023). Karar:
+  gösterimde EPA sürer (amaç dış sensörle aynı ölçek; ham ya da ham × 0,52 gösterimi iç değeri dışarıya göre yapay olarak yüksek/düşük
+  gösterirdi), oranlarda ham ÷ ham (Bi vd. 2021 kalibrasyon uygulamadı; Wallace & Ott 2023 iki tarafa aynı salt çarpanı uyguladı;
+  salt çarpan oranda sadeleşir). **Sınırlılıklar:** (1) cf_1 yaklaşık 3–7 µg/m³'ün altında (nemle değişir; %39 nemde ≈5) EPA'lı
+  değer hamdan yüksek çıkar; (2) iç/dış nem farkı başına 0,0862 µg/m³/puan: aynı ham değerde kışın (ısıtılan iç ortam %25–35,
+  dış %70–85) iç EPA'lı değer +3–5 µg/m³ görece yüksek çıkabilir; (3) dersteki hareketle kalkan iri toz PMS5003'te eksik sayılır,
+  ders saati I/O'su düşük görünebilir; (4) kesin doğrulama yalnızca iç ortamda referans ya da gravimetrik yan yana ölçümle mümkün.
+  20 Ekim verisinde (211 kayıt, nem %36–49, cf_1 18–40) ekrandaki EPA'lı değer hamın ortanca %61'i (%56–67).
+  İsteğe bağlı (kullanıcı kararı): iki sensörde `pm2.5_alt` (ALT-CF3) kaydı ve iki PurpleAir'in 24–48 saat yan yana ölçümü.
 - **Analiz girdisi: ham cf_1 (A/B denetimli).** EPA denklemi 39 dış ortam kolokasyonundan geliştirildi; iç ortam doğrulaması
   bulunamadı (Barkjohn vd. 2021). Denklemdeki 0,524 çarpanı oranda sadeleşir, ama +5,75 ve −0,0862×RH sadeleşmez: gerçek oran 0,50
   iken dış cf_1 7,6 / 27,5 / 83,8 µg/m³'te EPA'lı I/O 0,90 / 0,63 / 0,54 çıkar (iç nem %40, dış %57,5; Ajan 1 hesabı). Regresyon

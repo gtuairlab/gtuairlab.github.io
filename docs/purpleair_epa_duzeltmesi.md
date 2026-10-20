@@ -192,11 +192,17 @@ neredeyse değiştirmez. Ekim'in etkisi yukarıdaki iki yöntem tablosundadır. 
    30 µg/m³'ün altında fark en çok 0,3 µg/m³'tür (bu dönemin saatlerinin %83'ü). Saatlerin %9'u 35–65 aralığındadır; bu
    saatlerde değer 6–12 Ekim verisine göre ortalama 4, en çok 9 µg/m³ yüksek olabilir. Bu kayıtlara da cf_1 PurpleAir
    geçmişinden eklenirse tüm geçmiş tek yöntemle hesaplanır (§9).
-5. **Nem:** PurpleAir'in nem sensörü gövde içinde olduğundan ortamdan birkaç puan düşük okur. Denklem PurpleAir'in kendi nem
-   ölçümüyle geliştirildiği için bu değer düzeltilmeden kullanılır (doğru kullanım budur).
+5. **Nem:** PurpleAir'in nem sensörü gövde içinde olduğundan ortamdan düşük okur (kaynağa göre birkaç puandan dış ortamda
+   ~17 puana kadar; Couzo vd. 2024, ikincil). Denklem PurpleAir'in kendi nem ölçümüyle geliştirildiği için bu değer düzeltilmeden
+   kullanılır (doğru kullanım budur).
 6. **Anlık değer:** 2 dakikalık tek ölçüme uygulanan düzeltme saatlik değer kadar kararlı değildir; gösterge niteliğindedir
    (6–12 Ekim'de iki dakikalık düzeltilmiş değer kendi saat ortalamasından ortanca 1,1, %90'ında en çok 4 µg/m³ sapıyor).
 7. **PM₁₀:** EPA'nın PM₁₀ için yerleşik bir düzeltmesi yoktur; PM₁₀ ham gösterilir ve olduğundan düşük okunabilir.
+8. **İç ortam (Amfi 1, 20 Ekim 2026):** Denklem dış ortam kolokasyonlarından türetildi; iç ortamda doğrulanmış bir PurpleAir
+   düzeltmesi yoktur ve iç kaynaklarda hata yönü kaynağa bağlıdır (Singer & Delp 2018; Demanega vd. 2021; Park vd. 2023; ikincil).
+   Uygulama iç sensöre gösterimde aynı denklemi iç nemle ve "iç ortamda doğrulanmadı" notuyla uygular (dış sensörle aynı ölçek);
+   iç/dış oranları ham cf_1 ile hesaplanır (sabit terim ve nem terimi oranda sadeleşmez). Ayrıntı ve sınırlılıklar:
+   `hesaplama_ve_kaynaklar.md` §1b.
 
 ## 8. Kaynaklar ve doğrulama durumu
 
