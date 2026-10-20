@@ -2,7 +2,10 @@
 //   Sensör paneli (sol sütun): son değer, aynı saatteki iç/dış oranı.
 //   Analiz paneli: iç/dış oranı (I/O), ders saatleri ile gece karşılaştırması, saatlik seyir, günün saatine göre desen,
 //   aynı binadaki Atmotube ölçümleriyle eşleştirme (±3 dk).
-// Düzeltme: iç sensöre de dış sensörle aynı US EPA düzeltmesi uygulanır (api.js → indoorLatest/indoorHistory).
+// Düzeltme: GÖSTERİMDE iç sensöre de dış sensörle aynı US EPA düzeltmesi (api.js; iç ortamda doğrulanmadı, notla).
+// ANALİZDE (I/O, Atmotube) birincil girdi iki sensörün A/B denetimli HAM cf_1 değeri: EPA denklemindeki +5,75 ve nem terimi
+// oranda sadeleşmez, temiz saatlerde I/O'yu yapay olarak büyütür (Ajan 1, 20 Ekim 2026; hesaplama_ve_kaynaklar.md §1b).
+// EPA'lı oran duyarlılık için ikincil gösterilir. Kurulumun ilk saati (ısınma, kurulum tozu) analizden çıkarılır.
 // Renkler: iç = DEVICE_COLOR.indoor, dış = DEVICE_COLOR.purpleair (kesikli çizgi), Atmotube = DEVICE_COLOR.atmotube.
 // Bağımlılıklar: api.js, colorscale.js, who.js (WHO.history), campus.js (buildingAt), icons.js, Chart.js, app.js (map, timeAgo, trTime)
 
@@ -18,6 +21,13 @@ const Ic = (() => {
     const wdFmt = new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Istanbul", weekday: "short" });
     const hourKey = t => hk.format(t);                    // "2026-10-20, 14"
     const hourOf = k => +k.slice(-2);
+    // Ham cf_1: A/B ortalaması; kanallar uyuşmuyorsa null (dış sensörle aynı kural, colorscale.js → paChannelsAgree)
+    const cf1 = r => {
+        const a = r && r.pm2_5_cf1_a != null && r.pm2_5_cf1_a !== "" ? +r.pm2_5_cf1_a : null, b = r && r.pm2_5_cf1_b != null && r.pm2_5_cf1_b !== "" ? +r.pm2_5_cf1_b : null;
+        if (a == null || b == null || isNaN(a) || isNaN(b) || paChannelsAgree(a, b) === false) return null;
+        return (a + b) / 2;
+    };
+    const WARMUP = 60 * 60e3;                             // kurulumdan sonraki ilk saat analize girmez
     const ATP_WIN = 3 * 60e3;                             // Atmotube–PurpleAir eşleme penceresi (dış sensörle aynı kural)
     const MIN_PAIRS = 3;
 
@@ -38,16 +48,16 @@ const Ic = (() => {
         }
     }
 
-    // Dış sensörün aynı andaki değeri: son ölçüm iç ölçüme ±15 dk yakınsa o, değilse aynı saatin saatlik ortalaması
+    // Dış sensörün aynı andaki ham cf_1 değeri: son ölçüm iç ölçüme ±15 dk yakınsa o, değilse aynı saatin saatlik ortalaması
     async function sameTimeOut(t) {
         try {
             const r = await API.purpleairLatest();
-            if (r.data && r.data.pm2_5 != null && Math.abs(new Date(r.data.recorded_at) - t) <= 15 * 60e3) return +r.data.pm2_5;
+            if (r.data && cf1(r.data) != null && Math.abs(new Date(r.data.recorded_at) - t) <= 15 * 60e3) return cf1(r.data);
         } catch (_) {}
         return WHO.history().then(rows => {
             const k = hourKey(t);
-            const r = rows.find(x => x.pm2_5 != null && hourKey(new Date(x.recorded_at)) === k);
-            return r ? +r.pm2_5 : null;
+            const r = rows.find(x => cf1(x) != null && hourKey(new Date(x.recorded_at)) === k);
+            return r ? cf1(r) : null;
         }).catch(() => null);
     }
 
@@ -63,9 +73,9 @@ const Ic = (() => {
         const v = latest.pm2_5, col = v == null ? "#8a93a6" : pm25Color(v);
         if (badge) { badge.hidden = false; badge.classList.toggle("off", !fresh); badge.innerHTML = fresh ? `<span class="live-dot"></span>CANLI` : "Çevrimdışı"; }
         el.innerHTML = `<div class="pa-hero"><span class="val" style="color:${col}">${v == null ? "--" : f1(v)}</span><span class="unit">PM₂.₅ µg/m³ · iç ortam</span></div>
-            <div class="pa-raw">US EPA düzeltmeli${latest.pm2_5_raw != null ? ` · ham sensör değeri ${f1(latest.pm2_5_raw)} µg/m³` : ""}${latest.qa_ab === false ? " · A/B kanalları uyuşmuyor" : ""}</div>
+            <div class="pa-raw">US EPA düzeltmeli (iç ortamda doğrulanmadı)${cf1(latest) != null ? ` · ham cf_1 ${f1(cf1(latest))} µg/m³` : ""}${latest.qa_ab === false ? " · A/B kanalları uyuşmuyor" : ""}</div>
             <div class="pa-grid">
-              <div class="pa-cell"><div class="k">İç / dış</div><div class="v" id="ic-io">…</div></div>
+              <div class="pa-cell" title="Ham cf_1 değerlerinin oranı (iç ÷ dış)"><div class="k">İç / dış</div><div class="v" id="ic-io">…</div></div>
               <div class="pa-cell"><div class="k">Sıcaklık*</div><div class="v">${latest.temperature_c != null ? f1(+latest.temperature_c) + "°" : "--"}</div></div>
               <div class="pa-cell"><div class="k">Nem*</div><div class="v">${latest.humidity_pct != null ? Math.round(latest.humidity_pct) + "%" : "--"}</div></div>
             </div>
@@ -74,8 +84,9 @@ const Ic = (() => {
         $("ic-open").addEventListener("click", () => Shell.openPanel("ic"));
         const out = await sameTimeOut(t);
         const io = $("ic-io");
-        if (io) io.textContent = out && v != null ? f2(v / out) : "--";
-        if (io) io.title = out ? `Aynı anda dış (SUMER çatısı) ${f1(out)} µg/m³` : "Aynı an için dış ölçüm yok";
+        const vin = cf1(latest);
+        if (io) io.textContent = out && vin != null ? f2(vin / out) : "--";
+        if (io) io.title = out ? `Ham cf_1: iç ${f1(vin)} ÷ dış (SUMER çatısı) ${f1(out)} µg/m³` : "Aynı an için dış ölçüm yok";
     }
 
     function placeMarker() {
@@ -95,39 +106,49 @@ const Ic = (() => {
 
     function pairs(outRows) {
         const out = new Map();
-        for (const r of outRows) if (r.pm2_5 != null) out.set(hourKey(new Date(r.recorded_at)), +r.pm2_5);
-        const from = since(), res = [];
+        for (const r of outRows) out.set(hourKey(new Date(r.recorded_at)), { e: r.pm2_5 == null ? null : +r.pm2_5, c: cf1(r) });
+        const first = inHourly && inHourly.length ? +new Date(inHourly[0].recorded_at) : 0;
+        const from = Math.max(since(), first + WARMUP), res = [];
         for (const r of inHourly || []) {
-            if (r.pm2_5 == null) continue;
             const t = new Date(r.recorded_at);
             if (+t < from) continue;
-            const k = hourKey(t), o = out.get(k);
-            res.push({ t, k, h: hourOf(k), wd: wdFmt.format(t), i: +r.pm2_5, o: o ?? null });
+            const k = hourKey(t), o = out.get(k) || {}, ci = cf1(r);
+            if (r.pm2_5 == null && ci == null) continue;
+            res.push({ t, k, h: hourOf(k), wd: wdFmt.format(t), i: r.pm2_5 == null ? null : +r.pm2_5, o: o.e ?? null, ci, co: o.c ?? null });
         }
         return res;
     }
 
     const isClass = p => !["Sat", "Sun"].includes(p.wd) && p.h >= 8 && p.h < 18;   // hafta içi 08:00–18:00
-    const isNight = p => p.h >= 0 && p.h < 6;                                        // 00:00–06:00 (bina boş)
+    const isNight = p => p.h >= 23 || p.h < 5;                                       // 23:00–05:00, bina boş (Bi vd. 2021)
 
+    // I/O birincil: ham cf_1 (ΣC_iç / ΣC_dış = ortalamaların oranı, saatlik oranların medyanı ikincil); EPA'lı oran duyarlılık
     function ioStats(ps) {
-        const both = ps.filter(p => p.o != null && p.o > 0);
-        const r = both.map(p => p.i / p.o);
-        const grp = f => { const g = both.filter(f); return { n: g.length, io: median(g.map(p => p.i / p.o)), i: mean(g.map(p => p.i)), o: mean(g.map(p => p.o)) }; };
-        return { n: both.length, all: ps.length, i: mean(ps.map(p => p.i)), o: mean(both.map(p => p.o)), io: median(r),
+        const raw = ps.filter(p => p.ci != null && p.co != null && p.co > 0);
+        const epa = ps.filter(p => p.i != null && p.o != null && p.o > 0);
+        const ratioOfMeans = g => g.length ? mean(g.map(p => p.ci)) / mean(g.map(p => p.co)) : null;
+        const grp = f => { const g = raw.filter(f), ge = epa.filter(f);
+            return { n: g.length, io: ratioOfMeans(g), med: median(g.map(p => p.ci / p.co)), ioE: median(ge.map(p => p.i / p.o)),
+                     i: mean(ps.filter(f).filter(p => p.i != null).map(p => p.i)) }; };
+        return { n: raw.length, all: ps.length, i: mean(ps.filter(p => p.i != null).map(p => p.i)),
+                 o: mean(epa.map(p => p.o)), ci: mean(raw.map(p => p.ci)), co: mean(raw.map(p => p.co)),
+                 io: ratioOfMeans(raw), med: median(raw.map(p => p.ci / p.co)), ioE: median(epa.map(p => p.i / p.o)),
                  cls: grp(isClass), night: grp(isNight) };
     }
 
     function tilesHtml(s) {
         const tile = (k, v, sub) => `<div class="wt"><span>${k}</span><b>${v}</b><small>${sub}</small></div>`;
         return `<div class="wt-grid ic-tiles">
-            ${tile(`${esc(name)} (iç) ortalama`, f1(s.i), `µg/m³ · ${s.all} saat`)}
-            ${tile("Dış, aynı saatler", f1(s.o), `µg/m³ · ${s.n} ortak saat`)}
-            ${tile("İç / dış (medyan)", f2(s.io), s.io == null ? "–" : s.io < 1 ? "içerisi dışarıdan temiz" : "içerisi dışarıdan kirli")}
-            ${tile("Ders saatleri I/O", f2(s.cls.io), `hafta içi 08–18 · ${s.cls.n} saat`)}
-            ${tile("Gece I/O", f2(s.night.io), `00–06 · ${s.night.n} saat`)}
-            ${tile("Ders − gece (iç)", s.cls.i != null && s.night.i != null ? f1(s.cls.i - s.night.i) : "–", "µg/m³ · iç ortalamalar farkı")}
-          </div>`;
+            ${tile(`${esc(name)} (iç) ortalama`, f1(s.i), `µg/m³ (EPA) · ham cf_1 ${f1(s.ci)} · ${s.all} saat`)}
+            ${tile("Dış, aynı saatler", f1(s.o), `µg/m³ (EPA) · ham cf_1 ${f1(s.co)} · ${s.n} ortak saat`)}
+            ${tile("İç / dış", f2(s.io), `ham cf_1 · saatlik medyan ${f2(s.med)} · EPA ile ${f2(s.ioE)}`)}
+            ${tile("Ders saatleri I/O", f2(s.cls.io), `hafta içi 08–18 · ${s.cls.n} saat · EPA ile ${f2(s.cls.ioE)}`)}
+            ${tile("Gece I/O (boş bina)", f2(s.night.io), `23–05 · ${s.night.n} saat · sızmaya yaklaşık`)}
+            ${tile("Ders − gece (iç)", s.cls.i != null && s.night.i != null ? f1(s.cls.i - s.night.i) : "–", "µg/m³ (EPA) · iç ortalamalar farkı")}
+          </div>
+          <div class="who-cap">I/O = iç ham cf_1 ortalaması ÷ aynı saatlerin dış ham cf_1 ortalaması (A/B denetimli). EPA'lı oran yalnızca
+            karşılaştırma içindir: denklemin sabit terimi ve nem terimi oranı temiz saatlerde büyütür. Gece I/O'su sızma faktörüne yaklaşır;
+            maruziyet modelindeki F değerleri için en az 2 hafta veri (≥10 gece, 2 hafta sonu) birikmesi önerilir.</div>`;
     }
 
     function chartBase(yTitle) {
@@ -173,7 +194,7 @@ const Ic = (() => {
         try {
             const tr = await API.mapTracks();
             const first = inHourly && inHourly.length ? +new Date(inHourly[0].recorded_at) : Date.now();
-            const from = Math.max(since(), first - 3600e3);
+            const from = Math.max(since(), first + WARMUP);
             const pts = [];
             for (const t of tr.tracks || []) {
                 const dev = String(t.session_name || "").split("_")[0];
@@ -192,22 +213,25 @@ const Ic = (() => {
             }
             const t0 = Math.min(...pts.map(p => p.ts)) - ATP_WIN, t1 = Math.max(...pts.map(p => p.ts)) + ATP_WIN;
             const raw = ((await API.indoorHistory(new Date(t0).toISOString(), new Date(t1).toISOString(), "raw")).data || [])
-                .filter(r => r.pm2_5 != null).map(r => ({ ts: +new Date(r.recorded_at), v: +r.pm2_5, raw: r.pm2_5_raw }))
+                .filter(r => +new Date(r.recorded_at) >= first + WARMUP)
+                .map(r => ({ ts: +new Date(r.recorded_at), v: r.pm2_5 == null ? null : +r.pm2_5, c: cf1(r) })).filter(r => r.c != null)
                 .sort((x, y) => x.ts - y.ts);
             const near = ts => { let best = null; for (const r of raw) { const d = Math.abs(r.ts - ts); if (d <= ATP_WIN && (!best || d < best.d)) best = { ...r, d }; } return best; };
             const by = new Map();
-            for (const p of pts) { const m = near(p.ts); if (!m || m.v <= 0) continue; (by.get(p.dev) || by.set(p.dev, []).get(p.dev)).push({ a: p.a, v: m.v, raw: m.raw }); }
-            const rows = [...by.entries()].sort().map(([dev, xs]) => ({ dev, n: xs.length, a: median(xs.map(x => x.a)), v: median(xs.map(x => x.v)),
-                r: median(xs.map(x => x.a / x.v)), rr: median(xs.filter(x => x.raw > 0).map(x => x.a / x.raw)) }));
-            const ok = rows.filter(r => r.n >= MIN_PAIRS);
-            const verdict = r => r.r == null ? "" : Math.abs(r.r - 1) <= 0.1 ? "benzer (±%10)" : r.r > 1 ? `Atmotube %${Math.round((r.r - 1) * 100)} yüksek` : `Atmotube %${Math.round((1 - r.r) * 100)} düşük`;
-            box.innerHTML = rows.length ? `<table class="ic-table"><thead><tr><th>Cihaz</th><th class="sayi">Eşleşme</th><th class="sayi">Atmotube</th><th class="sayi">PurpleAir (iç)</th><th class="sayi">Oran</th><th>Sonuç</th></tr></thead>
+            for (const p of pts) { const m = near(p.ts); if (!m || m.c <= 0) continue; (by.get(p.dev) || by.set(p.dev, []).get(p.dev)).push({ a: p.a, c: m.c, v: m.v }); }
+            // Ortalamaların oranı (oranların ortalaması değil); EPA'lı oran duyarlılık
+            const rows = [...by.entries()].sort().map(([dev, xs]) => { const ve = xs.filter(x => x.v != null && x.v > 0);
+                return { dev, n: xs.length, a: mean(xs.map(x => x.a)), c: mean(xs.map(x => x.c)), r: mean(xs.map(x => x.a)) / mean(xs.map(x => x.c)),
+                         re: ve.length ? mean(ve.map(x => x.a)) / mean(ve.map(x => x.v)) : null }; });
+            box.innerHTML = rows.length ? `<table class="ic-table"><thead><tr><th>Cihaz</th><th class="sayi">Eşleşme</th><th class="sayi">Atmotube</th>
+                <th class="sayi">PurpleAir ham cf_1</th><th class="sayi">Oran</th><th class="sayi">EPA'lı ile</th></tr></thead>
                 <tbody>${rows.map(r => `<tr${r.n < MIN_PAIRS ? ' class="few"' : ""}><td><i class="ic-dot" style="background:${C_ATP}"></i>${r.dev}</td><td class="sayi">${r.n}</td>
-                  <td class="sayi">${f1(r.a)}</td><td class="sayi">${f1(r.v)}</td><td class="sayi">${f2(r.r)}</td><td>${r.n < MIN_PAIRS ? "az eşleşme" : verdict(r)}</td></tr>`).join("")}</tbody></table>
-                <div class="who-cap">Değerler medyan (µg/m³). Oran = Atmotube / iç PurpleAir (US EPA düzeltmeli); ham PurpleAir değerine göre oran:
-                  ${ok.map(r => `${r.dev} ${f2(r.rr)}`).join(" · ") || "–"}. Eşleme: Atmotube ölçümü ${esc(bld.name)} içinde (ya da sınırına ≤15 m) ve
-                  ±3 dk içinde bir iç PurpleAir ölçümü varsa. Atmotube'un tam olarak ${esc(name)}'de olduğu GPS'ten doğrulanamaz; kesin karşılaştırma için
-                  cihazları PurpleAir'in yanına koyup en az 24 saat ölçüm önerilir. Karar kuralı (oran 1 ± %10): hesaplama_ve_kaynaklar.md §5.</div>`
+                  <td class="sayi">${f1(r.a)}</td><td class="sayi">${f1(r.c)}</td><td class="sayi">${r.n < MIN_PAIRS ? "–" : f2(r.r)}</td><td class="sayi">${r.n < MIN_PAIRS ? "az" : f2(r.re)}</td></tr>`).join("")}</tbody></table>
+                <div class="who-cap">Ortalamalar µg/m³. Oran = Atmotube ortalaması ÷ eşleşen iç PurpleAir ham cf_1 ortalaması; "EPA'lı ile" aynı oran düzeltilmiş
+                  PurpleAir'e göre (duyarlılık). Literatür beklentisi: ham cf_1'e göre ≈0,55–0,75, EPA'lıya göre ≈1 (Shittu vd. 2025; Tryner vd. 2021).
+                  Eşleme: Atmotube ölçümü ${esc(bld.name)} içinde (ya da sınırına ≤15 m) ve ±3 dk içinde bir iç PurpleAir ölçümü varsa; en az ${MIN_PAIRS} eşleşme.
+                  Atmotube'un tam olarak ${esc(name)}'de olduğu GPS'ten doğrulanamaz. Bu iç ortam karşılaştırması "fark var mı" sorusunu yanıtlar, cihaz çarpanı
+                  üretmez (çarpanın dayanağı SUMER çatısındaki yan yana ölçüm, §5). Kesin sonuç için cihazları sensörün yanında ≥24–48 saat (en az 2 ders bloğu ve 1 gece) ölçün.</div>`
                 : `<div class="wh-empty">${esc(bld.name)} içinde Atmotube ölçümü var, ancak ±3 dk içinde iç PurpleAir ölçümüyle eşleşen yok.</div>`;
         } catch (e) {
             box.innerHTML = `<div class="wh-empty">Atmotube ölçümleri yüklenemedi.</div>`;
@@ -227,7 +251,7 @@ const Ic = (() => {
             const firstDay = new Date(inHourly[0].recorded_at).toLocaleDateString("tr-TR", { day: "numeric", month: "long", timeZone: "Europe/Istanbul" });
             body.innerHTML = `<div class="pd-chips tr-period">${chips}</div>
               <p class="tr-sub">${esc(name)} (Kimya ve Çevre Müh. binası) iç ortam PurpleAir'i ile SUMER çatısındaki dış sensör, aynı saatlerin saatlik
-                ortalamalarıyla karşılaştırılır. İkisine de US EPA düzeltmesi uygulanır. Ölçüm başlangıcı: ${firstDay}.</p>
+                ortalamalarıyla karşılaştırılır. Değerler US EPA düzeltmeli gösterilir; iç/dış oranları ham cf_1 ile hesaplanır. Ölçüm başlangıcı: ${firstDay}.</p>
               ${ps.length ? tilesHtml(s) : `<div class="wh-empty">Seçilen dönemde iç ölçüm yok.</div>`}
               <section class="tr-sec"><h3>${ico("activity")} Saatlik seyir</h3>
                 <div class="tr-chart"><canvas id="ic-ts" aria-label="İç ve dış saatlik PM₂.₅"></canvas></div>
@@ -238,9 +262,10 @@ const Ic = (() => {
                 <div class="who-legend"><span><i style="background:${C_IN}"></i>${esc(name)} (iç)</span><span><i class="dash" style="border-color:${C_OUT}"></i>Dış · SUMER çatısı</span></div></section>
               <section class="tr-sec"><h3>${ico("scale")} Atmotube ile karşılaştırma</h3>
                 <div id="ic-atp"><div class="news-empty">Atmotube ölçümleri eşleştiriliyor…</div></div></section>
-              <div class="who-cap" style="margin-top:12px">Sınırlılıklar: US EPA düzeltmesi dış ortam verisiyle geliştirildi; iç ortam kaynaklarında (insan, toz) sapma
-                olabilir. Sensörün sıcaklık/nem değerleri cihaz içinden ölçülür. I/O oranı medyan; tek tek saatlerde dış hava ile içerinin gecikmeli ilişkisi
-                hesaba katılmaz. Ayrıntı: docs/hesaplama_ve_kaynaklar.md §1b.</div>`;
+              <div class="who-cap" style="margin-top:12px">Sınırlılıklar: Grafiklerdeki değerler US EPA düzeltmelidir; denklem dış ortam verisiyle geliştirildi,
+                iç ortamda doğrulanmadı (insan kaynaklı iri parçacık, toz ve yemek kaynaklı çok ince parçacıklarda optik sensör sapabilir). Bu yüzden oranlar ham
+                cf_1 ile hesaplanır. Dış sensör çatıda (141 m uzakta), iç sensör derslikte; yükseklik ve gecikme farkı tek tek saatlerde I/O'yu oynatabilir.
+                Sensörün sıcaklık/nem değerleri cihaz gövdesinin içinden ölçülür. Kurulumun ilk saati analize girmez. Ayrıntı: docs/hesaplama_ve_kaynaklar.md §1b.</div>`;
             body.querySelectorAll("[data-p]").forEach(b => b.addEventListener("click", () => { period = +b.dataset.p; render(); }));
             drawCharts(ps);
             atmotubeHtml();

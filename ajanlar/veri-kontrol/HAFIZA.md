@@ -14,6 +14,11 @@
   CO₂ 2 798 donuk kayıt). `scratchpad/tanitim/veri/saatlik.json`'un son saati (12 Ekim 13:00 UTC) yarım: SQL'den yeniden al.
   Saha paydası: 4 015 nokta (12 oturum), PM₂.₅'i olan 4 008.
 - 13 Ekim 2026 (rapor v1.2, saha karşılaştırması): yedi kritik madde bağımsız yeniden hesaplandı, hepsi TUTAR. Eşleme kuralları: Atmotube–PurpleAir ±3 dk, bina eşlemesi campus.geojson içi ya da ≤15 m (B'nin K_D'si 15 m sınırındaki tek kayda göre 1,12–1,13), %10 kırpma round(0,1·n).
+- 20 Ekim 2026 (Amfi 1 iç PurpleAir, 228591): `purpleair_readings` tekil dizini yalnızca `recorded_at` → iç sensör ayrı tabloda
+  (`purpleair_indoor_readings`). İç sensörde EPA düzeltmesi gösterimde notla; I/O, F_inf ve Atmotube oranları ham cf_1 ile (+5,75 ve nem
+  terimi temiz saatlerde I/O'yu 0,50'den 0,90'a çıkarıyor; regresyon eğimi korunuyor). Dış referans (6–20 Ekim): saatlik cf_1 p10/p50/p90
+  7,58/27,48/83,83; nem %57,5; |A−B| 1,50; cf_1 sıfırı 0; tamlık %89,3 (2 dk), %96,7 (saatlik). Kimya ve Çevre binası SUMER'e 141 m.
+  Atmotube Pro = SPS30 (ikincil); beklenti Atmotube/ham PA ≈ 0,55–0,75, /EPA'lı ≈ 1; iç ortam yan yana çarpan üretmez.
 
 ## Literatür durumu
 - Barkjohn, Gantt, Clements (2021), *AMT* 14:4617–4637, doi:10.5194/amt-14-4617-2021: girdi cf_1 ve PurpleAir nemi, %90 günlük
@@ -22,6 +27,7 @@
 - 18 saat (%75) günlük tamlık kuralı: 40 CFR 50 **Ek K** (PM₁₀). Ek N (PM₂.₅) için 18/24 ifadesi doğrulanmadı.
 - Üretici arşivi ile canlı API kaydının eşdeğerliği için literatür kaynağı bulunamadı; veriyle gösterildi.
 - Kaynak denetimi (13 Ekim 2026): Shittu 2025, Künsch 1989, Dons 2011 gerçek (Dons kara karbon içindir, PM₂.₅ diye anılmaz). Kitagawa 1955'in geçerli DOI'si yok; DOI yazma.
+- Bu ortamda WebFetch/curl dış sitelere erişemiyor; iç ortam literatürü yalnızca arama özetlerinden (hepsi ikincil), tam metin masaüstünde.
 
 ## Açık sorular
 - Katsayıları masaüstü oturumunda makalenin tam metninden teyit et.

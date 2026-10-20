@@ -69,18 +69,36 @@ Atmotube ölçümleriyle karşılaştırma.
 - **Toplama:** Sunucu 2 dakikada bir (dış sensörle aynı alanlar + konum, `location_type`) ayrı tabloya yazar
   (`purpleair_indoor_readings`, sensör numarası + zaman tekil; RLS açık). Dış sensörün ekranları ve hesapları etkilenmez.
   Sensör numarası 228591 (`config.py`; Render ortam değişkeni `PURPLEAIR_INDOOR_SENSOR_ID` ile değiştirilebilir; özel kayıtlıysa `PURPLEAIR_INDOOR_READ_KEY`).
-- **Düzeltme:** Kullanıcının tercihiyle dış sensörle aynı US EPA düzeltmesi ve A/B kanal denetimi (§1a). **Uygunluk:** denklem dış
-  ortam eş konumlu ölçümlerinden geliştirildi; iç ortam kaynaklarında (insan, toz, temizlik) sapma olabilir — literatür
-  değerlendirmesi ve öneri için aşağıdaki "Değerlendirme" maddesine bakın. Ham değerler veritabanında; yöntem değişirse yalnızca
-  `api.js` → `indoorLatest/indoorHistory` değişir.
-- **İç/dış oranı (I/O):** Aynı saatin saatlik ortalamaları (iç ÷ dış, ikisi de düzeltilmiş); dönem değeri **medyan**. Ders saatleri =
-  hafta içi 08:00–18:00, gece = 00:00–06:00 (Türkiye saati; bina boşken sızma faktörüne yaklaşır). "Ders − gece" iç ortalamalar farkı.
-  Sensör panelindeki anlık oran, dış sensörün ±15 dk içindeki son ölçümüyle; yoksa aynı saatin ortalamasıyla.
+- **Düzeltme (gösterim):** Kullanıcının tercihiyle dış sensörle aynı US EPA düzeltmesi ve A/B kanal denetimi (§1a), "iç ortamda
+  doğrulanmadı" notuyla. Panelde ham değer olarak cf_1 gösterilir (PurpleAir haritası iç sensörde cf_1 gösterir; dışta cf_atm).
+- **Analiz girdisi: ham cf_1 (A/B denetimli).** EPA denklemi 39 dış ortam kolokasyonundan geliştirildi; iç ortam doğrulaması
+  bulunamadı (Barkjohn vd. 2021). Denklemdeki 0,524 çarpanı oranda sadeleşir, ama +5,75 ve −0,0862×RH sadeleşmez: gerçek oran 0,50
+  iken dış cf_1 7,6 / 27,5 / 83,8 µg/m³'te EPA'lı I/O 0,90 / 0,63 / 0,54 çıkar (iç nem %40, dış %57,5; Ajan 1 hesabı). Regresyon
+  eğimi (F_inf) korunur, kesişim bozulur. Bu yüzden I/O ve Atmotube oranları ham cf_1 ile; EPA'lı oran duyarlılık için ikincil gösterilir.
+  ALT-CF3 (`pm2.5_alt`) ayrıca duyarlılık için önerildi (Wallace 2022); şimdilik kaydedilmiyor.
+- **İç/dış oranı (I/O):** Aynı saatin saatlik ortalamaları; dönem değeri = iç ham cf_1 ortalaması ÷ dış ham cf_1 ortalaması (ortalamaların
+  oranı; saatlik oranların medyanı ikincil). Ders saatleri = hafta içi 08:00–18:00; gece (boş bina) = 23:00–05:00 (Bi vd. 2021).
+  Gece I/O'su sızma faktörüne (F_inf) yaklaşır; ders saati I/O'su iç kaynakları da içerir (Chen & Zhao 2011). Kurulumun ilk saati
+  (ısınma, kurulum tozu) analize girmez. Sensör panelindeki anlık oran: ham cf_1, dış sensörün ±15 dk içindeki son ölçümüyle.
 - **Atmotube karşılaştırması:** Atmotube cihaz oturumlarındaki (ATP-n) ölçümlerden iç sensörün bulunduğu binaya (içinde ya da ≤15 m)
-  düşenler, ±3 dk içindeki iç PurpleAir ölçümüyle eşlenir; cihaz başına medyan Atmotube, medyan PurpleAir ve medyan oran (Atmotube ÷
-  düzeltilmiş PurpleAir; ayrıca ham PurpleAir'e göre). En az 3 eşleşme. Yorum §5'teki kurala göre (oran 1 ± %10 → benzer). Sınırlılık:
-  Atmotube'un Amfi 1'de olduğu GPS'ten doğrulanamaz; kesin sonuç için cihazların sensörün yanında ≥24 saat ölçmesi gerekir.
-- **Değerlendirme:** Ajan 1 literatür incelemesi sürüyor (20 Ekim 2026); sonuç bu maddeye işlenecek.
+  düşenler ±3 dk içindeki iç PurpleAir ölçümüyle eşlenir; cihaz başına ortalamaların oranı (Atmotube ÷ ham cf_1; EPA'lıya göre ikincil),
+  en az 3 eşleşme. Literatür beklentisi: Atmotube (Sensirion SPS30) ÷ ham PurpleAir (PMS5003) ≈ 0,55–0,75, ÷ EPA'lı ≈ 1 (Shittu vd. 2025;
+  Tryner vd. 2021; ikincil). İç ortam karşılaştırması "fark var mı" sorusunu yanıtlar, **cihaz çarpanı üretmez**; çarpanın dayanağı SUMER
+  çatısındaki yan yana ölçüm (§5). Atmotube'un Amfi 1'de olduğu GPS'ten doğrulanamaz; kesin sonuç için ≥24–48 saat yan yana (en az 2 ders
+  bloğu ve 1 gece).
+- **Maruziyet modeli (karar kullanıcının):** Model F'yi iç kaynaksız tanımlar (`maruziyet_yontemi.md` §4.4); gece F_inf'i yalnızca
+  Amfi 1/Kimya binası için, havalandırma türüne göre (0,5 kapalı pencere / 0,25 mekanik) karşılaştırılabilir. Ders saati I/O'su F'nin
+  yerine konmaz. En az 2 hafta veri (≥10 gece, 2 hafta sonu, 29 Ekim resmî tatil) birikmeden karar verilmez.
+- **Beklenen sayılar (literatürden türetilmiş, kaynak değil):** boş saatlerde ham cf_1 I/O 0,3–0,7; ders saatlerinde PM₂.₅ I/O biraz
+  artar, PM₁₀ daha çok (Braniš vd. 2005; Bhangar vd. 2014). F_inf ortanca ~0,5, aralık 0,1–1 (Chen & Zhao 2011).
+- **Veri denetimi (ilk günler):** saatlik ortalama |A−B| (dış referans 1,50 µg/m³), cf_1 = 0 kayıt payı (dışta 0), kayıt tamlığı (dışta
+  %89), sensörün menfez/kalorifer/pencere/projeksiyon fanından uzak ve soluma yüksekliğinde (~1,1–1,5 m) olması. Bağlam kaydı (yalnızca sayı
+  ve saat): ders programı, öğrenci sayısı, pencere/kapı, havalandırma ve temizlik saatleri, ısıtmanın başladığı tarih.
+- **Kaynaklar:** Ajan 1 literatür değerlendirmesi, 20 Ekim 2026; tüm içerik bilgileri **ikincil** (tam metin bu ortamdan açılamadı);
+  künyeler: Barkjohn vd. 2021 doi:10.5194/amt-14-4617-2021; Chen & Zhao 2011 doi:10.1016/j.atmosenv.2010.09.048; Wallace 2022
+  doi:10.3390/s22072755; Wallace & Ott 2023 doi:10.3390/s23031160; Shittu vd. 2025 doi:10.5194/amt-18-817-2025; Tryner vd. 2021
+  doi:10.1016/j.buildenv.2021.108398; Singer & Delp 2018 doi:10.1111/ina.12463; Bhangar vd. 2014 doi:10.1111/ina.12111; Braniš vd. 2005
+  doi:10.1016/j.envres.2004.12.001; Bi vd. 2021 *Environ. Pollut.* 276:116763 (DOI doğrulanmadı). Tam metin teyidi masaüstü oturumunda.
 
 **Kodda:** `backend/purpleair.py` → `poll_indoor()`, `db.py` → `purpleair_indoor_readings`, `app.py` → `/api/indoor/latest`,
 `/api/indoor/history`; `ic.js` (sensör paneli ve analiz), `campus.js` → `buildingAt()`. Seri rengi `DEVICE_COLOR.indoor` (#d4566b;
@@ -366,7 +384,7 @@ Afroz ve ark. (2025), Branco ve ark. (2024). Ayrıntılar, sayısal örnek ve ka
 
 | Sürüm | Tarih | Değişiklik |
 |---|---|---|
-| 2.1 | 20 Ekim 2026 | §1b: iç ortam PurpleAir (Amfi 1): toplama, düzeltme, I/O oranı, Atmotube eşleştirmesi. |
+| 2.1 | 20 Ekim 2026 | §1b: iç ortam PurpleAir (Amfi 1): toplama; gösterimde EPA (notla), analizde ham cf_1 (Ajan 1); I/O, gece 23–05, Atmotube eşleştirmesi. |
 | 2.0 | 20 Ekim 2026 | §6: Trendler sekmesi (gün × saat ısı haritası, kampüs–Tuzla günlük eğilimi ve eğilim cümlesi kuralı). §7: Özet'te son 24 saat şeridi. |
 | 1.9 | 12 Ekim 2026 | §1a: PurpleAir düzeltmesi EPA'nın ABD geneli denklemine, yayımlandığı girdi cf_1 ile geçti (PurpleAir haritasındaki "US EPA" ile aynı); cf_1'i olmayan eski kayıtlarda genişletilmiş denklem (yedek). |
 | 1.8 | 12 Ekim 2026 | §5: bina sınırına 15 m'den yakın dış noktalar en yakın binaya sayılır (GPS sapması); etkisi ve sınırlılığı yazıldı. |
