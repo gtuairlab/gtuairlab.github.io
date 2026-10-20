@@ -63,6 +63,8 @@ scheduler.add_job(purpleair.poll, "interval", minutes=config.POLL_INTERVAL_MINUT
 # Üç kaynağı kalıcı arşive yaz: hızlı (PurpleAir+Atmotube) + saatlik (İBB)
 scheduler.add_job(collector.collect_fast, "interval", minutes=config.POLL_INTERVAL_MINUTES, id="archive_fast")
 scheduler.add_job(collector.collect_hourly, "interval", minutes=60, id="archive_ibb")
+scheduler.add_job(collector.collect_atmotube_history, "interval", minutes=60, id="archive_atmotube_history",
+                  next_run_time=datetime.datetime.now() + datetime.timedelta(minutes=3))
 scheduler.start()
 
 # Run first poll + collection immediately on startup (background thread)

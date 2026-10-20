@@ -106,6 +106,48 @@ def collect_atmotube():
         return 0
 
 
+HISTORY_MAX_DAYS = 7   # buluttan geriye en çok kaç gün çekilir (uzun aralıkları bulut reddediyor; gün gün sorulur)
+
+
+def collect_atmotube_history():
+    """Saatte bir: her Atmotube için arşivdeki son kayıttan bugüne kadar bulutun dakikalık kaydını gün gün
+    çeker ve eksikleri ekler. Cihaz telefona geç bağlandığında belleğindeki tüm ölçümler buluta gider;
+    canlı toplayıcı yalnızca son değeri aldığı için aradakiler ancak bu işle arşive girer."""
+    if not archive.is_enabled() or not atmotube_cloud.ATMOTUBE_API_KEY:
+        return 0
+    today = datetime.date.today()
+    total = 0
+    for name, mac in atmotube_cloud.DEVICES.items():
+        try:
+            last = archive.latest_device_reading("atmotube", name)
+            start = today - datetime.timedelta(days=HISTORY_MAX_DAYS)
+            if last:
+                last_day = datetime.date.fromisoformat(last["recorded_at"][:10])
+                start = max(start, last_day)
+            day = start
+            while day <= today:
+                items = atmotube_cloud.fetch_device_history(
+                    mac, day.isoformat(), (day + datetime.timedelta(days=1)).isoformat())
+                rows = []
+                for it in items:
+                    c = it.get("coords") or {}
+                    rows.append({
+                        "source": "atmotube", "device": name, "recorded_at": it.get("time"),
+                        "pm1_0": it.get("pm1"), "pm2_5": it.get("pm25"), "pm10_0": it.get("pm10"),
+                        "voc_ppm": it.get("voc"), "temperature_c": it.get("t"),
+                        "humidity_pct": it.get("h"), "pressure_hpa": it.get("p"),
+                        "lat": c.get("lat"), "lon": c.get("lon"),
+                    })
+                total += archive.log_rows(rows)
+                day += datetime.timedelta(days=1)
+        except Exception as e:
+            print(f"[collector/atmotube_history] {name}: {atmotube_cloud._safe_error(e)}")
+    if total:
+        print(f"[collector/atmotube_history] {total} gecikmeli ölçüm arşivlendi.")
+        sync_atmotube_sessions()
+    return total
+
+
 def collect_co2():
     """CO₂ sensörlerinin (Tuya) son okumalarını arşive ekle."""
     try:
@@ -142,12 +184,17 @@ def sync_atmotube_sessions():
         with db.get_conn() as conn:
             cur = conn.cursor()
             # Cihaz kampüs dışına götürüldüğünde (ev, yol) o ölçümler saha oturumuna alınmaz
+            # Son 3 günün ölçümleri + son 1 günde arşive giren (cihaz geç eşitlendiyse eski tarihli) günler
             cur.execute(f"""
                 SELECT device, (recorded_at AT TIME ZONE 'Europe/Istanbul')::date AS d,
                        COUNT(*), MIN(recorded_at), MAX(recorded_at)
                 FROM measurements
-                WHERE source='atmotube' AND recorded_at > now() - interval '3 days'
-                  AND (lat IS NULL OR {kampus.sql_box()})
+                WHERE source='atmotube' AND (lat IS NULL OR {kampus.sql_box()})
+                  AND (device, (recorded_at AT TIME ZONE 'Europe/Istanbul')::date) IN (
+                      SELECT DISTINCT device, (recorded_at AT TIME ZONE 'Europe/Istanbul')::date
+                      FROM measurements
+                      WHERE source='atmotube'
+                        AND (recorded_at > now() - interval '3 days' OR ingested_at > now() - interval '1 day'))
                 GROUP BY device, d ORDER BY device, d
             """)
             groups = cur.fetchall()
