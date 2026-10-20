@@ -103,17 +103,23 @@ function sample(url) {
 const W = LONG ? 1280 : 540, H = LONG ? 720 : 960;
 // Çıkış: 1080×1920 / 1920×1080. HD=1 → ekran 1,5 kat yüksek çözünürlükte yakalanıp küçültülür (daha keskin), daha yüksek kalite kodlama
 const OUT_K = LONG ? 1.5 : 2, HD = process.env.HD === '1', DPR = HD ? OUT_K * 1.5 : OUT_K;
-// Kısa sürüm: başlık ve açıklama 4:5 orta kırpmada da görünür kalır (y 142–818); uygulama 468 CSS px genişlikte çizilip
-// 1,154 kat büyütülür (telefonda yazılar daha okunaklı)
-const FRAME = LONG ? { x: 0, y: 92, w: 1280, h: 628 } : { x: 0, y: 292, w: 540, h: 668 };
-const APPW = LONG ? FRAME.w : 468, SC = FRAME.w / APPW, APPH = Math.round(FRAME.h / SC);
+// Kısa sürüm: üstte logo ve başlık/açıklama, altında ortada gerçek telefon oranında
+// (390×800 CSS px görüntü alanı + 44 px durum çubuğu) bir telefon çerçevesinin içinde gösterilir
+const PH = { top: 214, h: 722, pad: 9, sb: 44, vw: 390, vh: 800 };
+const SCP = (PH.h - 2 * PH.pad) / (PH.sb + PH.vh), PW = PH.vw * SCP + 2 * PH.pad, PX = (W - PW) / 2;
+const FRAME = LONG ? { x: 0, y: 92, w: 1280, h: 628 } : { x: PX + PH.pad, y: PH.top + PH.pad + PH.sb * SCP, w: PH.vw * SCP, h: PH.vh * SCP };
+const APPW = LONG ? FRAME.w : PH.vw, SC = LONG ? 1 : SCP, APPH = LONG ? FRAME.h : PH.vh;
+const SAAT = new Date(NOW).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Istanbul' });
+// Akıcılık: kayıt sırasında sayfanın saati (JS zamanlayıcıları, requestAnimationFrame) ve CSS animasyonları RATE hızında akar;
+// kareler içerik zamanına göre 30 fps'ye oturtulur. Ağır anlarda (harita uçuşu, grafik çizimi) kare düşmez, geçişler takılmaz.
+const RATE = +(process.env.HIZ || 0.25);
 const STAGE = `<!doctype html><html lang="tr"><head><meta charset="utf-8">
 <link rel="stylesheet" href="/vendor/fonts/fonts.css">
 <style>
 *{box-sizing:border-box;margin:0}
 html,body{width:${W}px;height:${H}px;overflow:hidden;background:#0a101d;color:#e8ecf4;font-family:Inter,system-ui,sans-serif}
 svg.i{width:1em;height:1em;flex-shrink:0}
-#cap{position:absolute;pointer-events:none;${LONG ? 'left:36px;right:300px;top:0;height:92px;display:flex;flex-direction:column;justify-content:center' : 'left:22px;right:22px;top:150px;height:136px;display:block'};transition:opacity .45s}
+#cap{position:absolute;pointer-events:none;${LONG ? 'left:36px;right:300px;top:0;height:92px;display:flex;flex-direction:column;justify-content:center' : 'left:24px;right:24px;top:82px;height:126px;display:block'};transition:opacity .45s}
 #cap h2{font-family:"Source Serif 4",serif;font-weight:600;font-size:${LONG ? 27 : 23}px;line-height:1.2;letter-spacing:-.005em}
 #cap h2 .tag{display:inline-block;vertical-align:3px;margin-right:8px;font:700 10.5px/1 Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#101521;background:#f5b840;padding:4px 7px;border-radius:5px}
 #cap p{margin-top:${LONG ? 4 : 5}px;font-size:${LONG ? 14.5 : 13.5}px;line-height:1.45;color:#aeb8cc}
@@ -121,10 +127,17 @@ svg.i{width:1em;height:1em;flex-shrink:0}
 #cap p:empty{display:none}
 #cap .ex{margin-top:11px;font-size:18.5px;line-height:1.45;font-weight:650;color:#fff;transition:opacity .3s}
 #cap .ex mark{background:#f5b840;color:#101521;padding:0 .22em;border-radius:5px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
-#appwrap{position:absolute;left:${FRAME.x}px;top:${FRAME.y}px;width:${FRAME.w}px;height:${FRAME.h}px;overflow:hidden;border-top:1px solid rgba(160,180,220,.14)}
+#appwrap{position:absolute;left:${FRAME.x}px;top:${FRAME.y}px;width:${FRAME.w}px;height:${FRAME.h}px;overflow:hidden;z-index:2;${LONG ? 'border-top:1px solid rgba(160,180,220,.14)' : `border-radius:0 0 ${36 * SC}px ${36 * SC}px`}}
+#phone{position:absolute;left:${PX}px;top:${PH.top}px;width:${PW}px;height:${PH.h}px;border-radius:${46 * SC + PH.pad}px;background:#04070d;
+  border:1px solid rgba(160,180,220,.24);box-shadow:0 0 0 2px #0b1220,0 22px 60px rgba(0,0,0,.6);z-index:1}
+#pstatus{position:absolute;left:${FRAME.x}px;top:${PH.top + PH.pad}px;width:${FRAME.w}px;height:${PH.sb * SC}px;z-index:2;background:#0a101d;
+  border-radius:${36 * SC}px ${36 * SC}px 0 0;display:flex;align-items:center;justify-content:space-between;padding:0 ${26 * SC}px;
+  font:600 ${15 * SC}px/1 Inter,sans-serif;color:#e8ecf4;letter-spacing:.01em}
+#pstatus .isl{position:absolute;left:50%;top:${10 * SC}px;width:${96 * SC}px;height:${26 * SC}px;margin-left:${-48 * SC}px;border-radius:${14 * SC}px;background:#000}
+#pstatus svg{height:${12 * SC}px;width:auto;margin-left:${5 * SC}px;fill:#e8ecf4}
 #appscale{position:absolute;left:0;top:0;width:${APPW}px;height:${APPH}px;transform:scale(${SC});transform-origin:0 0}
 #app{position:absolute;inset:0;width:100%;height:100%;border:0;background:#0a101d;transition:transform .85s cubic-bezier(.4,0,.2,1)}
-#brand{position:absolute;${LONG ? 'right:30px;top:0;height:92px' : 'left:22px;top:38px;height:44px'};display:flex;align-items:center;gap:${LONG ? 10 : 12}px;font-size:12px;line-height:1.35;color:#8b96ab}
+#brand{position:absolute;${LONG ? 'right:30px;top:0;height:92px' : 'left:24px;top:22px;height:44px'};display:flex;align-items:center;gap:${LONG ? 10 : 12}px;font-size:12px;line-height:1.35;color:#8b96ab}
 #brand img{width:${LONG ? 34 : 40}px;height:${LONG ? 34 : 40}px;border-radius:${LONG ? 8 : 10}px}
 #brand b{font-family:"Source Serif 4",serif;font-size:${LONG ? 18 : 18}px;color:#e8ecf4;font-weight:600}
 #brand b i{font-style:normal;color:#f5a623}
@@ -183,6 +196,10 @@ svg.i{width:1em;height:1em;flex-shrink:0}
 <div id="cap"><h2></h2><p></p>${LONG ? '' : '<div class="ex"></div>'}</div>
 <div id="brand"><img src="${LOGO}" alt=""><span><b>GTÜ <i>Air</i>Lab</b><br>Kampüs Hava Kalitesi Laboratuvarı${LONG ? '' : ' · Gebze Teknik Üniversitesi'}</span></div>
 ${SAMPLE ? '<div id="draft">TASLAK · ÖRNEK VERİ</div>' : ''}
+${LONG ? '' : `<div id="phone"></div><div id="pstatus"><span>${SAAT}</span><i class="isl"></i><span>
+  <svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx=".8"/><rect x="5" y="5.5" width="3" height="6.5" rx=".8"/><rect x="10" y="3" width="3" height="9" rx=".8"/><rect x="15" y="0" width="3" height="12" rx=".8"/></svg>
+  <svg viewBox="0 0 16 12"><path d="M8 11.5 5.6 9a3.4 3.4 0 0 1 4.8 0zM2.8 6.3a7.4 7.4 0 0 1 10.4 0l-1.4 1.4a5.4 5.4 0 0 0-7.6 0zM0 3.5a11.3 11.3 0 0 1 16 0l-1.4 1.4a9.3 9.3 0 0 0-13.2 0z"/></svg>
+  <svg viewBox="0 0 27 12"><rect x=".5" y=".5" width="22" height="11" rx="3" fill="none" stroke="#e8ecf4" opacity=".55"/><rect x="2.5" y="2.5" width="15" height="7" rx="1.6"/><rect x="24" y="4" width="2" height="4" rx="1" opacity=".55"/></svg></span></div>`}
 <div id="appwrap"><div id="appscale"><iframe id="app" name="app"></iframe></div></div>
 <div id="sub"></div>
 <div id="cursor"><svg viewBox="0 0 24 24" width="34" height="34"><path d="M3 2l7.5 19 2.6-7.6L21 10.8z" fill="#fff" stroke="#0a101d" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
@@ -214,11 +231,9 @@ window.veil = on => { document.getElementById('veil').style.opacity = on ? 1 : 0
 (async () => {
   const b = await chromium.launch();
   const ctx = await b.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: DPR, serviceWorkers: 'block', locale: 'tr-TR', timezoneId: 'Europe/Istanbul' });
-  await ctx.addInitScript(([NOW_, SHIFT]) => {
-    // Gerçek veri anlık görüntüsü: tarayıcı saati görüntünün alındığı ana ayarlanır (ölçüm zamanları değiştirilmez)
-    if (SHIFT) { const D = Date, OFF = NOW_ - D.now();
-      window.Date = new Proxy(D, { construct: (t, a, nt) => a.length ? Reflect.construct(t, a, nt) : new t(t.now() + OFF),
-        apply: t => new t(t.now() + OFF).toString(), get: (t, k) => k === 'now' ? () => D.now() + OFF : Reflect.get(t, k) }); }
+  // Tarayıcı saati: anlık görüntüde görüntünün alındığı an (ölçüm zamanları değiştirilmez); kayıtta RATE hızında sürülür
+  await ctx.clock.install({ time: NOW });
+  await ctx.addInitScript(() => {
     try { localStorage.setItem('gtu.install.dismissed', 'true'); localStorage.removeItem('gtu.view.research'); } catch (_) {}
     if (window.top === window) return;
     // Dokunma izi: tıklanan yerde kısa bir halka
@@ -230,7 +245,7 @@ window.veil = on => { document.getElementById('veil').style.opacity = on ? 1 : 0
       setTimeout(() => d.remove(), 700);
     };
     addEventListener('pointerdown', e => { if (e.isTrusted) window.__tap(e.clientX, e.clientY); }, true);
-  }, [NOW, !!(TAKLIT && TAKLIT.NOW)]);
+  });
   if (!REAL) await ctx.route(/arcgisonline|cartocdn|ibb\.gov\.tr|openstreetmap/, r => r.abort());
   await ctx.route('http://localhost:8765/__stage.html', r => r.fulfill({ contentType: 'text/html; charset=utf-8', body: STAGE }));
   if (!REAL) await ctx.route('https://gtu-air-quality.onrender.com/**', r => r.fulfill((TAKLIT ? TAKLIT.handle : sample)(r.request().url())));
@@ -270,15 +285,23 @@ window.veil = on => { document.getElementById('veil').style.opacity = on ? 1 : 0
       last = buf;
     });
   };
-  cdp.on('Page.screencastFrame', f => { frames++; push(Buffer.from(f.data, 'base64'), f.metadata.timestamp); cdp.send('Page.screencastFrameAck', { sessionId: f.sessionId }).catch(() => {}); });
-  await cdp.send('Page.startScreencast', { format: 'jpeg', quality: HD ? 96 : 92, maxWidth: CW, maxHeight: CH, everyNthFrame: 1 });
+  // Saat durdurulur; CSS animasyonları RATE hızına alınır; sürücü sayfa saatini gerçek zamanın RATE katı kadar ilerletir
+  const fake0 = await page.evaluate(() => Date.now());
+  await ctx.clock.pauseAt(fake0 + 50);
+  await cdp.send('Animation.enable');
+  await cdp.send('Animation.setPlaybackRate', { playbackRate: RATE });
   const T0 = Date.now(), marks = {};
-  const mark = name => { marks[name] = +((Date.now() - T0) / 1000).toFixed(2); };
+  let driving = true, advanced = 0;
+  const driver = (async () => { while (driving) { await new Promise(r => setTimeout(r, 8));
+    const d = Math.floor((Date.now() - T0) * RATE - advanced); if (d >= 1) { advanced += d; await ctx.clock.runFor(d).catch(() => {}); } } })();
+  cdp.on('Page.screencastFrame', f => { frames++; push(Buffer.from(f.data, 'base64'), f.metadata.timestamp * RATE); cdp.send('Page.screencastFrameAck', { sessionId: f.sessionId }).catch(() => {}); });
+  await cdp.send('Page.startScreencast', { format: 'jpeg', quality: HD ? 96 : 92, maxWidth: CW, maxHeight: CH, everyNthFrame: 1 });
+  const mark = name => { marks[name] = +((Date.now() - T0) / 1000 * RATE).toFixed(2); };
   // Yayın yalnızca ekran değişince kare yollar; sabit sahnelerde de zaman ilerlesin diye görünmez bir nokta yanıp söner
   await page.evaluate(() => { const d = document.createElement('div'); d.style.cssText = 'position:absolute;left:0;top:0;width:1px;height:1px;z-index:99;background:#0a101d';
     document.body.appendChild(d); let k = 0; setInterval(() => { d.style.background = (k++ % 2) ? '#0a101d' : '#0b111e'; }, 33); });
 
-  const wait = ms => page.waitForTimeout(ms);
+  const wait = ms => page.waitForTimeout(ms / RATE);   // içerik zamanı (ms)
   // Yeni sahne başlığı gelince önceki altyazı da kalkar
   const cap = (h, p) => page.evaluate(([h, p]) => { window.sub(null); window.cap(h, p); }, [h, p]);
   const card = html => page.evaluate(h => window.card(h), html);
@@ -309,9 +332,14 @@ window.veil = on => { document.getElementById('veil').style.opacity = on ? 1 : 0
     for (let i = 0; i < steps; i++) { await F().evaluate(([s, d]) => { const e = document.querySelector(s); if (e) e.scrollTop += d; }, [sel, px / steps]); await wait(40); }
   };
   // Kaydırılabilir kabı, öğe kabın üstünden `off` piksel aşağıda kalacak şekilde yumuşak kaydırır
-  const scrollTo = (sel, off = 12) => F().evaluate(([sel, off]) => { const e = document.querySelector(sel); let p = e.parentElement;
+  // (tarayıcının "smooth" kaydırması saatten bağımsız aktığı için requestAnimationFrame ile yapılır)
+  const scrollTo = (sel, off = 12, dur = 650) => F().evaluate(([sel, off, dur]) => { const e = document.querySelector(sel); let p = e.parentElement;
     while (p && p.scrollHeight <= p.clientHeight + 2) p = p.parentElement;
-    if (p) p.scrollTo({ top: p.scrollTop + e.getBoundingClientRect().top - p.getBoundingClientRect().top - off, behavior: 'smooth' }); }, [sel, off]);
+    if (!p) return;
+    const y0 = p.scrollTop, y1 = y0 + e.getBoundingClientRect().top - p.getBoundingClientRect().top - off, t0 = performance.now();
+    const ease = q => q < .5 ? 2 * q * q : 1 - Math.pow(-2 * q + 2, 2) / 2;
+    const step = () => { const q = Math.min(1, (performance.now() - t0) / dur); p.scrollTop = y0 + (y1 - y0) * ease(q); if (q < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step); }, [sel, off, dur]);
   // Maruziyet asistanı: bir günlük örnek program (iki bina + açık hava)
   const chat = async (pause) => {
     const a = async s => { await tap(`.cb-ask ${s}`, pause); };
@@ -339,10 +367,10 @@ window.veil = on => { document.getElementById('veil').style.opacity = on ? 1 : 0
     // ── Kısa sürüm (≈90 sn, 9:16): açılışta kanca (anlık durum), sonra marka ve ölçüm ağı; üst bantta başlık ve tek cümle ──
     mark('giris');
     await cap('Kampüste hava şu an nasıl?');
-    await sub('Kampüsün havası <mark>sürekli ölçülüyor</mark>; sonuç tek ekranda.'); await wait(3300);
-    await sub('Son ölçüm, ulusal <mark>Hava Kalitesi İndeksi (HKİ)</mark> ölçeğinde gösterge olarak sınıflandırılır.'); await wait(3900);
+    await sub('Kampüsün havası <mark>sürekli ölçülür</mark>; herkes anlık durumu tek ekranda görür.'); await wait(3600);
+    await sub('<mark>HKİ ölçeği</mark>, ölçümü herkesin anlayacağı bir sınıfa çevirir (gösterge değer).'); await wait(3800);
     await highlight('.oz-24', 1400, 12);
-    await sub('Son 24 saatin seyri ve <mark>hassas gruplar</mark> için öneriler.'); await wait(2900);
+    await sub('Gün içindeki değişim ve <mark>hassas gruplar</mark> için öneriler aynı yerde.'); await wait(3200);
     mark('marka');
     await card(`${LOGO_IMG}<h1>GTÜ <i>Air</i>Lab</h1><div class="sub">Kampüs Hava Kalitesi Laboratuvarı<br>Gebze Teknik Üniversitesi</div>
       <div class="rule"></div><div class="tagline">Kampüsün havasını sürekli ölçüyor, sonuçları yöntemiyle birlikte açık paylaşıyoruz.</div>`);
@@ -350,11 +378,11 @@ window.veil = on => { document.getElementById('veil').style.opacity = on ? 1 : 0
     mark('ag');
     await card(`<div class="kick">Ölçüm ağı</div><h3>Üç katmanda ölçüm</h3><div class="net">
       <section><span class="ic">${ic('radio-tower')}</span><div><h4>Dış ortam <small>· PurpleAir</small></h4>
-        <p>Sürekli, 2 dakikada bir · PM₂.₅ US EPA düzeltmeli</p></div></section>
+        <p>Kampüsün dış ortam PM₂.₅ düzeyini sürekli izler</p></div></section>
       <section><span class="ic">${ic('building-2')}</span><div><h4>İç ortam <small>· Amfi 1</small><em>YENİ</em></h4>
-        <p>Derslik havası, dış ortamla eşzamanlı</p></div></section>
+        <p>Derslik havasını dış ortamla karşılaştırır</p></div></section>
       <section><span class="ic">${ic('footprints')}</span><div><h4>Taşınabilir <small>· Atmotube Pro</small></h4>
-        <p>Kısa süreli, konumlu saha ölçümleri</p></div></section></div>`);
+        <p>Binaları birbirine göre karşılaştırır</p></div></section></div>`);
     await click('#tabbar [data-tab=map]', 300);
     await F().evaluate(() => { map.setView([40.8088, 29.3600], 15.3, { animate: false }); });
     await wait(6500);
@@ -363,47 +391,47 @@ window.veil = on => { document.getElementById('veil').style.opacity = on ? 1 : 0
     await cap('Kampüs haritası');
     await card(null); await wait(400);
     await F().evaluate(() => { map.flyTo([40.8092, 29.3592], 15.75, { duration: 2.6 }); });
-    await sub('Binalar ve ölçüm noktaları <mark>tek haritada</mark>.'); await wait(4200);
+    await sub('Ölçüm noktaları ve binalar <mark>tek haritada</mark>; nerede ne ölçüldüğü bir bakışta.'); await wait(4200);
     // Amfi 1 · iç ortam
     mark('ic');
     await cap('<span class="tag">Yeni</span>İç ortam ölçümü · Amfi 1');
     await subTab('live', 600);
     await scrollTo('#ic-panel', 8); await wait(700);
     await tap("#ic-panel .ic-ts-chips [data-h='6']", 500);
-    await sub('Derslik havası <mark>2 dakikada bir</mark> ölçülür.'); await wait(3000);
+    await sub('Derslikteki havanın gün içinde nasıl değiştiğini <mark>sürekli izler</mark>.'); await wait(3300);
     await scrollTo('#ic-panel .ic-ts', 120); await wait(400);
     await tap('#ic-panel .ic-ts-chips [data-m=io]', 500);
-    await sub('<mark>İç/dış oranı</mark>, derslik havasını dış ortamla karşılaştırır (ilk gün ≈ 1).'); await wait(4000);
+    await sub('<mark>İç/dış oranı</mark>, kirliliğin dışarıdan mı içeriden mi geldiğini anlamaya yardımcı olur.'); await wait(4200);
     await tap('#ic-open', 800);
-    await sub('Ders programına göre <mark>ders, boş derslik ve gece</mark> saatleri ayrı değerlendirilir.'); await wait(4200);
+    await sub('<mark>Ders, boş derslik ve gece</mark> ayrı değerlendirilir; veri biriktikçe havalandırmaya dayanak olur.'); await wait(4300);
     // Trendler
     mark('trend');
     await cap('Trendler');
     await click('#tabbar [data-tab=trend]', 700);
-    await sub('Son 30 günde, haftanın gününe ve saatine göre <mark>ortalama PM₂.₅</mark>.'); await wait(4000);
+    await sub('PM₂.₅’in ortalamada <mark>hangi gün ve saatlerde yükseldiğini</mark> gösterir.'); await wait(3800);
     await scrollTo('#tr-region', 70); await wait(500);
-    await sub('Kampüs ile <mark>Tuzla istasyonu</mark> aynı saatlerde karşılaştırılır; yöntemler farklıdır.'); await wait(4800);
+    await sub('Kampüsü <mark>bölgedeki resmî istasyonla</mark> aynı saatlerde karşılaştırarak bağlam sunar.'); await wait(4600);
     // Saha ölçümleri (bina ortalamaları görünümü kayıttan önce hazırlandı)
     mark('saha');
     await cap('Bina bazlı saha ölçümleri');
     await subTab('field', 300);
-    await sub('Kısa süreli <mark>konumlu ölçümler</mark>; bina ortalamaları göreli bir karşılaştırmadır.'); await wait(4200);
+    await sub('Binaları birbirine göre karşılaştırır; <mark>ek ölçüm gereken alanlara</mark> işaret eder.'); await wait(4000);
     await tap('#map-cta', 400);
     await F().evaluate(() => { map.flyTo([40.8098, 29.3585], 16.0, { duration: 1.6 }); });
-    await sub('Bina ortalamaları <mark>harita üzerinde</mark>.'); await wait(4300);
+    await sub('Bina ortalamaları <mark>harita üzerinde</mark> renklerle görünür.'); await wait(4300);
     // Kişisel maruziyet
     mark('maruziyet');
     await cap('Kişisel maruziyet tahmini');
-    await sub('Gün içindeki program girilir; <mark>bilgiler cihazdan çıkmaz</mark>.');
+    await sub('Kişi gün içindeki programını girer; <mark>bilgiler cihazından çıkmaz</mark>.');
     await highlight('#exp-fab', 900);
     await tap('#exp-fab', 1000);
     await chat(330);
     await wait(300);
     await scrollTo('#exp-body .cb-chart', 60); await wait(500);
-    await sub('Solunan miktar ≈ tahmini derişim × <mark>solunum hızı (US EPA, 2011)</mark> × süre.'); await wait(4000);
+    await sub('Kampüsün tipik saatlik değerleri ve US EPA solunum hızlarıyla <mark>solunan PM₂.₅</mark> tahmin edilir.'); await wait(4200);
     await scrollTo('#mx-jmap', 70); await wait(600);
     await F().evaluate(() => document.getElementById('mx-jplay').click());
-    await sub('Gün boyu <mark>nerede, ne kadar</mark> solunduğu haritada.'); await wait(6300);
+    await sub('<mark>Nerede, ne kadar</mark> solunduğunu gösterir; maruziyeti azaltacak seçimlere ışık tutar.'); await wait(6300);
     // Kapanış
     mark('kapanis');
     await card(OUTRO);
@@ -462,7 +490,7 @@ window.veil = on => { document.getElementById('veil').style.opacity = on ? 1 : 0
     await click('#exp-close', 700);
     await click('#info-btn', 1500);
     await sub('Her eşik ve hesap <mark>kaynağıyla birlikte</mark> belirtilir');
-    await F().evaluate(() => document.getElementById('inf-sinir').scrollIntoView({ behavior: 'smooth', block: 'start' })); await wait(4500);
+    await scrollTo('#inf-sinir', 8); await wait(4500);
     await scroll('#info-body', 380, 3000); await wait(2500);
     await cap('Araştırma görünümü', 'Sensör panelleri, Amfi 1 iç ortam analizi, saha ölçüm oturumları ve bina ortalamaları');
     await click('#info-close', 700);
@@ -486,6 +514,7 @@ window.veil = on => { document.getElementById('veil').style.opacity = on ? 1 : 0
   }
 
   await cdp.send('Page.stopScreencast');
+  driving = false; await driver;
   await chain;
   if (last) for (let i = 0; i < 15; i++) { await write(last); written++; }
   ff.stdin.end();
