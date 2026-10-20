@@ -269,8 +269,8 @@ const Ic = (() => {
     }
 
     // Ders saati: Amfi 1 ders programı (data/amfi1_program.json, bölümün dönem ders programından; yalnızca gün, saat, ders kodu) varsa
-    // programdaki saatler — saatlik ortalamanın tamamı derse denk gelen saatler (09:30–12:30 bloğundan 10 ve 11); yarım saatler
-    // (ders başı/sonu) karışık olduğundan hiçbir gruba girmez. Dönem dışı ve tatil günleri ders sayılmaz. Program yoksa hafta içi 08–18.
+    // programdaki saatler — saatin en az 30 dakikası derse denk gelen saatler (09:30–12:30 bloğundan 9, 10, 11, 12; kullanıcının kararı,
+    // 20 Ekim 2026). Dönem dışı ve tatil günleri ders sayılmaz. Program yoksa hafta içi 08–18.
     // Boş derslik: hafta içi 08–18'de programda hiç ders olmayan saatler (yalnızca program varsa).
     const WD_NUM = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
     const toMin = s => { const [h, m] = String(s).split(":").map(Number); return h * 60 + (m || 0); };
@@ -291,7 +291,7 @@ const Ic = (() => {
     }
     const hourPoint = t => { const k = hourKey(t); return { k, h: hourOf(k), wd: wdFmt.format(t) }; };
     const weekdayDay = p => !["Sat", "Sun"].includes(p.wd) && p.h >= 8 && p.h < 18;
-    const isClass = p => program ? classMin(p) >= 60 : weekdayDay(p);
+    const isClass = p => program ? classMin(p) >= 30 : weekdayDay(p);
     const isIdle = p => !!program && weekdayDay(p) && classMin(p) === 0;
     const isNight = p => p.h >= 23 || p.h < 5;                                       // 23:00–05:00, bina boş (Bi vd. 2021)
 
@@ -320,8 +320,8 @@ const Ic = (() => {
             ${tile("Gece I/O (boş bina)", f2(s.night.io), `23–05 · ${s.night.n} saat · sızmaya yaklaşık`)}
             ${tile("Ders − gece (iç)", s.cls.i != null && s.night.i != null ? f1(s.cls.i - s.night.i) : "–", "µg/m³ (EPA) · iç ortalamalar farkı")}
           </div>
-          <div class="who-cap">${program ? `Ders saatleri: ${esc(program.kaynak || "ders programı")} içindeki ${esc(name)} dersleri; yalnızca tamamı derse denk
-            gelen saatler (sınav haftaları ve iptaller programda yok). ` : ""}I/O = iç ham değer (CF=1) ortalaması ÷ aynı saatlerin dış ham değer ortalaması (A/B denetimli). EPA'lı oran yalnızca
+          <div class="who-cap">${program ? `Ders saatleri: ${esc(program.kaynak || "ders programı")} içindeki ${esc(name)} dersleri; en az 30 dakikası derse
+            denk gelen saatler (sınav haftaları ve iptaller programda yok). ` : ""}I/O = iç ham değer (CF=1) ortalaması ÷ aynı saatlerin dış ham değer ortalaması (A/B denetimli). EPA'lı oran yalnızca
             karşılaştırma içindir: düzeltme iki değere aynı sabiti (+5,75) ekler ve nem terimi iç/dış nem farkıyla değişir; oran 1'e doğru
             kayar, en çok temiz saatlerde (ör. nem %50'de ham oran 0,50 iken ham 10/20 → EPA'lı 0,56; ham 4/8 → 0,63). Gece I/O'su sızma faktörüne yaklaşır;
             maruziyet modelindeki F değerleri için en az 2 hafta veri (≥10 gece, 2 hafta sonu) birikmesi önerilir.</div>`;

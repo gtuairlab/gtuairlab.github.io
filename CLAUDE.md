@@ -197,7 +197,7 @@ Renkli (zengin) duyuru — `renk` ya da `bolumler` varsa renkli başlık alanıy
 - Telefon düzeni `index.html` içindeki `@media (max-width: 760px)` bloğunda; masaüstü düzenini bozmamaya dikkat et.
 
 ## Proje yapısı
-- `frontend_v2/` — yayındaki arayüz (`index.html`, `js/icons.js` (ikon seti), `js/app.js`, `js/api.js`, `js/campus.js`, `js/colorscale.js`, `js/shell.js`, `js/who.js` (WHO durumu sekmesi), `js/ozet.js` (Özet: günlük ve aylık özet, açılış ekranı), `js/kiyas.js` (kampüs–Tuzla aynı saat karşılaştırması), `js/maruziyet.js` (kişisel maruziyet hesabı, taslak), `data/campus.geojson`, `data/duyurular.json`, `data/tuzla_saatlik.json` (Tuzla saatlik geçmişi))
+- `frontend_v2/` — yayındaki arayüz (`index.html`, `js/icons.js` (ikon seti), `js/app.js`, `js/api.js`, `js/campus.js`, `js/colorscale.js`, `js/shell.js`, `js/who.js` (WHO durumu sekmesi), `js/ozet.js` (Özet: günlük ve aylık özet, açılış ekranı), `js/kiyas.js` (kampüs–Tuzla aynı saat karşılaştırması), `js/maruziyet.js` (kişisel maruziyet hesabı, tahmin; "taslak" ibaresi kullanıcının isteğiyle 20 Ekim 2026'da kaldırıldı), `data/campus.geojson`, `data/duyurular.json`, `data/tuzla_saatlik.json` (Tuzla saatlik geçmişi))
 - `frontend_v2/vendor/` — yerel Leaflet, Leaflet.heat, Chart.js ve yazı tipleri (Inter, Source Serif 4) (lisanslar `vendor/LICENSES/`)
 - `docs/` — yöntem belgeleri: `hesaplama_ve_kaynaklar.md` (tüm sınıflandırma, eşik, hesap ve kaynakların kaydı + kontrol listesi), `purpleair_epa_duzeltmesi.md` (PurpleAir US EPA düzeltmesi: formül, örnekler, doğrulama, kaynaklar), `maruziyet_yontemi.md` (kişisel maruziyet hesabı)
 - **Sunucuyu uyanık tutma:** Asıl yöntem Supabase `pg_cron` işi `render-uyanik-tut` (5 dakikada bir `net.http_get` ile `/health`, 7 Ekim 2026).

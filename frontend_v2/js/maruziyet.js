@@ -1,4 +1,4 @@
-// Kişisel maruziyet hesabı (taslak) — kişi kampüste nerede, hangi saatlerde ve ne yaparak vakit geçirdiğini girer.
+// Kişisel maruziyet hesabı (tahmin) — kişi kampüste nerede, hangi saatlerde ve ne yaparak vakit geçirdiğini girer.
 // Model (her satır için):  C = P(saat) × R(bina) × F(ortam)
 //   P(saat): kampüs PurpleAir sensörünün ölçülen tüm günlerdeki saatlik ortalaması (Türkiye saati)
 //   R(bina): binanın saha ölçüm ortalaması / tüm saha ölçümlerinin ortalaması (0,5–2 aralığında sınırlı)
@@ -503,7 +503,7 @@ const Maruziyet = (() => {
     function renderTable(tabs) {
         const body = $("exp-body");
         body.innerHTML = tabs + `<p class="mx-intro">Kampüste hangi saatlerde, nerede ve ne yaparak vakit geçirdiğinizi girin. Kampüs ölçümlerine göre
-              <b>taslak bir maruziyet tahmini</b> hesaplanır.</p>
+              <b>bir maruziyet tahmini</b> hesaplanır.</p>
             <div class="mx-rows">${rows.map(rowHtml).join("")}</div>
             <div class="mx-tools">
               <button type="button" class="sc-btn" id="mx-add">${ico("plus")} Satır ekle</button>

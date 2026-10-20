@@ -1,4 +1,4 @@
-# Kişisel maruziyet hesabı (taslak) — yöntem ve kabuller
+# Kişisel maruziyet hesabı (tahmin) — yöntem ve kabuller
 
 **Proje:** GTÜ AirLab, kampüs hava kalitesi platformu
 **Kod:** `frontend_v2/js/maruziyet.js` (arayüzde Özet → "AirLab asistanı: kampüste ne kadar PM₂.₅ soludum?")

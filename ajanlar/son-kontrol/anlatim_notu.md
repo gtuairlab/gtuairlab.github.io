@@ -17,7 +17,7 @@ uygulamada Ulusal Hava Kalitesi İndeksi (HKİ) sınıflarıyla ve WHO 2021 kıl
 ## İç ortam ölçümü (3 cümlede)
 1. İç/dış oranı, aynı saatlerin ham (CF=1) ortalamalarının oranıdır; EPA düzeltmesindeki sabit terim temiz saatlerde oranı yapay
    olarak 1'e yaklaştırdığı için oran ham değerle hesaplanır (ör. %50 nemde ham 10/20 = 0,50 iken EPA'lı oran 0,56).
-2. Saatler bölümün güz ders programına göre üçe ayrılır: ders (tamamı derse denk gelen saatler, haftada 15), boş derslik (hafta içi
+2. Saatler bölümün güz ders programına göre üçe ayrılır: ders (en az 30 dakikası derse denk gelen saatler, haftada 33), boş derslik (hafta içi
    08–18'de programda ders olmayan saatler) ve gece (23–05); gece oranı dış havanın içeri sızma oranına yaklaşır.
 3. Kurulumdan sonraki ilk saat (ısınma, kurulum tozu) analize girmez; ilk günde oran yaklaşık 1'dir (0,99, boş derslik saatleri).
 
@@ -69,8 +69,8 @@ uygulamada Ulusal Hava Kalitesi İndeksi (HKİ) sınıflarıyla ve WHO 2021 kıl
 ## Ek sorular (20 Ekim 2026, tanıtım videosu ve iç ortam)
 6. **"Kampüs Tuzla'dan daha mı temiz?"** Son 30 günde kampüs ortalaması %14 düşük (16,2 / 18,7 µg/m³); yöntemler ve konum farklı,
    fark hata payı büyüklüğünde, hüküm vermiyoruz.
-7. **"Ders saatini nasıl belirlediniz?"** Bölümün yayımlanmış güz programından; ders başı/sonundaki yarım saatleri karışık sayıp
-   dışarıda bıraktık.
+7. **"Ders saatini nasıl belirlediniz?"** Bölümün yayımlanmış güz programından; saatlik ortalamada en az 30 dakikası derse denk
+   gelen saat ders sayılır (haftada 33 saat).
 8. **"İç/dış oranını neden ham değerle hesaplıyorsunuz?"** Düzeltmenin sabit terimi oranı bozar (%50 nemde ham 10/20 = 0,50 iken
    EPA'lı 0,56).
 9. **"Videodaki veriler gerçek mi?"** Evet: 20 Ekim 2026 16:25 itibarıyla veritabanındaki ölçümler; bulut ortamı sunucuya

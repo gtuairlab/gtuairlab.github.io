@@ -94,15 +94,17 @@ Atmotube ölçümleriyle karşılaştırma.
   25.09.2026; [PDF](https://www.gtu.edu.tr/fileman/Files/UserFiles/cevre_muhendisligi_bolumu/2026-27%20G%C3%9CZ%20L%C4%B0SANS%20(REV%2025092026).pdf))
   Amfi-1'e yazılmış dersler, `frontend_v2/data/amfi1_program.json` (yalnızca gün, saat, ders kodu; öğretim üyesi adı yok):
   Pzt 09:30–12:30 ve 13:30–16:30; Sal 09:30–12:30; Çar 10:30–12:30 ve 13:30–16:30; Per 10:30–12:30 ve 13:30–16:30; Cum 09:30–12:30 ve
-  14:30–16:30 (programda "14.00 başlayabilir" notu). Analiz saatlik ortalamalarla yapıldığından **yalnızca tamamı derse denk gelen saatler**
-  ders saati sayılır (haftada 15 saat: Pzt 10, 11, 14, 15; Sal 10, 11; Çar 11, 14, 15; Per 11, 14, 15; Cum 10, 11, 15); ders başı ve
-  sonundaki yarım saatler karışık olduğundan ne ders ne boş derslik sayılır. Dönem 21 Eylül 2026 – 19 Ocak 2027 (kullanıcının
+  14:30–16:30 (programda "14.00 başlayabilir" notu). Analiz saatlik ortalamalarla yapıldığından **saatin en az 30 dakikası derse
+  denk geliyorsa** o saat ders sayılır (kullanıcının kararı, 20 Ekim 2026; Ajan 1'in önerisi; önceki "yalnızca tam saat" kuralının
+  yerine). Haftada 33 saat: Pzt 9–16; Sal 9–12; Çar 10–16; Per 10–16; Cum 9–12 ve 14–16 (saat başlangıçları). Ders başı ve sonundaki
+  yarım saatler (ör. 09:00–10:00 diliminde 09:30'da başlayan ders) ders sayıldığı için bu saatlerin ortalaması yarı boş derslik
+  içerir; ders I/O'su hafifçe boş derslik değerine doğru çekilebilir. Dönem 21 Eylül 2026 – 19 Ocak 2027 (kullanıcının
   bildirdiği, 20 Ekim 2026); 29 Ekim ve 1 Ocak resmî tatil, ders sayılmaz. Kullanıcıya göre Amfi 1'i
   başka ders kullanmıyor (20 Ekim 2026). **Boş derslik:** hafta içi 08:00–18:00'de programda hiç ders olmayan saatler (tatil ve dönem
   dışı günler dahil); ders ile gece arasındaki üçüncü sınıf (Ajan 1 önerisi). Sınırlılık: program gerçekleşen doluluğu göstermez (iptal, telafi,
   sınav haftası, katılım); 28 Ekim öğleden sonrası ayrıca işaretlenmedi. Program dosyası yoksa yedek kural: ders = hafta içi 08:00–18:00,
   boş derslik sınıfı yok. Grafiklerde ders saatleri soluk dikey bantla gösterilir (2 dakikalık grafiklerde dakika düzeyinde, saatlik
-  grafiklerde yukarıdaki tam saat kuralıyla); en az 2 hafta kuralı ders grubu için ayrıca sayılır (≥ ~10 ders saati ve ≥10 gece).
+  grafiklerde yukarıdaki 30 dakika kuralıyla); en az 2 hafta kuralı ders grubu için ayrıca sayılır (≥ ~10 ders saati ve ≥10 gece).
   Gece I/O'su sızma faktörüne (F_inf) yaklaşır; ders saati I/O'su iç kaynakları da içerir (Chen & Zhao 2011). Kurulumdan sonraki ilk
   saat (ısınma, kurulum tozu) analize girmez: saatlik veride kurulum anı bilinmediğinden ilk (kısmi) saat dilimi ve ardından gelen tam
   saat atlanır (20 Ekim 2026, Ajan 1: önceki kod yalnızca ilk kısmi dilimi, fiilen 22 dk'yı atlıyordu). Sensör panelindeki anlık oran:
@@ -426,6 +428,7 @@ Afroz ve ark. (2025), Branco ve ark. (2024). Ayrıntılar, sayısal örnek ve ka
 
 | Sürüm | Tarih | Değişiklik |
 |---|---|---|
+| 2.4 | 20 Ekim 2026 | §1b: ders saati kuralı "saatin en az 30 dakikası derste" oldu (kullanıcının kararı; haftada 33 saat). Maruziyet hesabındaki "taslak" ibaresi kaldırıldı ("tahmin"). |
 | 2.3 | 20 Ekim 2026 | §1b: Amfi 1 ders saatleri bölümün 2026-27 güz lisans ders programından (`data/amfi1_program.json`; yalnızca tamamı derse denk gelen saatler; dönem 21.09.2026–19.01.2027); yeni "boş derslik" sınıfı; grafiklerde ders bantları; ısınma kuralı düzeltildi (ilk kısmi saat + 1 saat). §6: Tuzla yorumu "düşük/yüksek (ölçüm yöntemleri farklı)". |
 | 2.2 | 20 Ekim 2026 | §6: kampüs–Tuzla günlük grafiği takvim ekseninde (boş gün boş kalır); ısı haritası lejantı düzeltildi ("canlı hücre daha yüksek"). |
 | 2.1 | 20 Ekim 2026 | §1b: iç ortam PurpleAir (Amfi 1): toplama; gösterimde EPA (notla), analizde ham cf_1 (Ajan 1); I/O, gece 23–05, Atmotube eşleştirmesi. |
