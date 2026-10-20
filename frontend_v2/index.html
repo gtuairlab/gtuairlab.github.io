@@ -857,7 +857,7 @@ body {
 /* ───────────────────────── Duyurular ───────────────────────── */
 .chip-btn { cursor: pointer; font-family: Inter, sans-serif; position: relative; }
 .chip-btn:hover { color: var(--text); border-color: var(--stroke-2); }
-body.news-open #news-btn, body.who-open #who-btn, body.ozet-open #ozet-btn, body.info-open #info-btn { color: #fff; background: var(--accent-soft); border-color: rgba(91,141,239,0.5); }
+body.news-open #news-btn, body.who-open #who-btn, body.trend-open #trend-btn, body.ozet-open #ozet-btn, body.info-open #info-btn { color: #fff; background: var(--accent-soft); border-color: rgba(91,141,239,0.5); }
 .chip-btn .i { font-size: 15px; }
 .badge {
   min-width: 18px; height: 18px; padding: 0 5px; border-radius: 99px;
@@ -1046,6 +1046,23 @@ body.news-open #news-btn, body.who-open #who-btn, body.ozet-open #ozet-btn, body
 .mx-jtip { background: rgba(10,16,29,0.85); border: 1px solid var(--stroke); color: #e9edf5; box-shadow: none;
   font: 600 10.5px/1 var(--num); padding: 3px 5px; border-radius: 6px; }
 .mx-jtip::before { display: none; }
+/* Trendler (trend.js) */
+.tr-period { margin-bottom: 4px; }
+.tr-sec { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--stroke); }
+.tr-sec:first-of-type { border-top: 0; padding-top: 4px; }
+.tr-sec h3 { font-family: var(--serif); font-size: 15px; font-weight: 600; margin: 0 0 3px; display: flex; align-items: center; gap: 7px; }
+.tr-sub { margin: 0 0 10px; font-size: 11.5px; line-height: 1.45; color: var(--text-2); }
+.th-grid { display: grid; grid-template-columns: 30px repeat(24, minmax(0, 1fr)); gap: 2px; align-items: center; }
+.th-h { font: 500 9px/1 var(--num); color: var(--text-2); text-align: left; padding-bottom: 3px; }
+.th-d { font: 600 10px/1 var(--num); color: var(--text-2); }
+.th-c { display: block; aspect-ratio: 1 / 1.15; border-radius: 3px; background: color-mix(in srgb, var(--c) calc(var(--a) * 100%), transparent); }
+.th-c.empty { background: rgba(255,255,255,0.03); }
+.th-c:hover { outline: 1.5px solid #fff; outline-offset: -1px; }
+.th-legend { display: flex; align-items: center; gap: 4px; margin: 8px 0 6px; font-size: 10.5px; color: var(--text-2); flex-wrap: wrap; }
+.th-legend i { width: 18px; height: 10px; border-radius: 2px; background: color-mix(in srgb, var(--c) calc(var(--a) * 100%), transparent); }
+.th-legend small { font-size: 10px; flex-basis: 100%; }
+.th-k { display: inline-flex; align-items: center; gap: 4px; margin-right: 8px; color: var(--text); }
+.tr-chart { position: relative; height: 190px; margin-bottom: 6px; }
 .mx-jbadge { background: rgba(10,16,29,0.85); border: 1px solid var(--stroke); border-radius: 7px; padding: 4px 7px;
   font: 500 11px/1.2 var(--num); color: #e9edf5; margin: 6px !important; }
 .cb-tips { margin: 6px 0 0 16px; display: grid; gap: 5px; }
@@ -1280,13 +1297,13 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
   body.ozet-open #ozet-dock,
   body.exp-open #exp-dock,
   body.info-open #info-dock,
-  body.who-open #who-dock,
+  body.who-open #who-dock, body.trend-open #trend-dock,
   body.news-open #news-dock {
     display: flex; position: absolute; top: 70px; right: 14px;
     width: 372px; max-height: calc(100vh - 84px);
     animation: slideIn 0.35s cubic-bezier(0.22,1,0.36,1);
   }
-  body.ozet-open .legend, body.exp-open .legend, body.info-open .legend, body.who-open .legend, body.news-open .legend { display: none; }
+  body.ozet-open .legend, body.exp-open .legend, body.info-open .legend, body.who-open .legend, body.trend-open .legend, body.news-open .legend { display: none; }
   /* Basit görünüm (varsayılan): sensör panelleri, saha paneli, grafik çekmecesi ve sayaçlar yalnızca Araştırma'da */
   body:not(.research) .sidebar, body:not(.research) .sidebar-toggle, body:not(.research) .sessions-dock,
   body:not(.research) .chart-drawer, body:not(.research) .player-dock, body:not(.research) #chip-readings,
@@ -1355,7 +1372,7 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
   body[data-tab="ozet"] #ozet-dock,
   body[data-tab="exp"] #exp-dock,
   body[data-tab="info"] #info-dock,
-  body[data-tab="who"] #who-dock {
+  body[data-tab="who"] #who-dock, body[data-tab="trend"] #trend-dock {
     display: flex; position: fixed; z-index: 1100;
     top: var(--top-h); bottom: var(--tab-h); left: 0; right: 0;
     width: auto; max-height: none; transform: none;
@@ -1377,10 +1394,10 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
   body[data-tab="ozet"] #ozet-dock .panel,
   body[data-tab="exp"] #exp-dock .panel,
   body[data-tab="info"] #info-dock .panel,
-  body[data-tab="who"] #who-dock .panel { height: 100%; }
+  body[data-tab="who"] #who-dock .panel, body[data-tab="trend"] #trend-dock .panel { height: 100%; }
   body[data-tab="field"] .sessions-dock .panel { height: auto; max-height: none; flex: none; overflow: visible; }
   body[data-tab="field"] .sessions-dock .panel-scroll .panel-body { flex: none; overflow: visible; }
-  body[data-tab="live"] .map-cta, body[data-tab="field"] .map-cta, body[data-tab="who"] .map-cta, body[data-tab="ozet"] .map-cta, body[data-tab="exp"] .map-cta {
+  body[data-tab="live"] .map-cta, body[data-tab="field"] .map-cta, body[data-tab="who"] .map-cta, body[data-tab="trend"] .map-cta, body[data-tab="ozet"] .map-cta, body[data-tab="exp"] .map-cta {
     display: flex; align-items: center; gap: 8px;
     position: fixed; z-index: 1150; left: 50%; transform: translateX(-50%);
     bottom: calc(var(--tab-h) + 12px); white-space: nowrap;
@@ -1396,7 +1413,7 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
   body:not([data-tab="field"]) .map-cta { left: auto; right: 14px; transform: none; padding: 13px; }
   body:not([data-tab="field"]) .map-cta #map-cta-text {
     position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  body[data-tab="live"] .sidebar, body[data-tab="field"] .sessions-dock .team-foot, body[data-tab="who"] #who-body, body[data-tab="ozet"] #ozet-body, body[data-tab="exp"] #exp-body { padding-bottom: 76px; }
+  body[data-tab="live"] .sidebar, body[data-tab="field"] .sessions-dock .team-foot, body[data-tab="who"] #who-body, body[data-tab="trend"] #trend-body, body[data-tab="ozet"] #ozet-body, body[data-tab="exp"] #exp-body { padding-bottom: 76px; }
   body:not([data-tab="map"]) .player-dock,
   body:not([data-tab="map"]) .chart-drawer { display: none; }
   /* Sensör karşılaştırma grafiği yalnızca bir saha günü oynatılırken (Araştırma akışı) */
@@ -1474,6 +1491,7 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
   <div class="chip" id="chip-sessions"><svg class="i"><use href="#i-footprints"></use></svg> <b>—</b>&nbsp;oturum</div>
   <button class="chip chip-btn" id="research-btn" type="button" aria-pressed="false" title="Sensör panelleri, saha ölçümleri ve karşılaştırma grafikleri"><svg class="i"><use href="#i-microscope"></use></svg><span class="chip-txt"> Araştırma</span></button>
   <button class="chip chip-btn" id="ozet-btn" type="button" title="Özet"><svg class="i"><use href="#i-gauge"></use></svg><span class="chip-txt"> Özet</span></button>
+  <button class="chip chip-btn" id="trend-btn" type="button" title="Trendler: gün × saat ısı haritası, kampüs–bölge eğilimi"><svg class="i"><use href="#i-trending-up"></use></svg><span class="chip-txt"> Trendler</span></button>
   <button class="chip chip-btn" id="who-btn" type="button" title="WHO kılavuz değerlerine göre değerlendirme"><svg class="i"><use href="#i-shield-check"></use></svg><span class="chip-txt"> Sağlık</span></button>
   <button class="chip chip-btn info-btn" id="info-btn" type="button" title="Hakkında · Yöntem · Gizlilik (KVKK)" aria-label="Hakkında, yöntem ve gizlilik"><svg class="i"><use href="#i-info"></use></svg></button>
   <button class="chip chip-btn" id="news-btn" type="button" title="Duyurular"><svg class="i"><use href="#i-megaphone"></use></svg><span class="chip-txt"> Duyurular</span><span class="badge" id="news-badge" hidden></span></button>
@@ -1652,6 +1670,16 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
       <span class="right"><button class="pbtn sq" id="ozet-close" type="button" title="Kapat" aria-label="Kapat"><svg class="i"><use href="#i-x"></use></svg></button></span>
     </div>
     <div class="panel-body" id="ozet-body"><div class="news-empty">Yükleniyor…</div></div>
+  </div>
+</aside>
+
+<aside class="news-dock who-dock" id="trend-dock">
+  <div class="panel panel-scroll" style="height:100%">
+    <div class="panel-head">
+      <span class="ico"><svg class="i"><use href="#i-trending-up"></use></svg></span> Trendler
+      <span class="right"><button class="pbtn sq" id="trend-close" type="button" title="Kapat" aria-label="Kapat"><svg class="i"><use href="#i-x"></use></svg></button></span>
+    </div>
+    <div class="panel-body" id="trend-body"><div class="news-empty">Yükleniyor…</div></div>
   </div>
 </aside>
 
@@ -1843,6 +1871,7 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
 <nav class="tabbar" id="tabbar" aria-label="Bölümler">
   <button type="button" data-tab="ozet"><span class="tb-ico"><svg class="i"><use href="#i-gauge"></use></svg></span>Özet</button>
   <button type="button" data-tab="map" class="on"><span class="tb-ico"><svg class="i"><use href="#i-map"></use></svg></span>Harita</button>
+  <button type="button" data-tab="trend"><span class="tb-ico"><svg class="i"><use href="#i-trending-up"></use></svg></span>Trend</button>
   <button type="button" data-tab="who"><span class="tb-ico"><svg class="i"><use href="#i-shield-check"></use></svg></span>Sağlık</button>
   <button type="button" data-tab="news"><span class="tb-ico"><svg class="i"><use href="#i-megaphone"></use></svg></span>Duyuru<span class="badge" id="tab-news-badge" hidden></span></button>
   <button type="button" data-tab="research"><span class="tb-ico"><svg class="i"><use href="#i-microscope"></use></svg></span>Araştırma</button>
@@ -1906,8 +1935,9 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
 <script src="js/app.js?v=66"></script>
 <script src="js/who.js?v=48"></script>
 <script src="js/kiyas.js?v=43"></script>
+<script src="js/trend.js?v=1"></script>
 <script src="js/ozet.js?v=57"></script>
 <script src="js/maruziyet.js?v=6"></script>
-<script src="js/shell.js?v=52"></script>
+<script src="js/shell.js?v=53"></script>
 </body>
 </html>

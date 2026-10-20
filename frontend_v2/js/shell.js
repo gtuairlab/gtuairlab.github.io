@@ -40,12 +40,13 @@ const Shell = (() => {
         if (tab === "who" && typeof WHO !== "undefined") WHO.load();
         if (tab === "ozet" && typeof Ozet !== "undefined") Ozet.load();
         if (tab === "exp" && typeof Maruziyet !== "undefined") Maruziyet.load();
+        if (tab === "trend" && typeof Trend !== "undefined") Trend.load();
         updateMapCta(false);
     }
 
     // Masaüstünde sağdaki paneller (Özet / WHO / Duyurular) aynı yerde açılır; biri açılınca diğerleri kapanır.
     // Telefonda aynı adlı sekmeye geçilir.
-    const PANELS = ["ozet", "who", "news", "info", "exp"];
+    const PANELS = ["ozet", "who", "trend", "news", "info", "exp"];
     function openPanel(name, toggle) {
         if (MOBILE.matches) { showTab(name); return; }
         const cls = name + "-open", was = document.body.classList.contains(cls);
@@ -55,6 +56,7 @@ const Shell = (() => {
         if (name === "who") WHO.load();
         if (name === "ozet") Ozet.load();
         if (name === "exp") Maruziyet.load();
+        if (name === "trend") Trend.load();
         if (name === "news") { renderNews(); markSeen(); }
     }
     function closePanel(name) {
@@ -285,6 +287,8 @@ const Shell = (() => {
         $("ozet-close").addEventListener("click", () => closePanel("ozet"));
         $("who-btn").addEventListener("click", () => openPanel("who", true));
         $("who-close").addEventListener("click", () => closePanel("who"));
+        $("trend-btn").addEventListener("click", () => openPanel("trend", true));
+        $("trend-close").addEventListener("click", () => closePanel("trend"));
         $("news-btn").addEventListener("click", () => openPanel("news", true));
         $("info-btn").addEventListener("click", () => openPanel("info", true));
         $("info-close").addEventListener("click", () => closePanel("info"));

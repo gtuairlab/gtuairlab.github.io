@@ -216,6 +216,15 @@ I  = (I_üst − I_alt) / (C_üst − C_alt) × (C − C_alt) + I_alt     → en
 
 **Kodda:** `kiyas.js` → `data()`, `summary()`, `verdict()`; `ozet.js` günlük satır.
 
+**Trendler sekmesi (20 Ekim 2026):** Aynı eşleştirmeyle günlük ortalamalar çizgi grafiği olarak gösterilir (dönem: son 30 / 90 gün,
+tüm dönem). "Eğilim" cümlesi: dönemin ikinci yarısındaki ortalama günlük fark (kampüs − Tuzla) ile ilk yarısındaki arasındaki değişim;
+|değişim| < 0,5 µg/m³ ise "yaklaşık aynı" denir (en az 6 gün gerekir). Betimseldir, istatistiksel anlamlılık testi yapılmaz.
+
+**Gün × saat ısı haritası (Trendler):** Kampüs PurpleAir saatlik PM₂.₅'i (US EPA düzeltmeli) Türkiye saatine göre haftanın günü ve
+saate ayrılır; her hücre o gün-saatteki saatlik değerlerin aritmetik ortalamasıdır. 2'den az saatlik değeri olan hücre boş bırakılır.
+Renk HKİ sınıf rengidir (§9); aynı sınıf içinde hücre saydamlığı değere göre doğrusal artar (yalnızca görsel ayrım, ek sınıf değildir).
+Hafta içi / hafta sonu ortalaması hücre ortalamalarının ortalamasıdır. **Kodda:** `trend.js` → `grid()`, `heatHtml()`, `regionHtml()`.
+
 ## 7. Özet ekranı kuralları
 
 * **Gösterilen değer:** PurpleAir son ölçümü 2 saatten yeniyse kampüs değeri; değilse Tuzla istasyonu (güncelse).
@@ -327,6 +336,7 @@ Afroz ve ark. (2025), Branco ve ark. (2024). Ayrıntılar, sayısal örnek ve ka
 
 | Sürüm | Tarih | Değişiklik |
 |---|---|---|
+| 2.0 | 20 Ekim 2026 | §6: Trendler sekmesi (gün × saat ısı haritası, kampüs–Tuzla günlük eğilimi ve eğilim cümlesi kuralı). |
 | 1.9 | 12 Ekim 2026 | §1a: PurpleAir düzeltmesi EPA'nın ABD geneli denklemine, yayımlandığı girdi cf_1 ile geçti (PurpleAir haritasındaki "US EPA" ile aynı); cf_1'i olmayan eski kayıtlarda genişletilmiş denklem (yedek). |
 | 1.8 | 12 Ekim 2026 | §5: bina sınırına 15 m'den yakın dış noktalar en yakın binaya sayılır (GPS sapması); etkisi ve sınırlılığı yazıldı. |
 | 1.7 | 10 Ekim 2026 | §5: 1–2 ölçümlü binalar listede ayrıca gösterilir (sıralamaya ve boyaya girmez); "genelden fark" yalnızca başka ayda ölçüm varsa; bina içine düşmeyen noktalar sınırlılığı. |
