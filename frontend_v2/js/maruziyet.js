@@ -35,7 +35,8 @@ const Maruziyet = (() => {
     ];
 
     let rows = null, remember = false, model = null, busy = false;
-    let mode = "chat", chat = null, chart = null;   // görünüm: "chat" (asistan) | "table" (tablo)
+    let mode = "chat", chat = null, chart = null;
+    let jmap = null, jtimer = [];   // maruziyet yolculuğu haritası (Leaflet) ve animasyon zamanlayıcıları   // görünüm: "chat" (asistan) | "table" (tablo)
     const $ = id => document.getElementById(id);
     const f1 = v => v.toLocaleString("tr-TR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
     const f0 = v => Math.round(v).toLocaleString("tr-TR");
@@ -141,7 +142,8 @@ const Maruziyet = (() => {
             </div>
             <div class="oz-line">${ico("info")} Solunan miktara en büyük katkı <b>${esc(top.where)}</b> (${esc(rows[top.i].s)}–${esc(rows[top.i].e)}, %${share(top).toFixed(0)}).
               ${outdoorActive ? ` ${esc(rows[outdoorActive.i].s)}–${esc(rows[outdoorActive.i].e)} arasındaki ${ACT[rows[outdoorActive.i].act].ad.toLowerCase()} etkinliğini
-                kampüs profilinin en düşük olduğu saatlere (yaklaşık ${String(best).padStart(2, "0")}:00) almak maruziyeti azaltabilir.` : ""}</div>`;
+                kampüs profilinin en düşük olduğu saatlere (yaklaşık ${String(best).padStart(2, "0")}:00) almak maruziyeti azaltabilir.` : ""}</div>
+            ${journeyHtml()}`;
     }
 
     function methodHtml() {
@@ -291,6 +293,7 @@ const Maruziyet = (() => {
             soluduğun PM₂.₅ miktarı yaklaşık <b>${f0(k.dose)} µg</b>. Aynı saatleri açık havada geçirseydin ortalama ${f1(k.outTwa)} µg/m³ olurdu.`);
         bot(`<div class="cb-chart"><canvas id="cb-canvas" aria-label="Solunan PM₂.₅'in etkinliklere göre dağılımı"></canvas></div>
              <div class="who-cap">Çubuk uzunluğu: solunan PM₂.₅ (µg) · renk: o dilimdeki tahmini derişim</div>`);
+        bot(journeyHtml());
         const tips = [`Solunan miktara en büyük katkı <b>${lab(top)}</b> dilimi (%${share(top).toFixed(0)}).`];
         if (act) tips.push(`${lab(act)} arasındaki ${ACT[rows[act.i].act].ad.toLowerCase()} etkinliğini kampüs profilinin en düşük olduğu saatlere (yaklaşık ${String(best).padStart(2, "0")}:00) almak maruziyeti azaltabilir.`);
         if (hiBld) tips.push(`${esc(hiBld.where)} çevresinde saha ölçümleri kampüs ortalamasının üzerinde; iç mekânın dış havanın daha temiz olduğu saatlerde havalandırılması düşünülebilir.`);
@@ -322,6 +325,135 @@ const Maruziyet = (() => {
         cv.parentElement.style.height = `${Math.max(100, d.length * 42 + 44)}px`;
     }
 
+    // ── Yolculuk haritası: gün içinde nerede, ne kadar PM₂.₅ solunduğu (animasyonlu) ──────────
+    const CAMPUS_C = [40.806155, 29.360985];
+    const reduced = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    function journeyHtml() {
+        return `<div class="mx-journey">
+            <div class="mx-jhead"><span>${ico("footprints")} Gün boyu nerede ne kadar soludun?</span>
+              <b id="mx-jcount">0 µg</b>
+              <button type="button" class="pd-chip" id="mx-jplay" title="Animasyonu yeniden oynat">${ico("rotate-ccw")} Tekrar</button></div>
+            <div class="mx-jmap" id="mx-jmap" role="img" aria-label="Kampüs haritasında gün içindeki yerler ve solunan PM₂.₅ miktarı"></div>
+            <div class="mx-jstep" id="mx-jstep" aria-live="polite"></div>
+            <div class="who-cap">Daire büyüklüğü: o binada solunan PM₂.₅ (µg) · renk: tahmini derişim (HKİ rengi) · bina seçilmeyen dilimler "Kampüs geneli" olarak tüm kampüs alanında gösterilir</div>
+          </div>`;
+    }
+    function stopJourney() { jtimer.forEach(t => clearTimeout(t)); jtimer = []; }
+    function drawJourney() {
+        stopJourney();
+        if (jmap) { jmap.remove(); jmap = null; }
+        const el = $("mx-jmap");
+        if (!el || typeof L === "undefined" || !model) return;
+        const k = compute(), ok = k.res.filter(x => !x.err).sort((a, b) => toMin(rows[a.i].s) - toMin(rows[b.i].s));
+        if (!ok.length) return;
+        // Yerler: aynı bina tek daire (dozlar toplanır)
+        const places = new Map();
+        const steps = ok.map(x => {
+            const gk = rows[x.i].yer || "", sh = gk && typeof Campus !== "undefined" ? Campus.buildingShape(gk) : null;
+            const key = sh ? gk : "", name = sh ? x.where : "Kampüs geneli";
+            if (!places.has(key)) places.set(key, { name, ll: sh ? sh.center : CAMPUS_C, geo: sh ? sh.geo : null, dose: 0, ch: 0, h: 0 });
+            return { x, key };
+        });
+        steps.forEach(({ x, key }) => { const p = places.get(key); p.dose += x.dose; p.ch += x.c * x.h; p.h += x.h; });
+        const maxDose = Math.max(...[...places.values()].map(p => p.dose)) || 1;
+        const rad = d => 6 + 15 * Math.sqrt(d / maxDose);
+        const pct = d => `%${(k.dose ? d / k.dose * 100 : 0).toFixed(0)}`;
+
+        jmap = L.map(el, { zoomControl: false, attributionControl: true, dragging: !L.Browser.mobile, scrollWheelZoom: false,
+                           doubleClickZoom: false, boxZoom: false, keyboard: false, tap: false });
+        L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+            { attribution: "© CARTO © OpenStreetMap", maxZoom: 20, subdomains: "abcd" }).addTo(jmap);
+        const outline = typeof Campus !== "undefined" ? Campus.campusOutline() : [];
+        // "Kampüs geneli" (bina seçilmemiş) dilimler tek noktaya konmaz: kampüs alanı o dilimin rengiyle boyanır
+        const camp = outline.length ? L.geoJSON(outline, { interactive: false,
+            style: { color: "#7aa3f5", weight: 1.2, opacity: 0.5, fillColor: "#7aa3f5", fillOpacity: 0, dashArray: "4 4" } }).addTo(jmap) : null;
+        const pts = [...places.entries()].filter(([key]) => key).map(([, p]) => p.ll);
+        if (pts.length > 1) jmap.fitBounds(L.latLngBounds(pts).pad(0.35), { maxZoom: 18 });
+        else if (pts.length === 1) jmap.setView(pts[0], 17);
+        else if (camp) jmap.fitBounds(camp.getBounds(), { padding: [6, 6] });
+        else jmap.setView(CAMPUS_C, 15);
+        const gen = places.get("");
+        const badge = gen ? L.control({ position: "topleft" }) : null;
+        if (badge) {
+            badge.onAdd = () => { const d = L.DomUtil.create("div", "mx-jbadge"); d.id = "mx-jbadge"; d.innerHTML = `Kampüs geneli · <b>0 µg</b>`; return d; };
+            badge.addTo(jmap);
+        }
+        const setBadge = v => { const d = $("mx-jbadge"); if (d) d.innerHTML = `Kampüs geneli · <b>${f0(v)} µg</b>${v >= gen.dose - 0.5 ? ` · ${pct(gen.dose)}` : ""}`; };
+
+        // Her yer: bina şekli (soluk) + daire (başta küçük)
+        for (const [key, p] of places) {
+            p.cum = 0;
+            if (!key) continue;
+            const col = pm25Color(p.ch / p.h);
+            p.shape = p.geo ? L.geoJSON(p.geo, { interactive: false, style: { color: col, weight: 1.5, opacity: 0.35, fillColor: col, fillOpacity: 0.08 } }).addTo(jmap) : null;
+            p.circle = L.circleMarker(p.ll, { radius: 4, color: "#0a101d", weight: 2, fillColor: col, fillOpacity: 0.85, opacity: 0.9 }).addTo(jmap);
+            p.circle.bindTooltip(`${esc(p.name)} · ${f0(p.dose)} µg (${pct(p.dose)})`, { direction: "top", offset: [0, -6] });
+        }
+        const llOf = key => key ? places.get(key).ll : null;
+        const path = L.polyline([], { color: "#e9edf5", weight: 2, opacity: 0.55, dashArray: "2 6" }).addTo(jmap);
+        const firstLL = (steps.find(s => s.key) || {}).key;
+        const you = L.circleMarker(firstLL ? llOf(firstLL) : CAMPUS_C, { radius: 5, color: "#ffffff", weight: 2, fillColor: "#7aa3f5", fillOpacity: 1 }).addTo(jmap);
+        const cnt = $("mx-jcount"), stepEl = $("mx-jstep");
+        const setCount = v => { if (cnt) cnt.textContent = `${f0(v)} µg`; };
+        const finish = () => {
+            if (gen) setBadge(gen.dose);
+            if (camp && gen) camp.setStyle({ fillColor: pm25Color(gen.ch / gen.h), fillOpacity: 0.07 });
+            for (const [key, p] of places) {
+                if (!key) continue;
+                p.circle.setRadius(rad(p.dose));
+                if (p.shape) p.shape.setStyle({ opacity: 0.8, fillOpacity: 0.3 });
+                // kalıcı kısa etiket: yüzde pay
+                p.circle.unbindTooltip();
+                p.circle.bindTooltip(pct(p.dose),
+                    { permanent: true, direction: "right", offset: [rad(p.dose) - 2, 0], className: "mx-jtip" }).openTooltip();
+                p.circle.bindPopup(`<b>${esc(p.name)}</b><br>${f0(p.dose)} µg · ${f1(p.ch / p.h)} µg/m³`);
+            }
+            path.setLatLngs(steps.filter(s => s.key).map(s => llOf(s.key)));
+            const lastKey = [...steps].reverse().find(s => s.key);
+            if (lastKey) you.setLatLng(llOf(lastKey.key));
+            setCount(k.dose);
+            if (stepEl) stepEl.innerHTML = `Toplam <b>${f0(k.dose)} µg</b> · ${f1(k.H)} saat · en büyük pay: <b>${esc([...places.values()].reduce((a, b) => b.dose > a.dose ? b : a).name)}</b>`;
+        };
+        if (reduced()) { finish(); return; }
+
+        // Animasyon: yerden yere yürü, daireyi büyüt, sayacı artır
+        const MOVE = 650, GROW = 900, PAUSE = 450;
+        let t = 300, total = 0;
+        const later = (ms, fn) => jtimer.push(setTimeout(fn, ms));
+        const tween = (ms, fn) => {   // 0→1 arası ilerleme (requestAnimationFrame)
+            const t0 = performance.now();
+            const tick = now => { const q = Math.min(1, (now - t0) / ms); fn(q); if (q < 1 && jmap) requestAnimationFrame(tick); };
+            requestAnimationFrame(tick);
+        };
+        const ease = q => q < 0.5 ? 2 * q * q : 1 - Math.pow(-2 * q + 2, 2) / 2;
+        let prev = firstLL ? llOf(firstLL) : CAMPUS_C;
+        path.setLatLngs(firstLL ? [prev] : []);
+        steps.forEach(({ x, key }, idx) => {
+            const p = places.get(key), r = rows[x.i], from = prev, to = key ? p.ll : prev, start = total;
+            later(t, () => {
+                if (stepEl) stepEl.innerHTML = `<b>${esc(r.s)}–${esc(r.e)}</b> · ${esc(p.name)} <small>${ENV[r.env].ad.toLowerCase()}, ${f1(x.c)} µg/m³</small> → <b>+${f0(x.dose)} µg</b>`;
+                tween(MOVE, q => { const e = ease(q); you.setLatLng([from[0] + (to[0] - from[0]) * e, from[1] + (to[1] - from[1]) * e]); });
+            });
+            later(t + MOVE, () => {
+                const c0 = p.cum;
+                p.cum += x.dose;
+                if (!key) {   // kampüs geneli: alan nabız gibi boyanır, köşedeki etiket artar
+                    if (camp) camp.setStyle({ fillColor: pm25Color(x.c) });
+                    tween(GROW, q => { const e = ease(q); if (camp) camp.setStyle({ fillOpacity: 0.22 * Math.sin(Math.PI * q) + 0.05 * q });
+                                       setBadge(c0 + x.dose * e); setCount(start + x.dose * e); });
+                    return;
+                }
+                path.addLatLng(to);
+                if (p.shape) p.shape.setStyle({ opacity: 0.8, fillOpacity: 0.3 });
+                const r0 = c0 ? rad(c0) : 3, r1 = rad(p.cum);
+                tween(GROW, q => { const e = ease(q); p.circle.setRadius(r0 + (r1 - r0) * e); setCount(start + x.dose * e); });
+            });
+            total += x.dose; prev = to;
+            t += MOVE + GROW + PAUSE;
+            if (idx === steps.length - 1) later(t, finish);
+        });
+    }
+
     function chatHtml() {
         return `<div class="cb">
             ${chat.log.map(m => m.who === "bot"
@@ -334,6 +466,9 @@ const Maruziyet = (() => {
     function bindChat() {
         $("exp-body").querySelectorAll(".cb-ask [data-a]").forEach(b => b.addEventListener("click", () => answer(b.dataset.a, b.dataset.v, b.textContent.trim())));
         drawChart();
+        drawJourney();
+        const jp = $("mx-jplay");
+        if (jp) jp.addEventListener("click", drawJourney);
         const last = $("exp-body").querySelector(".cb-ask");
         if (last) last.scrollIntoView({ block: "nearest" });
     }
@@ -369,8 +504,14 @@ const Maruziyet = (() => {
             ${methodHtml()}`;
         body.querySelectorAll("[data-mode]").forEach(b => b.addEventListener("click", () => { mode = b.dataset.mode; render(); }));
         bind();
+        bindJourney();
     }
-    function refreshResult() { $("mx-result").innerHTML = resultHtml(); save(); }
+    function refreshResult() { $("mx-result").innerHTML = resultHtml(); bindJourney(); save(); }
+    function bindJourney() {
+        drawJourney();
+        const b = $("mx-jplay");
+        if (b) b.addEventListener("click", drawJourney);
+    }
 
     function bind() {
         const body = $("exp-body");

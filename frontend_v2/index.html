@@ -1032,6 +1032,22 @@ body.news-open #news-btn, body.who-open #who-btn, body.ozet-open #ozet-btn, body
 .cb-row .sc-btn { flex: 0 0 auto; padding: 7px 14px; }
 .pd-chip.alt { border-style: dashed; }
 .cb-chart { position: relative; height: 140px; margin: 2px 0 4px; min-width: 0; }
+/* Maruziyet yolculuk haritası (maruziyet.js → drawJourney) */
+.mx-journey { margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--stroke); min-width: 0; }
+.mx-jhead { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; margin-bottom: 7px; }
+.mx-jhead span { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0; }
+.mx-jhead b { font-family: var(--num); font-variant-numeric: tabular-nums; font-size: 15px; }
+.mx-jhead .pd-chip { padding: 3px 8px; font-size: 11px; }
+.mx-jmap { height: 230px; border-radius: 10px; overflow: hidden; border: 1px solid var(--stroke); background: #0a101d; }
+.mx-jstep { min-height: 34px; margin-top: 7px; font-size: 11.5px; line-height: 1.45; }
+.mx-jstep small { color: var(--text-2); }
+.cb-msg.bot .cb-bub:has(.mx-journey) { flex: 1; min-width: 0; max-width: none; }
+.cb-bub .mx-journey { margin-top: 0; padding-top: 0; border-top: 0; }
+.mx-jtip { background: rgba(10,16,29,0.85); border: 1px solid var(--stroke); color: #e9edf5; box-shadow: none;
+  font: 600 10.5px/1 var(--num); padding: 3px 5px; border-radius: 6px; }
+.mx-jtip::before { display: none; }
+.mx-jbadge { background: rgba(10,16,29,0.85); border: 1px solid var(--stroke); border-radius: 7px; padding: 4px 7px;
+  font: 500 11px/1.2 var(--num); color: #e9edf5; margin: 6px !important; }
 .cb-tips { margin: 6px 0 0 16px; display: grid; gap: 5px; }
 .oz-exp { margin-top: 12px; }
 
@@ -1886,12 +1902,12 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
 
 <script src="js/colorscale.js?v=57"></script>
 <script src="js/api.js?v=44"></script>
-<script src="js/campus.js?v=57"></script>
+<script src="js/campus.js?v=58"></script>
 <script src="js/app.js?v=66"></script>
 <script src="js/who.js?v=48"></script>
 <script src="js/kiyas.js?v=43"></script>
 <script src="js/ozet.js?v=57"></script>
-<script src="js/maruziyet.js?v=5"></script>
+<script src="js/maruziyet.js?v=6"></script>
 <script src="js/shell.js?v=52"></script>
 </body>
 </html>

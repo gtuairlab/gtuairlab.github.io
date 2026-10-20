@@ -792,5 +792,19 @@ const Campus = (() => {
     function setChoropleth(v) { choropleth = v; if (ready) refresh(); }
     function getPeriod() { return period; }
 
-    return { init, colorByPoints, setVisible, setChoropleth, setPeriod, getPeriod, monthOf, fitCampus, buildingStats, focusByKey };
+    // Maruziyet haritası için: binanın (aynı adlı tüm blokları) şekli ve merkezi; kampüs sınırı
+    function buildingShape(gk) {
+        if (!ready) return null;
+        if (features.some(f => f.cat === "bina" && !f.gk)) groupPoints([]);   // gk anahtarlarını ata
+        const ms = features.filter(f => f.cat === "bina" && f.gk === gk);
+        if (!ms.length) return null;
+        const b = L.latLngBounds([]);
+        ms.forEach(m => b.extend(m.leafletLayer.getBounds()));
+        const c = b.getCenter();
+        return { center: [c.lat, c.lng], geo: ms.map(m => m.feature) };
+    }
+    function campusOutline() { return ready ? features.filter(e => e.cat === "sinir").map(e => e.feature) : []; }
+
+    return { init, colorByPoints, setVisible, setChoropleth, setPeriod, getPeriod, monthOf, fitCampus, buildingStats, focusByKey,
+             buildingShape, campusOutline };
 })();
