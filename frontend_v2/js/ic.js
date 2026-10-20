@@ -33,7 +33,7 @@ const Ic = (() => {
 
     let latest = null, name = "Amfi 1", status = null, marker = null;
     const tsCharts = {};
-    let panelHours = 24;   // zaman grafiği örnekleri (kanvas kimliğine göre): açılır kutu ve sensör paneli
+    let panelHours = 24, panelMetric = "pm";   // zaman grafiği örnekleri (kanvas kimliğine göre): açılır kutu ve sensör paneli
     let period = 7, inHourly = null, busy = false, charts = [];
 
     // ── Sensör paneli ──────────────────────────────────────────────
@@ -82,11 +82,12 @@ const Ic = (() => {
               <div class="pa-cell"><div class="k">Nem*</div><div class="v">${latest.humidity_pct != null ? Math.round(latest.humidity_pct) + "%" : "--"}</div></div>
             </div>
             <div class="pa-foot"><span>${typeof trClock === "function" ? trClock(latest.recorded_at) : t.toLocaleString("tr-TR")}</span><span>${esc(name)}</span></div>
-            ${tsBox("ic-panel-ts", panelHours, true)}
+            ${tsBox("ic-panel-ts", panelHours, panelMetric)}
             <button type="button" class="ic-btn oz-more" id="ic-open">${ico("chart-column")} Ayrıntılı analiz</button>`;
         bindTs(el, "ic-panel-ts");
         el.querySelectorAll(".ic-ts-chips [data-h]").forEach(b => b.addEventListener("click", () => { panelHours = +b.dataset.h; }));
-        drawTs("ic-panel-ts", panelHours);
+        el.querySelectorAll(".ic-ts-chips [data-m]").forEach(b => b.addEventListener("click", () => { panelMetric = b.dataset.m; }));
+        drawTs("ic-panel-ts");
         $("ic-open").addEventListener("click", () => Shell.openPanel("ic"));
         const out = await sameTimeOut(t);
         const io = $("ic-io");
@@ -95,53 +96,112 @@ const Ic = (() => {
         if (io) io.title = out ? `Ham cf_1: iç ${f1(vin)} ÷ dış (SUMER çatısı) ${f1(out)} µg/m³` : "Aynı an için dış ölçüm yok";
     }
 
-    // ── Zaman grafiği (iç sensör): son 6 sa / 24 sa → 2 dk'lık ham kayıtlar, 7 gün → saatlik ortalama ──
+    // ── Zaman grafiği: PM₂.₅ (iç), iç/dış oranı (ham cf_1), sıcaklık ve nem (iç ve dış) ──
+    // Son 6 sa / 24 sa → 2 dk'lık ölçümler (dış sensörle ±2 dk eşleme), 7 gün → saatlik ortalamalar (aynı saat)
     const RANGES = { 6: "6 saat", 24: "24 saat", 168: "7 gün" };
-    function tsBox(id, hours, chips) {
-        return `<div class="ic-ts">${chips ? `<div class="pd-chips ic-ts-chips">${Object.entries(RANGES).map(([h, t]) =>
-                `<button type="button" class="pd-chip${+h === hours ? " on" : ""}" data-h="${h}">${t}</button>`).join("")}</div>` : ""}
-            <div class="ic-ts-chart"><canvas id="${id}" aria-label="${esc(name)} iç ortam PM₂.₅, zamana karşı"></canvas></div>
+    const METRICS = { pm: "PM₂.₅", io: "İç/dış", t: "Sıcaklık", rh: "Nem" };
+    const tsState = {};   // kanvas kimliğine göre seçili süre ve ölçü
+    function tsBox(id, hours, metric = "pm") {
+        tsState[id] = { hours, metric };
+        const chips = (obj, key, cur) => Object.entries(obj).map(([v, t]) =>
+            `<button type="button" class="pd-chip${String(v) === String(cur) ? " on" : ""}" data-${key}="${v}">${t}</button>`).join("");
+        return `<div class="ic-ts"><div class="pd-chips ic-ts-chips">${chips(METRICS, "m", metric)}</div>
+            <div class="pd-chips ic-ts-chips">${chips(RANGES, "h", hours)}</div>
+            <div class="ic-ts-chart"><canvas id="${id}" aria-label="${esc(name)} iç ortam ölçümleri, zamana karşı"></canvas></div>
+            <div class="who-legend ic-ts-leg" id="${id}-leg"></div>
             <div class="ic-ts-cap" id="${id}-cap">Yükleniyor…</div></div>`;
     }
-    async function drawTs(id, hours) {
-        const cv = $(id), cap = $(id + "-cap");
+    // İç kayıtları dış kayıtlarla eşle: saatlikte aynı saat, 2 dk'lıkta en yakın (≤2,5 dk)
+    function matchOut(inRows, outRows, hourly) {
+        if (hourly) {
+            const m = new Map(outRows.map(r => [hourKey(new Date(r.recorded_at)), r]));
+            return inRows.map(r => m.get(hourKey(new Date(r.recorded_at))) || null);
+        }
+        const o = outRows.map(r => ({ ts: +new Date(r.recorded_at), r })).sort((a, b) => a.ts - b.ts);
+        let j = 0;
+        return inRows.map(r => {
+            const ts = +new Date(r.recorded_at);
+            while (j + 1 < o.length && Math.abs(o[j + 1].ts - ts) <= Math.abs(o[j].ts - ts)) j++;
+            return o.length && Math.abs(o[j].ts - ts) <= 150e3 ? o[j].r : null;
+        });
+    }
+    const num = v => v == null || v === "" || isNaN(v) ? null : +v;
+    async function drawTs(id, hours, metric) {
+        const st = tsState[id] || (tsState[id] = { hours: 24, metric: "pm" });
+        if (hours != null) st.hours = hours;
+        if (metric != null) st.metric = metric;
+        const H = st.hours, M = st.metric;
+        const cv = $(id), cap = $(id + "-cap"), leg = $(id + "-leg");
         if (!cv || typeof Chart === "undefined") return;
-        const end = new Date(), start = new Date(end - hours * 3600e3);
-        let rows = [];
-        try { rows = (await API.indoorHistory(start.toISOString(), end.toISOString(), hours > 24 ? "hourly" : "raw")).data || []; }
-        catch (_) { if (cap) cap.textContent = "Veri yüklenemedi."; return; }
-        rows = rows.filter(r => r.pm2_5 != null || cf1(r) != null);
-        if (!$(id)) return;   // bu arada kapandıysa
+        const end = new Date(), start = new Date(end - H * 3600e3), iv = H > 24 ? "hourly" : "raw";
+        let rows = [], outs = [];
+        try {
+            const [a, b] = await Promise.all([API.indoorHistory(start.toISOString(), end.toISOString(), iv),
+                M === "pm" ? Promise.resolve({ data: [] }) : API.purpleairHistory(new Date(start - 5 * 60e3).toISOString(), end.toISOString(), iv)]);
+            rows = a.data || []; outs = b.data || [];
+        } catch (_) { if (cap) cap.textContent = "Veri yüklenemedi."; return; }
+        if (!$(id) || tsState[id].hours !== H || tsState[id].metric !== M) return;   // bu arada kapandı ya da seçim değişti
         if (tsCharts[id]) { tsCharts[id].destroy(); delete tsCharts[id]; }
-        if (!rows.length) { if (cap) cap.textContent = "Bu aralıkta kayıt yok."; return; }
-        const fmt = hours > 24 ? { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" } : { hour: "2-digit", minute: "2-digit" };
+        if (!rows.length) { if (cap) cap.textContent = "Bu aralıkta kayıt yok."; if (leg) leg.innerHTML = ""; return; }
+        const om = M === "pm" ? [] : matchOut(rows, outs, H > 24);
+        const fmt = H > 24 ? { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" } : { hour: "2-digit", minute: "2-digit" };
         const labels = rows.map(r => new Date(r.recorded_at).toLocaleString("tr-TR", { timeZone: "Europe/Istanbul", ...fmt }));
-        const vals = rows.map(r => r.pm2_5 == null ? null : +(+r.pm2_5).toFixed(1));
+        const r1 = v => v == null ? null : +v.toFixed(1), r2 = v => v == null ? null : +v.toFixed(2);
+        const line = (label, data, color, dashed) => ({ label, data, borderColor: color, backgroundColor: color, borderWidth: dashed ? 1.6 : 2,
+            borderDash: dashed ? [5, 4] : [], pointRadius: 0, pointHoverRadius: 4, tension: 0.25, spanGaps: H > 24 ? false : 6 * 60e3 });
+        let sets, unit, yMin = 0, capTxt;
+        const stats = v => { v = v.filter(x => x != null); return v.length ? { lo: Math.min(...v), m: mean(v), hi: Math.max(...v) } : null; };
+        if (M === "pm") {
+            const v = rows.map(r => r1(num(r.pm2_5)));
+            sets = [line(`${name} (iç)`, v, C_IN)]; unit = "µg/m³";
+            const s = stats(v);
+            capTxt = s ? `PM₂.₅ µg/m³ (US EPA, iç ortamda doğrulanmadı) · en düşük <b>${f1(s.lo)}</b> · ortalama <b>${f1(s.m)}</b> · en yüksek <b>${f1(s.hi)}</b>` : null;
+        } else if (M === "io") {
+            const ci = rows.map(cf1), co = om.map(o => o ? cf1(o) : null);
+            const v = ci.map((x, i) => x != null && co[i] != null && co[i] > 0 ? r2(x / co[i]) : null);
+            sets = [line("İç / dış (ham cf_1)", v, C_IN), { ...line("Eşit (1)", v.map(() => 1), "#8a93a6", true), borderWidth: 1, pointHoverRadius: 0 }]; unit = "oran";
+            const ok = ci.map((x, i) => x != null && co[i] != null && co[i] > 0 ? i : -1).filter(i => i >= 0);
+            const rom = ok.length ? mean(ok.map(i => ci[i])) / mean(ok.map(i => co[i])) : null, s = stats(v);
+            capTxt = s ? `İç ÷ dış, ham cf_1 (A/B denetimli; ${H > 24 ? "aynı saat" : "±2 dk"} eşleme) · aralık <b>${f2(s.lo)}</b>–<b>${f2(s.hi)}</b> ·
+                dönem oranı (ortalamaların oranı) <b>${f2(rom)}</b> · 1'in altı: içerisi dışarıdan temiz` : "Bu aralıkta eşleşen dış ölçüm yok.";
+        } else {
+            const key = M === "t" ? "temperature_c" : "humidity_pct";
+            const vi = rows.map(r => r1(num(r[key]))), vo = om.map(o => o ? r1(num(o[key])) : null);
+            sets = [line(`${name} (iç)`, vi, C_IN), line("Dış · SUMER çatısı", vo, C_OUT, true)];
+            unit = M === "t" ? "°C" : "%"; if (M === "t") yMin = undefined;
+            const si = stats(vi), so = stats(vo), u = M === "t" ? " °C" : " %";
+            capTxt = si ? `${M === "t" ? "Sıcaklık" : "Bağıl nem"}: iç ortalama <b>${f1(si.m)}${u}</b> (${f1(si.lo)}–${f1(si.hi)})${so ? ` · dış <b>${f1(so.m)}${u}</b>` : ""}.
+                PurpleAir bunu cihaz gövdesinin içinden ölçer: sıcaklık ortamdan yüksek, nem düşük okunur (iki sensörde benzer sapma).` : null;
+        }
+        if (leg) leg.innerHTML = M === "pm" ? "" : M === "io"
+            ? `<span><i style="background:${C_IN}"></i>İç / dış</span><span><i class="dash" style="border-color:#8a93a6"></i>Eşit (1)</span>`
+            : `<span><i style="background:${C_IN}"></i>${esc(name)} (iç)</span><span><i class="dash" style="border-color:${C_OUT}"></i>Dış · SUMER çatısı</span>`;
+        const fmtV = v => v == null ? "–" : unit === "oran" ? f2(v) : `${f1(v)} ${unit}`;
         tsCharts[id] = new Chart(cv, {
-            type: "line",
-            data: { labels, datasets: [{ label: `${name} (iç)`, data: vals, borderColor: C_IN, backgroundColor: C_IN, borderWidth: 2,
-                     pointRadius: 0, pointHoverRadius: 4, tension: 0.25, spanGaps: hours > 24 ? false : 6 * 60e3 }] },
+            type: "line", data: { labels, datasets: sets },
             options: {
                 responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: "index", intersect: false },
-                plugins: { legend: { display: false }, tooltip: { callbacks: {
-                    label: it => ` ${f1(it.raw)} µg/m³ (EPA) · ham cf_1 ${f1(cf1(rows[it.dataIndex]))}` } } },
+                plugins: { legend: { display: false }, tooltip: {
+                    filter: it => it.dataset.label !== "Eşit (1)",
+                    callbacks: { label: it => M === "pm" ? ` ${f1(it.raw)} µg/m³ (EPA) · ham cf_1 ${f1(cf1(rows[it.dataIndex]))}` : ` ${it.dataset.label}: ${fmtV(it.raw)}` } } },
                 scales: {
                     x: { grid: { display: false }, ticks: { color: "#9aa4b8", font: { size: 9.5 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 5,
-                         callback: function (v) { const l = String(this.getLabelForValue(v)); return hours > 24 ? l.split(" ").slice(0, 2).join(" ") : l; } } },
-                    y: { min: 0, grid: { color: "rgba(255,255,255,0.06)" }, border: { display: false },
+                         callback: function (v) { const l = String(this.getLabelForValue(v)); return H > 24 ? l.split(" ").slice(0, 2).join(" ") : l; } } },
+                    y: { min: yMin, grid: { color: "rgba(255,255,255,0.06)" }, border: { display: false },
+                         title: { display: true, text: unit === "oran" ? "iç / dış" : unit, color: "#9aa4b8", font: { size: 10 } },
                          ticks: { color: "#9aa4b8", font: { size: 10 }, maxTicksLimit: 4 } },
                 },
             },
         });
-        const v = vals.filter(x => x != null);
-        if (cap) cap.innerHTML = v.length ? `PM₂.₅ µg/m³ (US EPA, iç ortamda doğrulanmadı) · en düşük <b>${f1(Math.min(...v))}</b> · ortalama <b>${f1(mean(v))}</b> ·
-            en yüksek <b>${f1(Math.max(...v))}</b> · ${hours > 24 ? "saatlik ortalama" : "2 dakikalık ölçüm"}` : "Bu aralıkta geçerli ölçüm yok (A/B kanalları uyuşmuyor).";
+        if (cap) cap.innerHTML = capTxt ? `${capTxt} · ${H > 24 ? "saatlik ortalama" : "2 dakikalık ölçüm"}` : "Bu aralıkta geçerli ölçüm yok.";
     }
     function bindTs(root, id) {
-        root.querySelectorAll(".ic-ts-chips [data-h]").forEach(b => b.addEventListener("click", () => {
-            root.querySelectorAll(".ic-ts-chips [data-h]").forEach(x => x.classList.toggle("on", x === b));
-            drawTs(id, +b.dataset.h);
+        const wire = (sel, key) => root.querySelectorAll(sel).forEach(b => b.addEventListener("click", () => {
+            root.querySelectorAll(sel).forEach(x => x.classList.toggle("on", x === b));
+            if (key === "h") drawTs(id, +b.dataset.h, null); else drawTs(id, null, b.dataset.m);
         }));
+        wire(".ic-ts-chips [data-h]", "h");
+        wire(".ic-ts-chips [data-m]", "m");
     }
 
     function placeMarker() {
@@ -154,13 +214,13 @@ const Ic = (() => {
                 .bindTooltip(tip, { direction: "top", offset: [0, -14], className: "pa-label" })
                 .bindPopup(() => `<div class="ic-pop"><b>${esc(name)} · iç ortam PurpleAir</b>
                       <small>Kimya ve Çevre Müh. binası · son ölçüm ${latest.pm2_5 == null ? "--" : f1(latest.pm2_5)} µg/m³</small>
-                      ${tsBox("ic-pop-ts", 24, true)}
+                      ${tsBox("ic-pop-ts", 24, "pm")}
                       <button type="button" class="ic-btn oz-more" id="ic-pop-open">${ico("chart-column")} Ayrıntılı analiz</button></div>`,
                     { minWidth: 300, maxWidth: 340, className: "ic-popup" });
             marker.on("popupopen", e => {
                 const root = e.popup.getElement();
                 bindTs(root, "ic-pop-ts");
-                drawTs("ic-pop-ts", 24);
+                drawTs("ic-pop-ts");
                 root.querySelector("#ic-pop-open")?.addEventListener("click", () => { marker.closePopup(); Shell.openPanel("ic"); });
             });
             marker.on("popupclose", () => { if (tsCharts["ic-pop-ts"]) { tsCharts["ic-pop-ts"].destroy(); delete tsCharts["ic-pop-ts"]; } });
@@ -172,7 +232,8 @@ const Ic = (() => {
 
     function pairs(outRows) {
         const out = new Map();
-        for (const r of outRows) out.set(hourKey(new Date(r.recorded_at)), { e: r.pm2_5 == null ? null : +r.pm2_5, c: cf1(r) });
+        for (const r of outRows) out.set(hourKey(new Date(r.recorded_at)), { e: r.pm2_5 == null ? null : +r.pm2_5, c: cf1(r),
+                                                                         t: num(r.temperature_c), rh: num(r.humidity_pct) });
         const first = inHourly && inHourly.length ? +new Date(inHourly[0].recorded_at) : 0;
         const from = Math.max(since(), first + WARMUP), res = [];
         for (const r of inHourly || []) {
@@ -180,7 +241,8 @@ const Ic = (() => {
             if (+t < from) continue;
             const k = hourKey(t), o = out.get(k) || {}, ci = cf1(r);
             if (r.pm2_5 == null && ci == null) continue;
-            res.push({ t, k, h: hourOf(k), wd: wdFmt.format(t), i: r.pm2_5 == null ? null : +r.pm2_5, o: o.e ?? null, ci, co: o.c ?? null });
+            res.push({ t, k, h: hourOf(k), wd: wdFmt.format(t), i: r.pm2_5 == null ? null : +r.pm2_5, o: o.e ?? null, ci, co: o.c ?? null,
+                       ti: num(r.temperature_c), to: o.t ?? null, hi: num(r.humidity_pct), ho: o.rh ?? null });
         }
         return res;
     }
@@ -217,14 +279,16 @@ const Ic = (() => {
             maruziyet modelindeki F değerleri için en az 2 hafta veri (≥10 gece, 2 hafta sonu) birikmesi önerilir.</div>`;
     }
 
-    function chartBase(yTitle) {
+    function chartBase(unit = "µg/m³") {
+        const fmtV = v => v == null ? "–" : unit === "oran" ? f2(v) : `${f1(v)} ${unit}`;
         return {
             responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: "index", intersect: false },
-            plugins: { legend: { display: false }, tooltip: { callbacks: { label: it => ` ${it.dataset.label}: ${it.raw == null ? "–" : (yTitle === "oran" ? f2(it.raw) : f1(it.raw) + " µg/m³")}` } } },
+            plugins: { legend: { display: false }, tooltip: { filter: it => it.dataset.label !== "Eşit (1)",
+                callbacks: { label: it => ` ${it.dataset.label}: ${fmtV(it.raw)}` } } },
             scales: {
                 x: { grid: { display: false }, ticks: { color: "#9aa4b8", font: { size: 9.5 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 7 } },
-                y: { min: 0, grid: { color: "rgba(255,255,255,0.06)" }, border: { display: false },
-                     title: { display: true, text: yTitle === "oran" ? "iç / dış" : "µg/m³", color: "#9aa4b8", font: { size: 10 } },
+                y: { min: unit === "°C" ? undefined : 0, grid: { color: "rgba(255,255,255,0.06)" }, border: { display: false },
+                     title: { display: true, text: unit === "oran" ? "iç / dış" : unit, color: "#9aa4b8", font: { size: 10 } },
                      ticks: { color: "#9aa4b8", font: { size: 10 }, maxTicksLimit: 5 } },
             },
         };
@@ -236,19 +300,22 @@ const Ic = (() => {
         charts.forEach(c => c.destroy()); charts = [];
         if (typeof Chart === "undefined") return;
         const lab = p => p.t.toLocaleString("tr-TR", { timeZone: "Europe/Istanbul", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-        // Eksen: yalnızca gün ("14 Eki"); ayrıntılı saat ipucunda
-        const tsOpts = chartBase();
-        tsOpts.scales.x.ticks.callback = function (v) { return String(this.getLabelForValue(v)).split(" ").slice(0, 2).join(" "); };
-        const c1 = $("ic-ts");
-        if (c1) charts.push(new Chart(c1, { type: "line", data: { labels: ps.map(lab), datasets: [
-            ds(`${name} (iç)`, ps.map(p => +p.i.toFixed(1)), C_IN, false),
-            ds("Dış · SUMER çatısı", ps.map(p => p.o == null ? null : +p.o.toFixed(1)), C_OUT, true)] }, options: tsOpts }));
+        // Zaman eksenli grafikler: eksende yalnızca gün ("14 Eki"); ayrıntılı saat ipucunda
+        const tsOpts = unit => { const o = chartBase(unit); o.scales.x.ticks.callback = function (v) { return String(this.getLabelForValue(v)).split(" ").slice(0, 2).join(" "); }; return o; };
+        const r1 = v => v == null ? null : +v.toFixed(1);
+        const mk = (cid, sets, opts) => { const c = $(cid); if (c) charts.push(new Chart(c, { type: "line", data: { labels: ps.map(lab), datasets: sets }, options: opts })); };
+        mk("ic-ts", [ds(`${name} (iç)`, ps.map(p => r1(p.i)), C_IN, false), ds("Dış · SUMER çatısı", ps.map(p => r1(p.o)), C_OUT, true)], tsOpts("µg/m³"));
+        const io = ps.map(p => p.ci != null && p.co != null && p.co > 0 ? +(p.ci / p.co).toFixed(2) : null);
+        mk("ic-iots", [ds("İç / dış (ham cf_1)", io, C_IN, false), { ...ds("Eşit (1)", io.map(() => 1), "#8a93a6", true), borderWidth: 1, pointHoverRadius: 0 }], tsOpts("oran"));
+        mk("ic-temp", [ds(`${name} (iç)`, ps.map(p => r1(p.ti)), C_IN, false), ds("Dış · SUMER çatısı", ps.map(p => r1(p.to)), C_OUT, true)], tsOpts("°C"));
+        mk("ic-rh", [ds(`${name} (iç)`, ps.map(p => r1(p.hi)), C_IN, false), ds("Dış · SUMER çatısı", ps.map(p => r1(p.ho)), C_OUT, true)], tsOpts("%"));
         const byH = Array.from({ length: 24 }, (_, h) => ps.filter(p => p.h === h));
         const c2 = $("ic-hod");
+        const hm = (g, k) => { const v = g.map(p => p[k]).filter(x => x != null); return v.length ? +mean(v).toFixed(1) : null; };
         if (c2) charts.push(new Chart(c2, { type: "line", data: { labels: byH.map((_, h) => String(h).padStart(2, "0")), datasets: [
-            ds(`${name} (iç)`, byH.map(g => g.length ? +mean(g.map(p => p.i)).toFixed(1) : null), C_IN, false),
-            ds("Dış · SUMER çatısı", byH.map(g => { const o = g.filter(p => p.o != null); return o.length ? +mean(o.map(p => p.o)).toFixed(1) : null; }), C_OUT, true)] },
-            options: chartBase() }));
+            ds(`${name} (iç)`, byH.map(g => hm(g, "i")), C_IN, false),
+            ds("Dış · SUMER çatısı", byH.map(g => hm(g, "o")), C_OUT, true)] },
+            options: chartBase("µg/m³") }));
     }
 
     // Atmotube: aynı binadaki saha ölçümleri (cihaz oturumları ATP-n_YYYYAAGG) ± 3 dk içindeki iç PurpleAir ölçümüyle
@@ -321,6 +388,17 @@ const Ic = (() => {
               ${ps.length ? tilesHtml(s) : `<div class="wh-empty">Seçilen dönemde iç ölçüm yok.</div>`}
               <section class="tr-sec"><h3>${ico("activity")} Saatlik seyir</h3>
                 <div class="tr-chart"><canvas id="ic-ts" aria-label="İç ve dış saatlik PM₂.₅"></canvas></div>
+                <div class="who-legend"><span><i style="background:${C_IN}"></i>${esc(name)} (iç)</span><span><i class="dash" style="border-color:${C_OUT}"></i>Dış · SUMER çatısı</span></div></section>
+              <section class="tr-sec"><h3>${ico("scale")} İç / dış oranı (I/O) zamana karşı</h3>
+                <p class="tr-sub">Her saat için iç ham cf_1 ÷ dış ham cf_1. Kesikli çizgi 1: altında içerisi dışarıdan temiz, üstünde kirli
+                  (iç kaynak: insan, toz). Gece değerleri dış havanın içeri sızma oranına yaklaşır.</p>
+                <div class="tr-chart"><canvas id="ic-iots" aria-label="Saatlik iç/dış PM₂.₅ oranı"></canvas></div>
+                <div class="who-legend"><span><i style="background:${C_IN}"></i>İç / dış</span><span><i class="dash" style="border-color:#8a93a6"></i>Eşit (1)</span></div></section>
+              <section class="tr-sec"><h3>${ico("activity")} Sıcaklık ve nem</h3>
+                <p class="tr-sub">Saatlik ortalamalar. PurpleAir sıcaklık ve nemi cihaz gövdesinin içinden ölçer: sıcaklık ortamdan yüksek, nem düşük
+                  okunur (iki sensörde benzer sapma); karşılaştırma için uygundur, mutlak değer için değil.</p>
+                <div class="tr-chart ic-small"><canvas id="ic-temp" aria-label="İç ve dış sıcaklık"></canvas></div>
+                <div class="tr-chart ic-small"><canvas id="ic-rh" aria-label="İç ve dış bağıl nem"></canvas></div>
                 <div class="who-legend"><span><i style="background:${C_IN}"></i>${esc(name)} (iç)</span><span><i class="dash" style="border-color:${C_OUT}"></i>Dış · SUMER çatısı</span></div></section>
               <section class="tr-sec"><h3>${ico("clock")} Günün saatine göre</h3>
                 <p class="tr-sub">Her saatin dönem ortalaması (Türkiye saati). Ders saatlerinde içerideki artış, insan hareketi ve kapı/pencere açılmasıyla ilişkili olabilir.</p>

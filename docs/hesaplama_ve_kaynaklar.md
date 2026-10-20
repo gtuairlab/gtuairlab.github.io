@@ -80,6 +80,10 @@ Atmotube ölçümleriyle karşılaştırma.
   oranı; saatlik oranların medyanı ikincil). Ders saatleri = hafta içi 08:00–18:00; gece (boş bina) = 23:00–05:00 (Bi vd. 2021).
   Gece I/O'su sızma faktörüne (F_inf) yaklaşır; ders saati I/O'su iç kaynakları da içerir (Chen & Zhao 2011). Kurulumun ilk saati
   (ısınma, kurulum tozu) analize girmez. Sensör panelindeki anlık oran: ham cf_1, dış sensörün ±15 dk içindeki son ölçümüyle.
+- **Grafikler (20 Ekim 2026):** Haritadaki iç sensör işareti ve sensör paneli: PM₂.₅ / iç-dış oranı / sıcaklık / nem, son 6 sa ve 24 sa
+  2 dk'lık ölçümlerle (dış sensörle ±2,5 dk en yakın eşleme), 7 gün saatlik ortalamalarla (aynı saat). Analiz panelinde saatlik I/O
+  (ham cf_1, 1 çizgisiyle) ve iç–dış sıcaklık ile nem. Sıcaklık/nem PurpleAir gövdesinin içinden ölçülür (sıcaklık yüksek, nem düşük
+  okunur; iki sensörde benzer sapma) → karşılaştırma içindir, mutlak değer için değil.
 - **Atmotube karşılaştırması:** Atmotube cihaz oturumlarındaki (ATP-n) ölçümlerden iç sensörün bulunduğu binaya (içinde ya da ≤15 m)
   düşenler ±3 dk içindeki iç PurpleAir ölçümüyle eşlenir; cihaz başına ortalamaların oranı (Atmotube ÷ ham cf_1; EPA'lıya göre ikincil),
   en az 3 eşleşme. Literatür beklentisi: Atmotube (Sensirion SPS30) ÷ ham PurpleAir (PMS5003) ≈ 0,55–0,75, ÷ EPA'lı ≈ 1 (Shittu vd. 2025;
