@@ -155,7 +155,7 @@ CREATE TABLE IF NOT EXISTS purpleair_readings (
     created_at    TIMESTAMPTZ DEFAULT NOW()
 );
 
--- İç ortam PurpleAir (Amfi 1): dış sensörle aynı sütunlar; sensör numarasıyla tekil
+-- İç ortam PurpleAir (Amfi 1): dış sensörle aynı sütunlar, sensör numarasıyla tekil
 CREATE TABLE IF NOT EXISTS purpleair_indoor_readings (
     id            BIGSERIAL PRIMARY KEY,
     sensor_index  INTEGER NOT NULL,
@@ -213,7 +213,9 @@ def init_db():
     with get_conn() as conn:
         cur = conn.cursor()
         if _USE_POSTGRES:
-            for stmt in POSTGRES_SCHEMA.strip().split(";"):
+            # Yorum satırları önce atılır (yorumdaki ";" komutu bölmesin, yalnızca yorumdan oluşan parça çalıştırılmasın)
+            sql = "\n".join(l for l in POSTGRES_SCHEMA.splitlines() if not l.strip().startswith("--"))
+            for stmt in sql.split(";"):
                 stmt = stmt.strip()
                 if stmt:
                     cur.execute(stmt)
