@@ -264,6 +264,13 @@ def save_purpleair_indoor_reading(data: dict):
         conn.cursor().execute(sql, data)
 
 
+def get_first_purpleair_indoor():
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT recorded_at FROM purpleair_indoor_readings ORDER BY recorded_at ASC LIMIT 1")
+        return fetchone(cur)
+
+
 def get_latest_purpleair_indoor():
     with get_conn() as conn:
         cur = conn.cursor()

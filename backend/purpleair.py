@@ -134,12 +134,65 @@ def poll_indoor():
         })
         _indoor_last_at = new_at
         _indoor_status = {"success": True, "error": None, **base}
+        backfill_indoor(sensor.get("latitude"), sensor.get("longitude"))
     except Exception as e:
         # Hata metninde okuma anahtarı görünmesin
         import re
         msg = re.sub(r"read_key=[^&\s]*", "read_key=…", str(e))
         _indoor_status = {"success": False, "error": msg[:200], "at": _now(), "sensor_index": PURPLEAIR_INDOOR_SENSOR_ID}
         print(f"[purpleair/indoor] Poll error: {msg[:200]}")
+
+
+# Kurulumdan sunucunun okumaya başladığı ana kadarki boşluk: PurpleAir geçmiş verisinden (2 dk'lık, average=0) bir kez
+# doldurulur. Yalnızca ilk kayıt son 3 gün içindeyse (yeni sensör) ve her süreçte bir kez çalışır; mükerrer kayıt yazılmaz.
+HISTORY_FIELDS = "pm1.0_atm,pm2.5_atm,pm2.5_atm_a,pm2.5_atm_b,pm2.5_cf_1_a,pm2.5_cf_1_b,pm10.0_atm,temperature,humidity"
+_indoor_backfill_done = False
+
+
+def backfill_indoor(lat=None, lon=None):
+    global _indoor_backfill_done
+    if _indoor_backfill_done or not PURPLEAIR_INDOOR_SENSOR_ID or not PURPLEAIR_API_KEY:
+        return 0
+    _indoor_backfill_done = True
+    try:
+        first = db.get_first_purpleair_indoor()
+        first_at = _ts(first.get("recorded_at")) if first else None
+        now = datetime.datetime.now(datetime.timezone.utc)
+        if first_at is None or now - first_at > datetime.timedelta(days=3):
+            return 0
+        end = int(first_at.timestamp()) - 1
+        start = end - 2 * 86400   # gerçek zamanlı geçmiş en çok 2 gün
+        url = (f"https://api.purpleair.com/v1/sensors/{PURPLEAIR_INDOOR_SENSOR_ID}/history?average=0"
+               f"&start_timestamp={start}&end_timestamp={end}&fields=" + urllib.request.quote(HISTORY_FIELDS, safe=",."))
+        if PURPLEAIR_INDOOR_READ_KEY:
+            url += "&read_key=" + urllib.request.quote(PURPLEAIR_INDOOR_READ_KEY, safe="")
+        req = urllib.request.Request(url, headers={"X-API-Key": PURPLEAIR_API_KEY})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            body = json.loads(resp.read().decode())
+        fields, rows = body.get("fields") or [], body.get("data") or []
+        n = 0
+        for row in rows:
+            r = dict(zip(fields, row))
+            ts = r.get("time_stamp")
+            if not ts:
+                continue
+            db.save_purpleair_indoor_reading({
+                "sensor_index": PURPLEAIR_INDOOR_SENSOR_ID,
+                "recorded_at": datetime.datetime.utcfromtimestamp(ts).isoformat() + "Z",
+                "pm1_0": r.get("pm1.0_atm"), "pm2_5": r.get("pm2.5_atm"),
+                "pm2_5_a": r.get("pm2.5_atm_a"), "pm2_5_b": r.get("pm2.5_atm_b"),
+                "pm2_5_cf1_a": r.get("pm2.5_cf_1_a"), "pm2_5_cf1_b": r.get("pm2.5_cf_1_b"),
+                "pm10_0": r.get("pm10.0_atm"), "temperature_c": _fahrenheit_to_celsius(r.get("temperature")),
+                "humidity_pct": r.get("humidity"), "lat": lat, "lon": lon,
+            })
+            n += 1
+        print(f"[purpleair/indoor] Geçmiş dolduruldu: {n} kayıt (ilk canlı kayıttan önceki 2 gün)")
+        return n
+    except Exception as e:
+        import re
+        msg = re.sub(r"read_key=[^&\s]*", "read_key=…", str(e))[:200]
+        print(f"[purpleair/indoor] Geçmiş doldurma hatası: {msg}")
+        return 0
 
 
 def get_indoor_status():
