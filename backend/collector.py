@@ -106,13 +106,33 @@ def collect_atmotube():
         return 0
 
 
-HISTORY_MAX_DAYS = 7   # buluttan geriye en çok kaç gün çekilir (uzun aralıkları bulut reddediyor; gün gün sorulur)
+HISTORY_RECENT_DAYS = 30            # son kayıttan bugüne en çok bu kadar gün her saat yeniden sorulur
+HISTORY_START = datetime.date(2026, 6, 1)   # eski günlerin bir kerelik doldurulacağı ilk gün
+HISTORY_OLD_DAYS_PER_RUN = 25       # her çalışmada cihaz başına en çok bu kadar eski gün (yükü yaymak için)
+
+
+def _atmotube_day_rows(name, mac, day):
+    items = atmotube_cloud.fetch_device_history(
+        mac, day.isoformat(), (day + datetime.timedelta(days=1)).isoformat())
+    rows = []
+    for it in items:
+        c = it.get("coords") or {}
+        rows.append({
+            "source": "atmotube", "device": name, "recorded_at": it.get("time"),
+            "pm1_0": it.get("pm1"), "pm2_5": it.get("pm25"), "pm10_0": it.get("pm10"),
+            "voc_ppm": it.get("voc"), "temperature_c": it.get("t"),
+            "humidity_pct": it.get("h"), "pressure_hpa": it.get("p"),
+            "lat": c.get("lat"), "lon": c.get("lon"),
+        })
+    return rows
 
 
 def collect_atmotube_history():
-    """Saatte bir: her Atmotube için arşivdeki son kayıttan bugüne kadar bulutun dakikalık kaydını gün gün
-    çeker ve eksikleri ekler. Cihaz telefona geç bağlandığında belleğindeki tüm ölçümler buluta gider;
-    canlı toplayıcı yalnızca son değeri aldığı için aradakiler ancak bu işle arşive girer."""
+    """Saatte bir: Atmotube bulutunun dakikalık kaydını gün gün çekip arşive ekler (mükerrersiz).
+    1) Yakın günler: arşivdeki son kayıttan bugüne (en çok 30 gün) her saat yeniden sorulur; cihaz telefona
+       geç bağlansa da belleğindeki ölçümler gelir. 2) Eski günler (1 Haziran 2026'dan beri): her gün bir kez
+       çekilir, atmotube_backfill tablosuna işaretlenir; yük yayılsın diye her çalışmada en çok 25 gün."""
+    import time
     if not archive.is_enabled() or not atmotube_cloud.ATMOTUBE_API_KEY:
         return 0
     today = datetime.date.today()
@@ -120,30 +140,25 @@ def collect_atmotube_history():
     for name, mac in atmotube_cloud.DEVICES.items():
         try:
             last = archive.latest_device_reading("atmotube", name)
-            start = today - datetime.timedelta(days=HISTORY_MAX_DAYS)
+            recent_from = today - datetime.timedelta(days=1)
             if last:
                 last_day = datetime.date.fromisoformat(last["recorded_at"][:10])
-                start = max(start, last_day)
-            day = start
-            while day <= today:
-                items = atmotube_cloud.fetch_device_history(
-                    mac, day.isoformat(), (day + datetime.timedelta(days=1)).isoformat())
-                rows = []
-                for it in items:
-                    c = it.get("coords") or {}
-                    rows.append({
-                        "source": "atmotube", "device": name, "recorded_at": it.get("time"),
-                        "pm1_0": it.get("pm1"), "pm2_5": it.get("pm25"), "pm10_0": it.get("pm10"),
-                        "voc_ppm": it.get("voc"), "temperature_c": it.get("t"),
-                        "humidity_pct": it.get("h"), "pressure_hpa": it.get("p"),
-                        "lat": c.get("lat"), "lon": c.get("lon"),
-                    })
-                total += archive.log_rows(rows)
-                day += datetime.timedelta(days=1)
+                recent_from = max(today - datetime.timedelta(days=HISTORY_RECENT_DAYS), min(last_day, recent_from))
+            done = archive.backfilled_days(name)
+            old_days = [HISTORY_START + datetime.timedelta(days=i)
+                        for i in range((recent_from - HISTORY_START).days)]
+            old_days = [d for d in old_days if d not in done][:HISTORY_OLD_DAYS_PER_RUN]
+            recent_days = [recent_from + datetime.timedelta(days=i)
+                           for i in range((today - recent_from).days + 1)]
+            for day in old_days + recent_days:
+                total += archive.log_rows(_atmotube_day_rows(name, mac, day))
+                if day in old_days:
+                    archive.mark_backfilled(name, day)
+                time.sleep(0.3)   # bulutu yormamak için
         except Exception as e:
             print(f"[collector/atmotube_history] {name}: {atmotube_cloud._safe_error(e)}")
     if total:
-        print(f"[collector/atmotube_history] {total} gecikmeli ölçüm arşivlendi.")
+        print(f"[collector/atmotube_history] {total} ölçüm arşivlendi (geçmiş/gecikmeli).")
         sync_atmotube_sessions()
     return total
 

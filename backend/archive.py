@@ -66,6 +66,14 @@ CREATE INDEX IF NOT EXISTS idx_meas_source ON measurements (source);
 ALTER TABLE measurements ADD COLUMN IF NOT EXISTS co2_ppm DOUBLE PRECISION;
 -- CO₂ sensörünün konumunu aldığı Atmotube (örn. 'ATP-2') — verileri yan yana eşlemek için
 ALTER TABLE measurements ADD COLUMN IF NOT EXISTS anchor_device TEXT;
+-- Atmotube geçmişi: buluttan bir kez çekilmiş (eski) günler; aynı gün tekrar sorulmaz
+CREATE TABLE IF NOT EXISTS atmotube_backfill (
+    device     TEXT NOT NULL,
+    day        DATE NOT NULL,
+    fetched_at TIMESTAMPTZ DEFAULT now(),
+    PRIMARY KEY (device, day)
+);
+ALTER TABLE atmotube_backfill ENABLE ROW LEVEL SECURITY;
 """
 
 _COLS = ["source", "device", "recorded_at", "pm1_0", "pm2_5", "pm10_0",
@@ -153,6 +161,32 @@ def latest_device_reading(source, device):
     except Exception as e:
         print(f"[archive] latest_device_reading hatası: {e}")
         return None
+
+
+def backfilled_days(device):
+    """Buluttan daha önce tamamı çekilmiş günler (set of date)."""
+    if not _enabled:
+        return set()
+    try:
+        con = _connect(); cur = con.cursor()
+        cur.execute("SELECT day FROM atmotube_backfill WHERE device=%s", (device,))
+        out = {r[0] for r in cur.fetchall()}; con.close()
+        return out
+    except Exception as e:
+        print(f"[archive] backfilled_days hatası: {e}")
+        return set()
+
+
+def mark_backfilled(device, day):
+    if not _enabled:
+        return
+    try:
+        con = _connect(); cur = con.cursor()
+        cur.execute("INSERT INTO atmotube_backfill (device, day) VALUES (%s,%s) ON CONFLICT DO NOTHING",
+                    (device, day))
+        con.commit(); con.close()
+    except Exception as e:
+        print(f"[archive] mark_backfilled hatası: {e}")
 
 
 def last_device_gps(name_prefix):

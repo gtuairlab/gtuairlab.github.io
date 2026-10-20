@@ -44,9 +44,10 @@ Tek bir güncel sürüm olması için **tek kaynak `main` branch'idir**.
 - **airlab.gtu.edu.tr (14 Ekim 2026):** GTÜ ana sayfa editöründeki birim sayfasına yönlenir (`gtu.edu.tr/kategori/9611`); kullanıcı bunu
   vitrin olarak kullanacak (tanıtım metni + uygulamaya "URL" hedefli kategori bağlantısı). Uygulama GitHub Pages'te kalır; birim sayfasındaki
   bağlantı https://gtuairlab.github.io olmalı (eski ilkerakmirza adresi yazılıysa kullanıcıya hatırlat).
-- **Atmotube gecikmeli eşitleme (20 Ekim 2026):** canlı toplayıcı yalnızca son değeri aldığından telefona geç bağlanan cihazların
-  aradaki dakikalık kayıtları arşive girmiyordu (7 günde 0–32 kayıt). Saatlik `collect_atmotube_history` eklendi; ilk çalışmadan sonra
-  `measurements`'ta ATP kayıt sayıları artmalı (günde cihaz başına yüzlerce). Artmazsa Render loglarında `[collector/atmotube_history]` satırına bak.
+- **Atmotube gecikmeli eşitleme ve geçmiş (20 Ekim 2026):** canlı toplayıcı yalnızca son değeri aldığından aradaki dakikalık
+  kayıtlar arşive girmiyordu (7 günde 0–32 kayıt). Saatlik `collect_atmotube_history`: son kayıttan bugüne (≤30 gün) her saat; 1 Haziran
+  2026'dan beri eski günler bir kez (`atmotube_backfill` tablosu, çalışma başına cihaz başına 25 gün → ~6 saatte biter). Kontrol:
+  `measurements`'ta ATP kayıt sayıları; artmazsa Render loglarında `[collector/atmotube_history]`.
 - **Atmotube bulutu (14 Ekim 2026):** Bulut uzun tarih aralığını (120 gün) reddediyordu; son verisi 2 günden eski cihazlar
   "bulut yanıt vermiyor" görünüyordu. Geriye bakma kaldırıldı, son ölçüm `measurements` arşivinden geliyor. Hata metni o güne kadar
   herkese açık çıktıya anahtarla birlikte yazılabiliyordu (maskelendi) → kullanıcıya Atmotube anahtarını yenilemeyi öner (karar onun).
@@ -63,8 +64,8 @@ Tek bir güncel sürüm olması için **tek kaynak `main` branch'idir**.
   konacak (en az 24 sa, tercihen 48). Kurulum, analiz ve karar kuralı (oran 1 ± %10 → dokunma, değilse cihaza tek çarpan):
   `docs/hesaplama_ve_kaynaklar.md` §5. EPA formülü Atmotube'a uygulanmaz; sonuç gelene kadar Atmotube ham ve göreli kullanılır.
   1. Cihazlar telefonsuz ölçer, kendi belleğine dakikalık yazar; telefona bağlanınca kayıt buluta gider. Sunucu saatte bir
-     (`collector.collect_atmotube_history`) arşivdeki son kayıttan bugüne, en çok 7 gün geriye, bulutun dakikalık kaydını gün gün
-     çekip `measurements`'a ekler (20 Ekim 2026). Ölçüm bitince cihazlar 7 gün içinde telefona bağlanmalı; daha eskisi için
+     (`collector.collect_atmotube_history`) arşivdeki son kayıttan bugüne, en çok 30 gün geriye, bulutun dakikalık kaydını gün gün
+     çekip `measurements`'a ekler (20 Ekim 2026). Ölçüm bitince cihazlar 30 gün içinde telefona bağlanmalı; daha eskisi için
      `/api/atmotube/history?device=ATP-n&start=GG&end=ertesi gün` (bulut oturumu onrender.com'a erişemez; masaüstü ya da CSV).
   2. PurpleAir saatlik değerleri (US EPA düzeltmeli, A/B kanal denetimli) Supabase'den alınır.
   3. Açık soru: saha verisinin %92'si (27–30 Nisan, 12 CSV oturumu) veritabanında "cihaz 1" diye kayıtlı. Çarpan gerekirse o günlerde
