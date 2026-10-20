@@ -1084,6 +1084,18 @@ body.news-open #news-btn, body.who-open #who-btn, body.trend-open #trend-btn, bo
   border: 2.5px solid var(--marker-color); color: var(--marker-color); box-shadow: 0 0 0 3px rgba(15,23,38,0.6); }
 .ic-marker .i { width: 14px; height: 14px; }
 body:not(.research) .ic-marker-wrap { display: none; }
+.ic-marker-wrap { cursor: pointer; }
+.ic-ts { margin-top: 10px; }
+.ic-ts-chips { margin-bottom: 6px; }
+.ic-ts-chips .pd-chip { padding: 3px 9px; font-size: 11px; }
+.ic-ts-chart { position: relative; height: 130px; }
+.ic-ts-cap { margin-top: 4px; font-size: 10.5px; line-height: 1.45; color: var(--text-2); }
+.ic-ts-cap b { color: var(--text); font-weight: 600; }
+.ic-pop { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ic-pop > b { font-size: 13px; }
+.ic-pop > small { color: var(--text-2); font-size: 11px; }
+.ic-pop .ic-ts-chart { height: 150px; }
+.ic-pop .oz-more { margin-top: 10px; }
 .mx-jbadge { background: rgba(10,16,29,0.85); border: 1px solid var(--stroke); border-radius: 7px; padding: 4px 7px;
   font: 500 11px/1.2 var(--num); color: #e9edf5; margin: 6px !important; }
 .cb-tips { margin: 6px 0 0 16px; display: grid; gap: 5px; }
@@ -1992,7 +2004,7 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
 <script src="js/who.js?v=48"></script>
 <script src="js/kiyas.js?v=43"></script>
 <script src="js/trend.js?v=1"></script>
-<script src="js/ic.js?v=2"></script>
+<script src="js/ic.js?v=3"></script>
 <script src="js/ozet.js?v=58"></script>
 <script src="js/maruziyet.js?v=6"></script>
 <script src="js/shell.js?v=54"></script>

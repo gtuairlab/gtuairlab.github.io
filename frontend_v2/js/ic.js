@@ -32,6 +32,8 @@ const Ic = (() => {
     const MIN_PAIRS = 3;
 
     let latest = null, name = "Amfi 1", status = null, marker = null;
+    const tsCharts = {};
+    let panelHours = 24;   // zaman grafiği örnekleri (kanvas kimliğine göre): açılır kutu ve sensör paneli
     let period = 7, inHourly = null, busy = false, charts = [];
 
     // ── Sensör paneli ──────────────────────────────────────────────
@@ -80,13 +82,66 @@ const Ic = (() => {
               <div class="pa-cell"><div class="k">Nem*</div><div class="v">${latest.humidity_pct != null ? Math.round(latest.humidity_pct) + "%" : "--"}</div></div>
             </div>
             <div class="pa-foot"><span>${typeof trClock === "function" ? trClock(latest.recorded_at) : t.toLocaleString("tr-TR")}</span><span>${esc(name)}</span></div>
+            ${tsBox("ic-panel-ts", panelHours, true)}
             <button type="button" class="ic-btn oz-more" id="ic-open">${ico("chart-column")} Ayrıntılı analiz</button>`;
+        bindTs(el, "ic-panel-ts");
+        el.querySelectorAll(".ic-ts-chips [data-h]").forEach(b => b.addEventListener("click", () => { panelHours = +b.dataset.h; }));
+        drawTs("ic-panel-ts", panelHours);
         $("ic-open").addEventListener("click", () => Shell.openPanel("ic"));
         const out = await sameTimeOut(t);
         const io = $("ic-io");
         const vin = cf1(latest);
         if (io) io.textContent = out && vin != null ? f2(vin / out) : "--";
         if (io) io.title = out ? `Ham cf_1: iç ${f1(vin)} ÷ dış (SUMER çatısı) ${f1(out)} µg/m³` : "Aynı an için dış ölçüm yok";
+    }
+
+    // ── Zaman grafiği (iç sensör): son 6 sa / 24 sa → 2 dk'lık ham kayıtlar, 7 gün → saatlik ortalama ──
+    const RANGES = { 6: "6 saat", 24: "24 saat", 168: "7 gün" };
+    function tsBox(id, hours, chips) {
+        return `<div class="ic-ts">${chips ? `<div class="pd-chips ic-ts-chips">${Object.entries(RANGES).map(([h, t]) =>
+                `<button type="button" class="pd-chip${+h === hours ? " on" : ""}" data-h="${h}">${t}</button>`).join("")}</div>` : ""}
+            <div class="ic-ts-chart"><canvas id="${id}" aria-label="${esc(name)} iç ortam PM₂.₅, zamana karşı"></canvas></div>
+            <div class="ic-ts-cap" id="${id}-cap">Yükleniyor…</div></div>`;
+    }
+    async function drawTs(id, hours) {
+        const cv = $(id), cap = $(id + "-cap");
+        if (!cv || typeof Chart === "undefined") return;
+        const end = new Date(), start = new Date(end - hours * 3600e3);
+        let rows = [];
+        try { rows = (await API.indoorHistory(start.toISOString(), end.toISOString(), hours > 24 ? "hourly" : "raw")).data || []; }
+        catch (_) { if (cap) cap.textContent = "Veri yüklenemedi."; return; }
+        rows = rows.filter(r => r.pm2_5 != null || cf1(r) != null);
+        if (!$(id)) return;   // bu arada kapandıysa
+        if (tsCharts[id]) { tsCharts[id].destroy(); delete tsCharts[id]; }
+        if (!rows.length) { if (cap) cap.textContent = "Bu aralıkta kayıt yok."; return; }
+        const fmt = hours > 24 ? { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" } : { hour: "2-digit", minute: "2-digit" };
+        const labels = rows.map(r => new Date(r.recorded_at).toLocaleString("tr-TR", { timeZone: "Europe/Istanbul", ...fmt }));
+        const vals = rows.map(r => r.pm2_5 == null ? null : +(+r.pm2_5).toFixed(1));
+        tsCharts[id] = new Chart(cv, {
+            type: "line",
+            data: { labels, datasets: [{ label: `${name} (iç)`, data: vals, borderColor: C_IN, backgroundColor: C_IN, borderWidth: 2,
+                     pointRadius: 0, pointHoverRadius: 4, tension: 0.25, spanGaps: hours > 24 ? false : 6 * 60e3 }] },
+            options: {
+                responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: "index", intersect: false },
+                plugins: { legend: { display: false }, tooltip: { callbacks: {
+                    label: it => ` ${f1(it.raw)} µg/m³ (EPA) · ham cf_1 ${f1(cf1(rows[it.dataIndex]))}` } } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: "#9aa4b8", font: { size: 9.5 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 5,
+                         callback: function (v) { const l = String(this.getLabelForValue(v)); return hours > 24 ? l.split(" ").slice(0, 2).join(" ") : l; } } },
+                    y: { min: 0, grid: { color: "rgba(255,255,255,0.06)" }, border: { display: false },
+                         ticks: { color: "#9aa4b8", font: { size: 10 }, maxTicksLimit: 4 } },
+                },
+            },
+        });
+        const v = vals.filter(x => x != null);
+        if (cap) cap.innerHTML = v.length ? `PM₂.₅ µg/m³ (US EPA, iç ortamda doğrulanmadı) · en düşük <b>${f1(Math.min(...v))}</b> · ortalama <b>${f1(mean(v))}</b> ·
+            en yüksek <b>${f1(Math.max(...v))}</b> · ${hours > 24 ? "saatlik ortalama" : "2 dakikalık ölçüm"}` : "Bu aralıkta geçerli ölçüm yok (A/B kanalları uyuşmuyor).";
+    }
+    function bindTs(root, id) {
+        root.querySelectorAll(".ic-ts-chips [data-h]").forEach(b => b.addEventListener("click", () => {
+            root.querySelectorAll(".ic-ts-chips [data-h]").forEach(x => x.classList.toggle("on", x === b));
+            drawTs(id, +b.dataset.h);
+        }));
     }
 
     function placeMarker() {
@@ -96,8 +151,19 @@ const Ic = (() => {
         const tip = `${esc(name)} (iç) <b>${latest.pm2_5 == null ? "--" : f1(latest.pm2_5)}</b> µg/m³`;
         if (!marker) {
             marker = L.marker([latest.lat, latest.lon], { icon, zIndexOffset: 450 }).addTo(map)
-                .bindTooltip(tip, { direction: "top", offset: [0, -14], className: "pa-label" });
-            marker.on("click", () => Shell.openPanel("ic"));
+                .bindTooltip(tip, { direction: "top", offset: [0, -14], className: "pa-label" })
+                .bindPopup(() => `<div class="ic-pop"><b>${esc(name)} · iç ortam PurpleAir</b>
+                      <small>Kimya ve Çevre Müh. binası · son ölçüm ${latest.pm2_5 == null ? "--" : f1(latest.pm2_5)} µg/m³</small>
+                      ${tsBox("ic-pop-ts", 24, true)}
+                      <button type="button" class="ic-btn oz-more" id="ic-pop-open">${ico("chart-column")} Ayrıntılı analiz</button></div>`,
+                    { minWidth: 300, maxWidth: 340, className: "ic-popup" });
+            marker.on("popupopen", e => {
+                const root = e.popup.getElement();
+                bindTs(root, "ic-pop-ts");
+                drawTs("ic-pop-ts", 24);
+                root.querySelector("#ic-pop-open")?.addEventListener("click", () => { marker.closePopup(); Shell.openPanel("ic"); });
+            });
+            marker.on("popupclose", () => { if (tsCharts["ic-pop-ts"]) { tsCharts["ic-pop-ts"].destroy(); delete tsCharts["ic-pop-ts"]; } });
         } else { marker.setIcon(icon); marker.setTooltipContent(tip); }
     }
 
