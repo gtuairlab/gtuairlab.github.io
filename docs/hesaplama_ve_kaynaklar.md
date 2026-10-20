@@ -68,7 +68,7 @@ Atmotube ölçümleriyle karşılaştırma.
 
 - **Toplama:** Sunucu 2 dakikada bir (dış sensörle aynı alanlar + konum, `location_type`) ayrı tabloya yazar
   (`purpleair_indoor_readings`, sensör numarası + zaman tekil; RLS açık). Dış sensörün ekranları ve hesapları etkilenmez.
-  Sensör numarası Render ortam değişkeni `PURPLEAIR_INDOOR_SENSOR_ID` (özel kayıtlıysa `PURPLEAIR_INDOOR_READ_KEY`).
+  Sensör numarası 228591 (`config.py`; Render ortam değişkeni `PURPLEAIR_INDOOR_SENSOR_ID` ile değiştirilebilir; özel kayıtlıysa `PURPLEAIR_INDOOR_READ_KEY`).
 - **Düzeltme:** Kullanıcının tercihiyle dış sensörle aynı US EPA düzeltmesi ve A/B kanal denetimi (§1a). **Uygunluk:** denklem dış
   ortam eş konumlu ölçümlerinden geliştirildi; iç ortam kaynaklarında (insan, toz, temizlik) sapma olabilir — literatür
   değerlendirmesi ve öneri için aşağıdaki "Değerlendirme" maddesine bakın. Ham değerler veritabanında; yöntem değişirse yalnızca
