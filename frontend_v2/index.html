@@ -524,7 +524,7 @@ body {
 .sr-empty { padding: 12px; font-size: 12px; color: var(--text-2); }
 @media (max-width: 1560px) and (min-width: 761px) { #chip-readings, #chip-sessions { display: none; } }
 /* Dizüstü genişliklerinde üst çubuk taşmasın: altlık düğmeleri yalnızca ikon (title korunur), aralıklar daralır */
-@media (max-width: 1380px) and (min-width: 761px) { .seg-btn .sb-txt { display: none; } }
+@media (max-width: 1640px) and (min-width: 761px) { .seg-btn .sb-txt { display: none; } }
 @media (max-width: 1100px) and (min-width: 761px) {
   .brand small { display: none; }
   .topbar { gap: 9px; padding: 0 12px; }
@@ -747,10 +747,16 @@ body {
   width: 20px; height: 20px; border-radius: 50%;
   background: var(--marker-color, #b07aff);
   border: 2.5px solid #fff;
-  box-shadow: 0 0 0 0 var(--marker-color);
-  animation: pulse 2.2s infinite;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--marker-color) 30%, transparent);
 }
 .pulse-marker.stale { animation: none; opacity: .75; }
+/* PurpleAir canlı işareti: HKİ renginde genişleyip sönen halka (canlı ölçüm olduğu görünsün) */
+.pulse-marker { position: relative; }
+.pulse-marker::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; border: 2px solid var(--marker-color);
+  animation: paRing 2.4s ease-out infinite; pointer-events: none; }
+.pulse-marker.stale::after { display: none; }
+@keyframes paRing { from { transform: scale(1); opacity: .85; } to { transform: scale(2.8); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .pulse-marker, .pulse-marker::after { animation: none; } }
 /* Atmotube canlı ölçüm noktası: kendi PM₂.₅ renginde yanıp söner, çevresinde dalga halkası */
 .atp-live {
   position: relative; width: 18px; height: 18px; border-radius: 30%;
@@ -1066,7 +1072,19 @@ body.news-open #news-btn, body.who-open #who-btn, body.trend-open #trend-btn, bo
 .mx-jbadge { background: rgba(10,16,29,0.85); border: 1px solid var(--stroke); border-radius: 7px; padding: 4px 7px;
   font: 500 11px/1.2 var(--num); color: #e9edf5; margin: 6px !important; }
 .cb-tips { margin: 6px 0 0 16px; display: grid; gap: 5px; }
-.oz-exp { margin-top: 12px; }
+.oz-exp { margin-top: 12px; justify-content: flex-start !important; text-align: left; padding: 10px 13px; gap: 10px !important; }
+.oz-exp .i { width: 20px; height: 20px; flex: none; }
+.oz-exp span { display: flex; flex-direction: column; gap: 1px; line-height: 1.25; }
+.oz-exp small { font-weight: 500; font-size: 11px; opacity: .85; }
+/* Özet: son 24 saat şeridi */
+.oz-24 { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--stroke); }
+.oz-24-head { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-2); margin-bottom: 6px; }
+.oz-24-head b { color: var(--text); font-weight: 600; }
+.oz-24-bars { display: flex; align-items: flex-end; gap: 2px; height: 46px; }
+.oz-24-bars i { flex: 1; min-width: 0; border-radius: 2px 2px 0 0; background: var(--c); opacity: .9; }
+.oz-24-bars i.gap { background: rgba(255,255,255,0.06); height: 3px !important; }
+.oz-24-bars i.now { opacity: 1; box-shadow: 0 0 0 1.5px #fff inset; }
+.oz-24-axis { display: flex; justify-content: space-between; font: 500 9.5px/1 var(--num); color: var(--text-2); margin-top: 4px; }
 
 /* ───────────────────────── Hakkında · Yöntem · KVKK ───────────────────────── */
 .info-btn { padding: 7px 11px; font-size: 14px; }
@@ -1932,11 +1950,11 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
 <script src="js/colorscale.js?v=57"></script>
 <script src="js/api.js?v=44"></script>
 <script src="js/campus.js?v=58"></script>
-<script src="js/app.js?v=66"></script>
+<script src="js/app.js?v=67"></script>
 <script src="js/who.js?v=48"></script>
 <script src="js/kiyas.js?v=43"></script>
 <script src="js/trend.js?v=1"></script>
-<script src="js/ozet.js?v=57"></script>
+<script src="js/ozet.js?v=58"></script>
 <script src="js/maruziyet.js?v=6"></script>
 <script src="js/shell.js?v=53"></script>
 </body>

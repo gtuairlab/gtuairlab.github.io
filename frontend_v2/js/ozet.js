@@ -87,6 +87,7 @@ const Ozet = (() => {
                 <div class="oz-val2">PM₂.₅ <b>${f1(src.v)}</b> µg/m³ <span>(ince partikül)</span></div>
                 <div class="oz-src">${ico("clock")} ${src.where} · ${ago(src.at)}</div>
                 ${scaleHtml(h)}
+                ${last24Html()}
                 ${src.note ? `<div class="oz-note">${ico("info")}<span>${src.note}</span></div>` : ""}
                 <div class="oz-adv"><div>${ico("users")}<span><b>Herkes için:</b> ${a.all}</span></div><div>${ico("heart-pulse")}<span><b>Hassas gruplar:</b> ${a.sens}</span></div></div>
                 <div class="who-cap">HKİ: Ulusal Hava Kalitesi İndeksi (ÇŞB). Resmî HKİ 24 saatlik ortalamaya göre hesaplanır; burada son ölçüme göre gösterge değerdir.
@@ -120,8 +121,27 @@ const Ozet = (() => {
             ${chip(atpOn > 0, "Atmotube", `${atpOn}/${(now.atp || []).length} çevrimiçi`)}
             ${CO2_AKTIF ? chip(co2On > 0, "CO₂ (iç mekân)", (now.co2 || []).length ? `${co2On}/${now.co2.length} çevrimiçi` : "tanımlı değil") : ""}
         </div>
-        <button type="button" class="ic-btn oz-more oz-exp" id="oz-to-exp">${ico("message-circle")} AirLab asistanı: kampüste ne kadar PM₂.₅ soludum?</button>`;
+        <button type="button" class="ic-btn oz-more oz-exp" id="oz-to-exp">${ico("message-circle")}<span><b>Bugün ne kadar PM₂.₅ soludum?</b><small>AirLab asistanıyla birkaç soruda hesapla</small></span></button>`;
         return html;
+    }
+
+    // Son 24 saat: kampüs PurpleAir saatlik PM₂.₅ (US EPA düzeltmeli); her çubuk bir saat, renk HKİ sınıfı
+    const hourKey = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Istanbul", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hourCycle: "h23" });
+    function last24Html() {
+        if (!hist || !hist.length) return "";
+        const by = new Map();
+        for (const r of hist) { if (r.pm2_5 == null) continue; const t = new Date(r.recorded_at); if (!isNaN(t)) by.set(hourKey.format(t), +r.pm2_5); }
+        const hours = Array.from({ length: 24 }, (_, i) => { const t = new Date(Date.now() - (23 - i) * 3600e3); return { t, v: by.get(hourKey.format(t)) }; });
+        const vals = hours.map(x => x.v).filter(v => v != null);
+        if (vals.length < 6) return "";
+        const top = Math.max(12, ...vals), hh = t => t.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Istanbul" });
+        const mx = hours.reduce((a, b) => (b.v ?? -1) > (a.v ?? -1) ? b : a), mn = hours.reduce((a, b) => b.v != null && (a.v == null || b.v < a.v) ? b : a);
+        return `<div class="oz-24"><div class="oz-24-head"><span>Son 24 saat (PM₂.₅)</span>
+              <span>en yüksek <b>${f1(mx.v)}</b> · en düşük <b>${f1(mn.v)}</b></span></div>
+            <div class="oz-24-bars" role="img" aria-label="Son 24 saatin saatlik PM₂.₅ değerleri">${hours.map((x, i) => x.v == null
+                ? `<i class="gap" title="${hh(x.t).slice(0, 2)}:00 · ölçüm yok"></i>`
+                : `<i class="${i === 23 ? "now" : ""}" style="--c:${pm25Color(x.v)};height:${Math.max(8, x.v / top * 100).toFixed(0)}%" title="${hh(x.t).slice(0, 2)}:00 · ${f1(x.v)} µg/m³"></i>`).join("")}</div>
+            <div class="oz-24-axis"><span>${hh(hours[0].t).slice(0, 2)}:00</span><span>${hh(hours[12].t).slice(0, 2)}:00</span><span>şimdi</span></div></div>`;
     }
 
     // ── Aylık özet ───────────────────────────────────────────────────

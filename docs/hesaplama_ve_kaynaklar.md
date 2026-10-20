@@ -236,6 +236,10 @@ Hafta içi / hafta sonu ortalaması hücre ortalamalarının ortalamasıdır. **
 
 **Kodda:** `ozet.js` → `PA_FRESH_MIN = 120`, `TREND_MIN_DAYS = 7`, `monthStats()`.
 
+* **Son 24 saat şeridi (20 Ekim 2026):** Özet kartında kampüs PurpleAir'in son 24 saatlik saatlik PM₂.₅ ortalamaları (US EPA düzeltmeli)
+  çubuk olarak gösterilir; çubuk rengi HKİ sınıfı, yüksekliği değerle orantılı (üst sınır en az 12 µg/m³). Veri olmayan saat boş kalır;
+  6'dan az saat varsa şerit gösterilmez. Kodda: `ozet.js` → `last24Html()`.
+
 ## 8. İç mekân CO₂ ölçeği
 
 | ppm | Etiket |
@@ -336,7 +340,7 @@ Afroz ve ark. (2025), Branco ve ark. (2024). Ayrıntılar, sayısal örnek ve ka
 
 | Sürüm | Tarih | Değişiklik |
 |---|---|---|
-| 2.0 | 20 Ekim 2026 | §6: Trendler sekmesi (gün × saat ısı haritası, kampüs–Tuzla günlük eğilimi ve eğilim cümlesi kuralı). |
+| 2.0 | 20 Ekim 2026 | §6: Trendler sekmesi (gün × saat ısı haritası, kampüs–Tuzla günlük eğilimi ve eğilim cümlesi kuralı). §7: Özet'te son 24 saat şeridi. |
 | 1.9 | 12 Ekim 2026 | §1a: PurpleAir düzeltmesi EPA'nın ABD geneli denklemine, yayımlandığı girdi cf_1 ile geçti (PurpleAir haritasındaki "US EPA" ile aynı); cf_1'i olmayan eski kayıtlarda genişletilmiş denklem (yedek). |
 | 1.8 | 12 Ekim 2026 | §5: bina sınırına 15 m'den yakın dış noktalar en yakın binaya sayılır (GPS sapması); etkisi ve sınırlılığı yazıldı. |
 | 1.7 | 10 Ekim 2026 | §5: 1–2 ölçümlü binalar listede ayrıca gösterilir (sıralamaya ve boyaya girmez); "genelden fark" yalnızca başka ayda ölçüm varsa; bina içine düşmeyen noktalar sınırlılığı. |
