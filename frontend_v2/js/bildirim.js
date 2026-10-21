@@ -29,6 +29,24 @@ const Bildirim = (() => {
         return reg.pushManager.getSubscription();
     }
 
+    // Son bildirimler: service worker gelen bildirimleri cihazda saklar (sw.js → rememberNote)
+    const fmtAt = t => new Date(t).toLocaleString("tr-TR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Istanbul" });
+    const esc = s => String(s || "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+    async function renderNotes() {
+        const box = $("push-notes");
+        if (!box || !("caches" in window)) return;
+        const list = await caches.open("gtu-bildirim").then(c => c.match("son-bildirimler.json")).then(r => r ? r.json() : []).catch(() => []);
+        box.hidden = !list.length;
+        box.innerHTML = list.length ? `<div class="push-notes-h">Son bildirimler</div>` + list.map(n =>
+            `<div class="push-note"><time>${fmtAt(n.at)}</time><b>${esc(n.title)}</b><span>${esc(n.body)}</span></div>`).join("") : "";
+    }
+
+    function openNotes() {
+        renderNotes();
+        if (typeof Shell !== "undefined") Shell.openPanel("news");
+        $("push-card").scrollIntoView({ block: "start" });
+    }
+
     function msg(t, warn) { const m = $("push-msg"); m.textContent = t || ""; m.classList.toggle("warn", !!warn); }
 
     async function render() {
@@ -121,6 +139,13 @@ const Bildirim = (() => {
         $("push-alarm").addEventListener("change", savePrefs);
         $("push-sabah").addEventListener("change", savePrefs);
         render();
+        renderNotes();
+        navigator.serviceWorker.addEventListener("message", ev => { if (ev.data && ev.data.type === "bildirim") openNotes(); });
+        document.addEventListener("visibilitychange", () => { if (!document.hidden) renderNotes(); });
+        if (new URLSearchParams(location.search).has("bildirim")) {
+            setTimeout(openNotes, 300);
+            history.replaceState(null, "", location.pathname + location.hash);
+        }
     }
 
     document.addEventListener("DOMContentLoaded", init);
