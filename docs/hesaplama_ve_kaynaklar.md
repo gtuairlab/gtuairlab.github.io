@@ -393,7 +393,10 @@ kayıtla uyarı gönderilmesine yol açmasın diye (ani yükselmeler veriden ç�
 Uygulamadaki otomatik duyuru (§10) ise son ölçüme göre çalışmaya devam eder. Gerekçe: resmî HKİ 24 saatlik ortalamaya göredir;
 bildirimdeki değer de Özet ekranındaki gibi gösterge niteliğindedir.
 
-**Kodda:** `backend/bildirim.py` (`check_alarm`, `morning`), `frontend_v2/js/bildirim.js`, `sw.js` (push olayı).
+**Saklama:** abonelik "Kapat" ile, push servisi geçersiz dediğinde (404/410), üst üste 20 hatada ya da 12 aydır hiç ulaşılamadığında
+silinir (kullanıcının kararı, 21 Ekim 2026; günde bir, sabah özetinden sonra).
+
+**Kodda:** `backend/bildirim.py` (`check_alarm`, `morning`, `purge_stale`), `frontend_v2/js/bildirim.js`, `sw.js` (push olayı).
 
 ## 11. Kişisel maruziyet
 

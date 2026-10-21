@@ -381,8 +381,18 @@ def morning(now=None):
         if not _claim(f"sabah-{now.date().isoformat()}"):
             return
         send("sabah", summary_payload("Günaydın"))
+        purge_stale()
     except Exception as e:
         print(f"[bildirim] sabah özeti hatası: {e}")
+
+
+def purge_stale():
+    """Saklama süresi (kullanıcının kararı, 21 Ekim 2026): 12 aydır hiç ulaşılamayan abonelik silinir (günde bir, sabah özetinden sonra)."""
+    with db.get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM push_subscriptions WHERE COALESCE(last_ok, created_at) < now() - interval '12 months'")
+        if cur.rowcount:
+            print(f"[bildirim] 12 aydır ulaşılamayan {cur.rowcount} abonelik silindi")
 
 
 def summary_payload(prefix):

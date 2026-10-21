@@ -41,6 +41,7 @@ Tek bir güncel sürüm olması için **tek kaynak `main` branch'idir**.
   `frontend_v2/js/bildirim.js`, kural `docs/hesaplama_ve_kaynaklar.md` §10a). **Kullanıcı Render → Environment'a `VAPID_PUBLIC_KEY` ve
   `VAPID_PRIVATE_KEY` eklemeli** (değerleri isteme; eklenene kadar bildirim kartı görünmez). Anahtar yenilenirse tüm abonelikler geçersiz
   olur, kullanıcılar bildirimi yeniden açmalı. Abonelikler `push_subscriptions`, gönderim durumu `push_state` tablosunda (RLS açık).
+  Saklama: 12 aydır ulaşılamayan abonelik kendiliğinden silinir (kullanıcının kararı, 21 Ekim 2026).
 - **Sunucu güvenliği (kullanıcı "sonra" dedi, 4 Ekim 2026; hatırlat):**
   1. `/api/upload` (CSV yükleme) korumasız: adresi bilen herkes veritabanına veri yükleyebilir. Öneri: `_admin_required()` eklemek;
      önce ekipte elle CSV yükleyen var mı sor (eski arayüzdeki form kapandı, yükleme için yeni yol gerekebilir).
