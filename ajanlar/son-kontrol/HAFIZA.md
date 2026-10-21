@@ -15,3 +15,7 @@
 
 ## Anlatım notu
 `anlatim_notu.md`: projenin kısa anlatımı ve olası jüri soruları. PurpleAir sayıları Nisan adımı bitince geçerlidir.
+
+- 21 Ekim 2026, telefon bildirimleri: ONAY (tablolar yalnızca CREATE IF NOT EXISTS + RLS; geri alma DROP TABLE). Yeni renk yerine `var(--red)`;
+  Python `round()` yerine `int(x + 0.5)` (JS Math.round ile aynı HKİ). Korumasız POST uçlarında alan adı beyaz listesi, kayıt üst sınırı
+  ve IP başına sınır aranır. Zamanlanmış işler tek gunicorn işçisi varsayar (Render start komutunda `-w` olmamalı).

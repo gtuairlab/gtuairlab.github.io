@@ -37,6 +37,10 @@ Tek bir güncel sürüm olması için **tek kaynak `main` branch'idir**.
   duruyor; geçmişinde kişisel belgeler ve PurpleAir anahtarı var, **silinmesini kullanıcı ayrıca onaylayacak**. Kalan: `app.js` → `PEOPLE`
   anahtarları ilk adlar (sunucunun `session_name` önekleriyle eşleşiyor; sunucu düzeltmesiyle birlikte kaldırılacak, onay bekliyor).
 - **KVKK, kullanıcı tutmaya karar verdi:** `proje_animasyon.html` (3 Ekim 2026; proje ekibinin akademik unvanlı adları).
+- **Telefon bildirimleri (21 Ekim 2026, kullanıcının isteği):** kötü hava uyarısı + her sabah 08.00 özeti (`backend/bildirim.py`,
+  `frontend_v2/js/bildirim.js`, kural `docs/hesaplama_ve_kaynaklar.md` §10a). **Kullanıcı Render → Environment'a `VAPID_PUBLIC_KEY` ve
+  `VAPID_PRIVATE_KEY` eklemeli** (değerleri isteme; eklenene kadar bildirim kartı görünmez). Anahtar yenilenirse tüm abonelikler geçersiz
+  olur, kullanıcılar bildirimi yeniden açmalı. Abonelikler `push_subscriptions`, gönderim durumu `push_state` tablosunda (RLS açık).
 - **Sunucu güvenliği (kullanıcı "sonra" dedi, 4 Ekim 2026; hatırlat):**
   1. `/api/upload` (CSV yükleme) korumasız: adresi bilen herkes veritabanına veri yükleyebilir. Öneri: `_admin_required()` eklemek;
      önce ekipte elle CSV yükleyen var mı sor (eski arayüzdeki form kapandı, yükleme için yeni yol gerekebilir).

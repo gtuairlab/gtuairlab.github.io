@@ -66,6 +66,13 @@ scheduler.add_job(collector.collect_fast, "interval", minutes=config.POLL_INTERV
 scheduler.add_job(collector.collect_hourly, "interval", minutes=60, id="archive_ibb")
 scheduler.add_job(collector.collect_atmotube_history, "interval", minutes=60, id="archive_atmotube_history",
                   next_run_time=datetime.datetime.now() + datetime.timedelta(minutes=3))
+# Telefon bildirimleri (bildirim.py): kötü hava uyarısı 10 dakikada bir denetlenir, durum özeti her sabah 08.00 (Türkiye saati)
+import bildirim
+bildirim.init()
+scheduler.add_job(bildirim.check_alarm, "interval", minutes=10, id="push_alarm",
+                  next_run_time=datetime.datetime.now() + datetime.timedelta(minutes=2))
+scheduler.add_job(bildirim.morning, "cron", hour=8, minute=0, timezone="Europe/Istanbul", id="push_sabah",
+                  misfire_grace_time=1800)
 scheduler.start()
 
 # Run first poll + collection immediately on startup (background thread)
@@ -120,6 +127,70 @@ def purpleair_history():
 @app.get("/api/purpleair/status")
 def purpleair_status():
     return jsonify(purpleair.get_poll_status())
+
+
+# ---------------------------------------------------------------------------
+# Bildirimler (Web Push) — abonelikte ad/e-posta yok; yalnızca tarayıcının push adresi ve anahtarları
+# ---------------------------------------------------------------------------
+
+_push_test_at = {}
+_push_sub_ip = {}   # IP başına abonelik isteği sınırı (saatte 20)
+
+
+def _rate_ok(store, key, limit, window):
+    now = datetime.datetime.utcnow()
+    for k in [k for k, v in store.items() if now - v[-1] > window]:
+        del store[k]
+    times = [t for t in store.get(key, []) if now - t < window]
+    if len(times) >= limit:
+        return False
+    store[key] = times + [now]
+    return True
+
+
+@app.get("/api/push/key")
+def push_key():
+    if not bildirim.is_enabled():
+        return jsonify({"enabled": False}), 200
+    return jsonify({"enabled": True, "publicKey": bildirim.VAPID_PUBLIC_KEY})
+
+
+@app.post("/api/push/subscribe")
+def push_subscribe():
+    if not bildirim.is_enabled():
+        abort(503, description="Bildirimler şu an kapalı.")
+    ip = (request.headers.get("X-Forwarded-For") or request.remote_addr or "").split(",")[0].strip()
+    if not _rate_ok(_push_sub_ip, ip, 20, datetime.timedelta(hours=1)):
+        abort(429, description="Biraz sonra tekrar deneyin.")
+    body = request.get_json(silent=True) or {}
+    if not bildirim.save_subscription(body.get("subscription"), bool(body.get("alarm", True)), bool(body.get("sabah", True))):
+        abort(400, description="Geçersiz abonelik.")
+    return jsonify({"ok": True})
+
+
+@app.post("/api/push/unsubscribe")
+def push_unsubscribe():
+    body = request.get_json(silent=True) or {}
+    ep = body.get("endpoint")
+    if bildirim.is_enabled() and isinstance(ep, str) and len(ep) <= 1000:
+        bildirim.delete_subscription(ep)
+    return jsonify({"ok": True})
+
+
+@app.post("/api/push/test")
+def push_test():
+    """Yalnızca istekte gelen aboneliğe (kayıtlıysa) deneme bildirimi; aynı adrese dakikada en çok bir."""
+    if not bildirim.is_enabled():
+        abort(503, description="Bildirimler şu an kapalı.")
+    ep = (request.get_json(silent=True) or {}).get("endpoint")
+    if not isinstance(ep, str) or len(ep) > 1000:
+        abort(400)
+    if not _rate_ok(_push_test_at, ep, 1, datetime.timedelta(minutes=1)):
+        abort(429, description="Biraz sonra tekrar deneyin.")
+    n = bildirim.send("test", {"title": "GTÜ AirLab · deneme bildirimi",
+                               "body": "Bildirimler bu cihazda açık.", "tag": "airlab-test",
+                               "url": bildirim.APP_URL}, ttl=600, endpoint=ep)
+    return jsonify({"ok": n > 0})
 
 
 # İç ortam PurpleAir (Amfi 1) — dış sensörden ayrı tablo; düzeltme tarayıcıda (api.js → paCorrect)

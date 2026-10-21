@@ -77,3 +77,11 @@ uygulamada Ulusal Hava Kalitesi İndeksi (HKİ) sınıflarıyla ve WHO 2021 kıl
    erişemediği için yanıtlar bu anlık görüntüden verildi. Ad ya da kampüs dışı konum yok.
 10. **"Kişisel maruziyet ne kadar güvenilir?"** Bir tahmindir: derişim × bina ve ortam katsayıları × solunum hızı (US EPA 2011)
     × süre; kişisel ölçüm değildir, girilen bilgiler cihazdan çıkmaz.
+
+## Telefon bildirimleri (21 Ekim 2026)
+İsteyen kullanıcı, kampüs sensörünün son 30 dakikalık ortalaması HKİ 100'ü (hassas gruplar için sağlıksız) aşınca uyarı, hava
+düzelince ikinci bir bildirim ve her sabah 08.00'de kısa bir durum özeti alır. Değer uygulamadaki US EPA düzeltmesiyle aynıdır.
+Sınırlılıklar: tek sensör; 30 dk ortalaması gösterge niteliğindedir (resmî HKİ 24 saatlik); 23.00–07.00 uyarı gönderilmez;
+iletim Google/Apple/Mozilla bildirim servisiyle olur; iPhone'da yalnızca Ana Ekrana eklenmiş uygulamada çalışır.
+11. **"Neden tek ölçüm değil 30 dk ortalaması?"** Kısa süreli yerel kaynaklar (ör. sigara) gereksiz uyarıya yol açmasın diye; veriden hiçbir şey silinmez.
+12. **"Kişisel veri topluyor musunuz?"** Hayır; yalnızca tarayıcının verdiği bildirim adresi ve şifreleme anahtarı tutulur, "Kapat" deyince silinir.

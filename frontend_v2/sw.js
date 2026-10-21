@@ -5,7 +5,7 @@
 const CACHE = "gtu-hava-v1";
 const SHELL = [
     "./", "index.html", "manifest.webmanifest",
-    "js/icons.js", "js/colorscale.js", "js/api.js", "js/campus.js", "js/app.js", "js/who.js", "js/kiyas.js", "js/ozet.js", "js/maruziyet.js", "js/shell.js",
+    "js/icons.js", "js/colorscale.js", "js/api.js", "js/campus.js", "js/app.js", "js/who.js", "js/kiyas.js", "js/ozet.js", "js/maruziyet.js", "js/shell.js", "js/bildirim.js",
     "data/campus.geojson", "data/duyurular.json", "data/tuzla_saatlik.json",
     "icons/icon.svg", "icons/icon-192.png",
     "vendor/leaflet/leaflet.js", "vendor/leaflet/leaflet.css", "vendor/leaflet-heat.js", "vendor/chart.umd.min.js", "vendor/fonts/fonts.css",
@@ -53,3 +53,22 @@ async function cacheFirst(req) {
     if (res.ok || res.type === "opaque") cache.put(req, res.clone());
     return res;
 }
+
+// Bildirimler (backend/bildirim.py): kötü hava uyarısı ve sabah 08.00 özeti
+self.addEventListener("push", e => {
+    let d = {};
+    try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data && e.data.text() }; }
+    e.waitUntil(self.registration.showNotification(d.title || "GTÜ AirLab", {
+        body: d.body || "", tag: d.tag || "airlab", renotify: true,
+        icon: "icons/icon-192.png", badge: "icons/icon-192.png", data: { url: d.url || "./" },
+    }));
+});
+
+self.addEventListener("notificationclick", e => {
+    e.notification.close();
+    const url = new URL(e.notification.data && e.notification.data.url || "./", self.location.href).href;
+    e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
+        const c = list.find(w => w.url.startsWith(new URL("./", self.location.href).href));
+        return c ? c.focus() : self.clients.openWindow(url);
+    }));
+});

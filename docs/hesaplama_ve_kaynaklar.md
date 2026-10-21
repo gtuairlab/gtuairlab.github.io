@@ -375,6 +375,26 @@ Duyurunun kimliği olayın başlangıç tarihine bağlıdır (aynı kesinti okun
 
 **Kodda:** `shell.js` → `statusNotices()`.
 
+### 10a. Telefon bildirimleri (21 Ekim 2026)
+
+İsteğe bağlı Web Push bildirimleri (Duyurular panelindeki "Bildirimler" kartı). Kampüs değeri: dış PurpleAir'in son kayıtları,
+uygulamadaki US EPA düzeltmesiyle (§1a, A/B kanal denetimi dahil) tek tek düzeltilip ortalanır; HKİ §2 ile aynıdır
+(sunucu kodu `colorscale.js` ile karşılaştırıldı; HKİ sayısı JS `Math.round` gibi yuvarlanır).
+
+| Bildirim | Kural |
+|---|---|
+| Kötü hava uyarısı | 10 dakikada bir denetim; son **30 dk ortalaması** HKİ > 100 (Hassas ve üstü; PM₂.₅ ≥ 35,5 µg/m³), en az 7 geçerli kayıt. Sınıf kötüleşirse yeni uyarı; aynı sınıfta en çok 3 saatte bir. |
+| Düzelme | Uyarıdan sonra son **60 dk ortalaması** (en az 15 geçerli kayıt) HKİ ≤ 100 olunca bir kez. Sınıf iyileşip HKİ hâlâ 100'ün üstündeyse (ör. Sağlıksız → Hassas) yeni bildirim ve 3 saatlik hatırlatma gönderilmez. |
+| Sessiz saatler | 23.00–07.00 arası uyarı ve düzelme gönderilmez (sabah özeti durumu bildirir). |
+| Sabah özeti | Her gün 08.00 (Türkiye saati): son 30 dakika ortalamasının HKİ sınıfı, PM₂.₅ ve ölçülü öneri (§7'deki öneri metinleriyle aynı ton). Kampüs verisi yoksa bunu belirten kısa not. |
+
+Tek ölçüm yerine 30 dakikalık ortalama kullanılır: sensörün yanındaki kısa süreli kaynaklar (ör. sigara) tek bir 2 dakikalık
+kayıtla uyarı gönderilmesine yol açmasın diye (ani yükselmeler veriden çıkarılmaz, yalnızca bildirim eşiği ortalamaya bakar).
+Uygulamadaki otomatik duyuru (§10) ise son ölçüme göre çalışmaya devam eder. Gerekçe: resmî HKİ 24 saatlik ortalamaya göredir;
+bildirimdeki değer de Özet ekranındaki gibi gösterge niteliğindedir.
+
+**Kodda:** `backend/bildirim.py` (`check_alarm`, `morning`), `frontend_v2/js/bildirim.js`, `sw.js` (push olayı).
+
 ## 11. Kişisel maruziyet
 
 C = P(saat) × R(bina) × F(ortam); doz = C × solunum hızı × süre. Solunum hızları US EPA *Exposure Factors Handbook*
@@ -428,6 +448,7 @@ Afroz ve ark. (2025), Branco ve ark. (2024). Ayrıntılar, sayısal örnek ve ka
 
 | Sürüm | Tarih | Değişiklik |
 |---|---|---|
+| 2.5 | 21 Ekim 2026 | §10a: telefon bildirimleri (kötü hava uyarısı: 30 dk ortalaması HKİ > 100; düzelme: 60 dk ortalaması ≤ 100; 23.00–07.00 sessiz; sabah 08.00 özeti). |
 | 2.4 | 20 Ekim 2026 | §1b: ders saati kuralı "saatin en az 30 dakikası derste" oldu (kullanıcının kararı; haftada 33 saat). Maruziyet hesabındaki "taslak" ibaresi kaldırıldı ("tahmin"). |
 | 2.3 | 20 Ekim 2026 | §1b: Amfi 1 ders saatleri bölümün 2026-27 güz lisans ders programından (`data/amfi1_program.json`; yalnızca tamamı derse denk gelen saatler; dönem 21.09.2026–19.01.2027); yeni "boş derslik" sınıfı; grafiklerde ders bantları; ısınma kuralı düzeltildi (ilk kısmi saat + 1 saat). §6: Tuzla yorumu "düşük/yüksek (ölçüm yöntemleri farklı)". |
 | 2.2 | 20 Ekim 2026 | §6: kampüs–Tuzla günlük grafiği takvim ekseninde (boş gün boş kalır); ısı haritası lejantı düzeltildi ("canlı hücre daha yüksek"). |
