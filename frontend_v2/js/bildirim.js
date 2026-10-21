@@ -94,7 +94,7 @@ const Bildirim = (() => {
         try {
             const sub = await currentSub();
             const r = sub && await post("/api/push/test", { endpoint: sub.endpoint });
-            msg(r && r.ok ? "Deneme bildirimi gönderildi; birkaç saniye içinde gelmesi beklenir." : "Deneme bildirimi gönderilemedi.", !(r && r.ok));
+            msg(r && r.ok ? "Deneme bildirimi (sabah özetinin aynısı) gönderildi; birkaç saniye içinde gelmesi beklenir." : "Deneme bildirimi gönderilemedi.", !(r && r.ok));
         } catch (e) { msg(String(e.message) === "429" ? "Bir dakika sonra yeniden deneyin." : "Deneme bildirimi gönderilemedi.", true); }
     }
 

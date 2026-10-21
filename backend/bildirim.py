@@ -361,15 +361,20 @@ def morning(now=None):
         now = now or datetime.datetime.now(TR)
         if not _claim(f"sabah-{now.date().isoformat()}"):
             return
-        m = campus_mean(30)
-        if m:
-            v, n, _ = m
-            h = hki(v)
-            payload = {"title": f"Günaydın · Kampüste hava: {AD_TAM.get(h['ad'], h['ad'])} (HKİ {h['i']})",
-                       "body": f"PM₂.₅ {f1tr(v)} µg/m³ (son 30 dakikanın ortalaması, US EPA düzeltmeli). {ADVICE[h['ad']]}"}
-        else:
-            payload = {"title": "Günaydın · GTÜ AirLab",
-                       "body": "Kampüs sensöründen şu an güncel ölçüm alınamıyor; bölge istasyonunun değeri uygulamada."}
-        send("sabah", {**payload, "tag": "airlab-sabah", "url": APP_URL})
+        send("sabah", summary_payload("Günaydın"))
     except Exception as e:
         print(f"[bildirim] sabah özeti hatası: {e}")
+
+
+def summary_payload(prefix):
+    """Sabah özetinin içeriği (deneme bildirimi de aynısını "Deneme" önekiyle gönderir)."""
+    m = campus_mean(30)
+    if m:
+        v, n, _ = m
+        h = hki(v)
+        payload = {"title": f"{prefix} · Kampüste hava: {AD_TAM.get(h['ad'], h['ad'])} (HKİ {h['i']})",
+                   "body": f"PM₂.₅ {f1tr(v)} µg/m³ (son 30 dakikanın ortalaması, US EPA düzeltmeli). {ADVICE[h['ad']]}"}
+    else:
+        payload = {"title": f"{prefix} · GTÜ AirLab",
+                   "body": "Kampüs sensöründen şu an güncel ölçüm alınamıyor; bölge istasyonunun değeri uygulamada."}
+    return {**payload, "tag": "airlab-sabah", "url": APP_URL}

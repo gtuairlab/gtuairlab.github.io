@@ -187,9 +187,11 @@ def push_test():
         abort(400)
     if not _rate_ok(_push_test_at, ep, 1, datetime.timedelta(minutes=1)):
         abort(429, description="Biraz sonra tekrar deneyin.")
-    n = bildirim.send("test", {"title": "GTÜ AirLab · deneme bildirimi",
-                               "body": "Bildirimler bu cihazda açık.", "tag": "airlab-test",
-                               "url": bildirim.APP_URL}, ttl=600, endpoint=ep)
+    try:
+        payload = bildirim.summary_payload("Deneme")   # sabah 08.00 bildiriminin aynısı, o anki değerle
+    except Exception:
+        payload = {"title": "GTÜ AirLab · deneme bildirimi", "body": "Bildirimler bu cihazda açık.", "url": bildirim.APP_URL}
+    n = bildirim.send("test", {**payload, "tag": "airlab-test"}, ttl=600, endpoint=ep)
     return jsonify({"ok": n > 0})
 
 
