@@ -134,10 +134,15 @@ function initMap() {
     map = L.map("map", { center: GTU_CENTER, zoom: GTU_ZOOM, zoomControl: false, preferCanvas: true, zoomSnap: 0.25 });
     L.control.zoom({ position: "bottomright", zoomInTitle: "Yakınlaştır", zoomOutTitle: "Uzaklaştır" }).addTo(map);
 
-    // Koyu taban (CARTO) — renkli ölçüm noktaları üzerinde öne çıkar
-    const dark = L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-        { attribution: "© CARTO © OpenStreetMap", maxZoom: 20, subdomains: "abcd" });
+    // Koyu taban (Esri koyu gri) — renkli ölçüm noktaları üzerinde öne çıkar. CARTO altlıkları Ekim 2026'dan beri
+    // API anahtarı istiyor ("API KEY REQUIRED" karosu), bu yüzden anahtarsız çalışan Esri altlıklarına geçildi.
+    // Koyu gri altlığın en yakın ayrıntı düzeyi 16; daha yakında aynı karolar büyütülür.
+    const dark = L.layerGroup([
+        L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+            { attribution: "© Esri, HERE, Garmin, © OpenStreetMap", maxZoom: 20, maxNativeZoom: 16 }),
+        L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}",
+            { maxZoom: 20, maxNativeZoom: 16 }),
+    ]);
 
     const sat = L.layerGroup([
         L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -147,8 +152,8 @@ function initMap() {
     ]);
 
     const street = L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-        { attribution: "© CARTO © OpenStreetMap", maxZoom: 20, subdomains: "abcd" });
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+        { attribution: "© Esri, HERE, Garmin, © OpenStreetMap", maxZoom: 20, maxNativeZoom: 19 });
 
     baseLayers = { dark, sat, street };
     sat.addTo(map);   // Açılışta uydu haritası

@@ -359,19 +359,20 @@ const Maruziyet = (() => {
         const rad = d => 6 + 15 * Math.sqrt(d / maxDose);
         const pct = d => `%${(k.dose ? d / k.dose * 100 : 0).toFixed(0)}`;
 
-        jmap = L.map(el, { zoomControl: false, attributionControl: true, dragging: !L.Browser.mobile, scrollWheelZoom: false,
+        jmap = L.map(el, { zoomControl: false, attributionControl: false, dragging: !L.Browser.mobile, scrollWheelZoom: false,
                            doubleClickZoom: false, boxZoom: false, keyboard: false, tap: false });
-        L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-            { attribution: "© CARTO © OpenStreetMap", maxZoom: 20, subdomains: "abcd" }).addTo(jmap);
         const outline = typeof Campus !== "undefined" ? Campus.campusOutline() : [];
-        // Kampüs binaları soluk çizgiyle: altlık karolar yüklenemediğinde (çevrimdışı, yavaş bağlantı) de harita okunur kalır
+        // Altlık karo yok (dış servis yok, anahtar gerekmez): kampüs binaları soluk çizgiyle çizilir
         const blds = typeof Campus !== "undefined" && Campus.buildingsGeo ? Campus.buildingsGeo() : [];
         if (blds.length) L.geoJSON(blds, { interactive: false,
-            style: { color: "#7aa3f5", weight: 0.8, opacity: 0.3, fillColor: "#7aa3f5", fillOpacity: 0.05 } }).addTo(jmap);
+            style: { color: "#7aa3f5", weight: 0.8, opacity: 0.45, fillColor: "#7aa3f5", fillOpacity: 0.08 } }).addTo(jmap);
         // "Kampüs geneli" (bina seçilmemiş) dilimler tek noktaya konmaz: kampüs alanı o dilimin rengiyle boyanır
         const camp = outline.length ? L.geoJSON(outline, { interactive: false,
             style: { color: "#7aa3f5", weight: 1.2, opacity: 0.5, fillColor: "#7aa3f5", fillOpacity: 0, dashArray: "4 4" } }).addTo(jmap) : null;
+        // "Kampüs geneli" adımlarında işaret kampüs alanının ortasına gider; orası da görünür alanda kalır
+        const genLL = camp ? (c => [c.lat, c.lng])(camp.getBounds().getCenter()) : CAMPUS_C;
         const pts = [...places.entries()].filter(([key]) => key).map(([, p]) => p.ll);
+        if (places.has("") && pts.length) pts.push(genLL);
         if (pts.length > 1) jmap.fitBounds(L.latLngBounds(pts).pad(0.35), { maxZoom: 18 });
         else if (pts.length === 1) jmap.setView(pts[0], 17);
         else if (camp) jmap.fitBounds(camp.getBounds(), { padding: [6, 6] });
@@ -440,9 +441,9 @@ const Maruziyet = (() => {
         let prev = firstLL ? llOf(firstLL) : CAMPUS_C;
         path.setLatLngs(firstLL ? [prev] : []);
         steps.forEach(({ x, key }, idx) => {
-            const p = places.get(key), r = rows[x.i], from = prev, to = key ? p.ll : prev, start = total;
+            const p = places.get(key), r = rows[x.i], from = prev, to = key ? p.ll : genLL, start = total;
             later(t, () => {
-                if (stepEl) stepEl.innerHTML = `<b>${esc(r.s)}–${esc(r.e)}</b> · ${esc(p.name)} <small>${ENV[r.env].ad.toLowerCase()}, ${f1(x.c)} µg/m³</small> → <b>+${f0(x.dose)} µg</b>`;
+                if (stepEl) stepEl.innerHTML = `<b>${esc(r.s)}–${esc(r.e)}</b> · ${esc(p.name)} <small>${ENV[r.env].ad.toLocaleLowerCase("tr")}, ${f1(x.c)} µg/m³</small> → <b>+${f0(x.dose)} µg</b>`;
                 tween(MOVE, q => { const e = ease(q); you.setLatLng([from[0] + (to[0] - from[0]) * e, from[1] + (to[1] - from[1]) * e]); });
             });
             later(t + MOVE, () => {
