@@ -181,6 +181,8 @@ def send(kind, payload, ttl=3 * 3600, urgency="normal", endpoint=None):
         ok_eps = [r[0] for r in rows if r[0] not in gone and r[0] not in failed]
         if ok_eps:
             cur.execute("UPDATE push_subscriptions SET last_ok = now(), fails = 0 WHERE endpoint = ANY(%s)", (ok_eps,))
+    if kind in ("alarm", "sabah"):
+        remember(payload)
     print(f"[bildirim] {kind}: {sent}/{len(rows)} gönderildi, {len(gone)} süresi dolmuş silindi, {len(failed)} hata")
     return sent
 
@@ -303,6 +305,23 @@ def _set_state(key, value):
         conn.cursor().execute("""INSERT INTO push_state (key, value, updated_at) VALUES (%s, %s::jsonb, now())
                                  ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()""",
                               (key, json.dumps(value)))
+
+
+def remember(payload):
+    """Herkese giden son 10 bildirim (uyarı ve sabah özeti) — uygulama "Son bildirimler"de gösterir. Kişisel bilgi içermez."""
+    try:
+        old = _get_state("son") or []
+        item = {"title": payload.get("title"), "body": payload.get("body"),
+                "at": datetime.datetime.now(datetime.timezone.utc).isoformat()}
+        _set_state("son", [item] + old[:9])
+    except Exception as e:
+        print(f"[bildirim] son bildirim kaydı hatası: {e}")
+
+
+def recent():
+    if not db._USE_POSTGRES:
+        return []
+    return _get_state("son") or []
 
 
 _lock = threading.Lock()

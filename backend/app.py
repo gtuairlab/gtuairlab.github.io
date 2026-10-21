@@ -155,6 +155,14 @@ def push_key():
     return jsonify({"enabled": True, "publicKey": bildirim.VAPID_PUBLIC_KEY})
 
 
+@app.get("/api/push/recent")
+def push_recent():
+    try:
+        return jsonify({"data": bildirim.recent()})
+    except Exception:
+        return jsonify({"data": []})
+
+
 @app.post("/api/push/subscribe")
 def push_subscribe():
     if not bildirim.is_enabled():

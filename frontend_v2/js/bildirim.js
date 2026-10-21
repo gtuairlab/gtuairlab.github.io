@@ -35,7 +35,15 @@ const Bildirim = (() => {
     async function renderNotes() {
         const box = $("push-notes");
         if (!box || !("caches" in window)) return;
-        const list = await caches.open("gtu-bildirim").then(c => c.match("son-bildirimler.json")).then(r => r ? r.json() : []).catch(() => []);
+        // Cihazda saklananlar (deneme dahil) + sunucudaki son uyarı ve sabah özetleri; aynı bildirim bir kez gösterilir
+        const local = await caches.open("gtu-bildirim").then(c => c.match("son-bildirimler.json")).then(r => r ? r.json() : []).catch(() => []);
+        const server = await fetch(API_BASE + "/api/push/recent").then(r => r.json()).then(j => (j.data || []).map(n => ({ ...n, at: Date.parse(n.at) }))).catch(() => []);
+        const seen = new Set(), list = [];
+        for (const n of [...local, ...server].sort((a, b) => b.at - a.at)) {
+            const k = n.title + "|" + Math.round(n.at / 300000);
+            if (!seen.has(k)) { seen.add(k); list.push(n); }
+        }
+        list.length = Math.min(list.length, 10);
         box.hidden = !list.length;
         box.innerHTML = list.length ? `<div class="push-notes-h">Son bildirimler</div>` + list.map(n =>
             `<div class="push-note"><time>${fmtAt(n.at)}</time><b>${esc(n.title)}</b><span>${esc(n.body)}</span></div>`).join("") : "";

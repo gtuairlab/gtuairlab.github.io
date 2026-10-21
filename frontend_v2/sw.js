@@ -83,7 +83,10 @@ self.addEventListener("notificationclick", e => {
     const url = new URL("./?bildirim=1", self.location.href).href;
     e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
         const c = list.find(w => w.url.startsWith(new URL("./", self.location.href).href));
-        if (c) { c.postMessage({ type: "bildirim" }); return c.focus(); }
-        return self.clients.openWindow(url);
+        if (!c) return self.clients.openWindow(url);
+        // Açık uygulama Duyurular'la yeniden yüklenir (iPhone'da arka plandaki sayfaya mesaj ulaşmayabilir)
+        c.postMessage({ type: "bildirim" });
+        const nav = "navigate" in c ? c.navigate(url).catch(() => c) : Promise.resolve(c);
+        return nav.then(w => (w || c).focus()).catch(() => {});
     }));
 });
