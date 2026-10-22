@@ -23,3 +23,16 @@
 - Sahnedeki bina adları temsilî (Library, Café, Congress Centre, Chem. & Env. Eng., SUMER); gerçek yerleşim değildir, slayt altında yazar.
 - Sensör renkleri: PurpleAir mor (#6A3FB5 / #B79BFF), Atmotube koyu cihaz + beyaz halka. Ziyaretçi A turuncu #F0883E, B mavi #5B8CFF.
 - Zemin rengi: yeşil → sarı → turuncu → kırmızı (HKİ sınıf renklerine yakın), sağ panelde açıklaması var.
+
+## Turlar
+- 22 Ekim 2026, 1. tur: açılış ipucu, takip eden hafif yakınlaşma (en çok %12), ortam gölgesi ve kaldırım, derişim renkli iz,
+  PurpleAir çizimi ve "measures every 2 min", Atmotube yakın plan balonu, içerideyken saydam bina ve "visitor inside" etiketi,
+  doz hızına bağlı nefes taneleri. Embed A 13 963, B 14 133 bayt. Ana ajan onayladı ve sunuma yükledi.
+
+## Teknik notlar
+- Etiketler ekran uzayında çizilir (`pill` → `R` listesi); balon `R` ile çakışmayan ilk konumu seçer ve orada kalmaya çalışır;
+  ziyaretçinin üstüne binen etiket %35 saydam olur. Yeni etiketi `pill` ile ekle.
+- `sahneler.json`'da yalnızca `path` ve `at` görseldir; içerideki `at` bina içinde, kapıya yakın; yürüyüş yolu oradan başlar.
+  A yaya olarak kaldırımda yürür (b ≈ 9,3). İç ortam PurpleAir'i Chem'in sağ cephesinde (ön cephede içerideki ziyaretçiyi örter).
+- Kare denetimi: `kare.js`'e ek olarak saniyede bir kare alan yoğun yakalama + kontakt sayfası (geçici klasörde) çakışma ve zıplamaları yakalar.
+- Açık (isteğe bağlı): B 12:00'de kütüphaneden Chem'e sıçrar; arada yürüyüş eklemek dozu böler (onay gerekir).
