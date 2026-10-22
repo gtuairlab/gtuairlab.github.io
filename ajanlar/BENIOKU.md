@@ -1,6 +1,6 @@
 # Ajanlar
 
-Kullanıcı yalnızca **ana ajanla** (koordinatör) konuşur. Ana ajan işi beş uzman ajana dağıtır, raporlarını birbirine
+Kullanıcı yalnızca **ana ajanla** (koordinatör) konuşur. Ana ajan işi altı uzman ajana dağıtır, raporlarını birbirine
 karşı kontrol eder ve uygular. Veritabanına yazmak, commit ve `main`'e göndermek **yalnızca ana ajanın** işidir; silme gibi geri
 dönüşü zor kararlar kullanıcıya sorulur.
 
@@ -11,6 +11,7 @@ dönüşü zor kararlar kullanıcıya sorulur.
 | 4 · Arayüz kalitesi | `.claude/agents/arayuz-kalitesi.md` | İşlev, grafikler, anlaşılırlık (ekran görüntüsüyle) | Yok (bulur, önerir) |
 | 3 · Son kontrol | `.claude/agents/son-kontrol.md` | Geri alınamazlık, tutarlılık, onay/ret, anlatım notu | Yok (salt okur) |
 | 5 · Veri analizi | `.claude/agents/veri-analiz.md` | Analiz ve akademik rapor: sorunlu alanlar, kişisel maruziyet, grafik ve harita | Yalnızca `ajanlar/veri-analiz/`; commit yok |
+| 6 · Animasyon | `.claude/agents/animasyon.md` | Sunum ve tanıtım animasyonları (COP31 3B ziyaretçi sahneleri): anlaşılırlık, gerçekçilik, sayıların doğruluğu | Yalnızca `scripts/cop31_animasyon/` ve `ajanlar/animasyon/`; commit yok |
 
 **Akış:** 1 kontrol eder → 2 hazırlar → 4 ekranı test eder (sorun varsa 2'ye döner) → 3 son onay → ana ajan uygular ve
 sonucu 1'in beklediği sayılarla karşılaştırır → kullanıcıya kısa özet. Her işte tüm ajanlar gerekmez: yalnızca kod/ekran

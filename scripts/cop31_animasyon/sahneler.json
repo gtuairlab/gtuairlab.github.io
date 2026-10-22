@@ -1,0 +1,152 @@
+{
+ "A": {
+  "col": "#F0883E",
+  "tag": "Visitor A · 2 hours",
+  "umb": true,
+  "hold": 3.5,
+  "end": "Visitor A: 36.5 µg in just 2 hours",
+  "segs": [
+   {
+    "m0": 420,
+    "m1": 450,
+    "dur": 4,
+    "path": [
+     [
+      2.0,
+      10.2
+     ],
+     [
+      2.4,
+      9.0
+     ],
+     [
+      3.0,
+      8.4
+     ],
+     [
+      3.6,
+      8.3
+     ]
+    ],
+    "c": 16.0,
+    "dose": 12.46,
+    "label": "Walking in along the road"
+   },
+   {
+    "m0": 450,
+    "m1": 510,
+    "dur": 3.8,
+    "at": [
+     3.6,
+     8.3
+    ],
+    "c": 30.9,
+    "dose": 7.73,
+    "label": "Café terrace by the road"
+   },
+   {
+    "m0": 510,
+    "m1": 540,
+    "dur": 4,
+    "path": [
+     [
+      3.6,
+      8.3
+     ],
+     [
+      5.6,
+      8.8
+     ],
+     [
+      7.6,
+      9.0
+     ],
+     [
+      8.6,
+      8.6
+     ]
+    ],
+    "c": 20.9,
+    "dose": 16.31,
+    "label": "Walk along the road"
+   }
+  ]
+ },
+ "B": {
+  "col": "#5B8CFF",
+  "tag": "Visitor B · 8 hours",
+  "umb": true,
+  "hold": 4.5,
+  "end": "B: 16.2 µg in 8 hours · A: 36.5 µg in 2",
+  "segs": [
+   {
+    "m0": 600,
+    "m1": 720,
+    "dur": 2.8,
+    "at": [
+     1.9,
+     3.4
+    ],
+    "inside": true,
+    "in": "lib",
+    "c": 3.9,
+    "dose": 1.97,
+    "label": "Library, windows closed"
+   },
+   {
+    "m0": 720,
+    "m1": 990,
+    "dur": 3.6,
+    "at": [
+     8.5,
+     3.2
+    ],
+    "inside": true,
+    "in": "chem",
+    "c": 5.3,
+    "dose": 5.94,
+    "label": "Lecture hall, windows closed"
+   },
+   {
+    "m0": 990,
+    "m1": 1020,
+    "dur": 4,
+    "path": [
+     [
+      8.4,
+      3.4
+     ],
+     [
+      6.6,
+      5.6
+     ],
+     [
+      4.2,
+      5.0
+     ],
+     [
+      2.6,
+      3.6
+     ]
+    ],
+    "c": 9.7,
+    "dose": 7.53,
+    "label": "Late-afternoon walk, green core"
+   },
+   {
+    "m0": 1020,
+    "m1": 1080,
+    "dur": 2.4,
+    "at": [
+     2.6,
+     3.6
+    ],
+    "inside": true,
+    "in": "lib",
+    "c": 2.9,
+    "dose": 0.73,
+    "label": "Library, windows closed"
+   }
+  ]
+ }
+}

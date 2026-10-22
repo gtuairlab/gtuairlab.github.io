@@ -34,3 +34,4 @@ extracted.txt
 
 # Ajan taslakları: onaylanmadan repoya girmez (KVKK); onaylanan rapor ana ajan tarafından raporlar/ altına taşınır
 ajanlar/*/taslak/
+scripts/cop31_animasyon/cikti/

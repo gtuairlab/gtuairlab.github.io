@@ -83,13 +83,14 @@ Tek bir güncel sürüm olması için **tek kaynak `main` branch'idir**.
   3. Açık soru: saha verisinin %92'si (27–30 Nisan, 12 CSV oturumu) veritabanında "cihaz 1" diye kayıtlı. Çarpan gerekirse o günlerde
      hangi oturumun hangi ATP ile ölçüldüğünü kullanıcıya sor (adları koda ve belgeye yazma).
 
-## Ajanlar (12 Ekim 2026, kullanıcının isteği; 5. ajan 13 Ekim 2026)
+## Ajanlar (12 Ekim 2026, kullanıcının isteği; 5. ajan 13 Ekim, 6. ajan 22 Ekim 2026)
 Kullanıcı yalnızca ana ajanla (bu oturum) konuşur. Büyük işlerde beş uzman ajan kullanılır; kimlik kartları `.claude/agents/`,
 hafıza ve çalışma klasörleri `ajanlar/<ad>/` (`HAFIZA.md`), özet `ajanlar/BENIOKU.md`.
 - **1 · veri-kontrol** (salt okur): uygunluk, literatür, beklenen sayılar. **2 · isleme-yontem**: geri alınabilir plan, belge, kod, test
   (commit/veritabanı yok). **4 · arayuz-kalitesi** (salt okur): işlev, grafikler, anlaşılırlık; ekran görüntüsüyle. **3 · son-kontrol**
   (salt okur): geri alınamazlık, tutarlılık, onay/ret, `anlatim_notu.md`. **5 · veri-analiz**: analiz ve akademik rapor (grafik, harita,
-  `sayilar.json`); yalnızca `ajanlar/veri-analiz/` altına yazar.
+  `sayilar.json`); yalnızca `ajanlar/veri-analiz/` altına yazar. **6 · animasyon**: sunum/tanıtım animasyonları (COP31 3B ziyaretçi
+  sahneleri, `scripts/cop31_animasyon/`); anlaşılırlık ve gerçekçilikten sorumlu, sayıları değiştirmez; commit ve yayın ana ajanda.
 - Analiz ve rapor işlerinin sahibi Ajan 5'tir (kullanıcının kararı): sorunlu alanlar, kişisel maruziyet, en kötü durum, senaryolar,
   dönemsel raporlar; yeni veri gelince raporu o günceller. Analiz akışı: 5 → 1 (kritik sayıları bağımsız yeniden hesaplar) → 3 → ana ajan yayımlar.
 - Akış: 1 → 2 → 4 → 3 → ana ajan uygular ve sayıları 1'in beklentisiyle karşılaştırır. Veritabanına yazma, commit ve `main`
