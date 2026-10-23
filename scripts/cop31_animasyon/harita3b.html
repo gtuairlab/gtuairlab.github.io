@@ -12,7 +12,7 @@ const FONT = "Inter, 'DejaVu Sans', Arial, sans-serif";
 const PH = [13.36,13.76,14.36,14.83,15.32,15.81,16.3,15.98,14.94,13.98,13.09,12.39,12.31,12.35,11.51,10.64,9.66,9.41,9.42,10,10.59,11.57,12.41,13.03];
 const R0 = 6378137, U3 = 3;           // doku 3× büyütülmüş
 let D, SC, RT, G, TEX, mpp, VE, segs, tot, TOTAL, BLD = [], ROAD, CAFE, KEY, PATHS = [], OV, FIELD = null, FIELDHR = -1;
-let G0 = 0, ICON = null, C = null, Rr = [], PR = [0, 0, 0, 0], BI = 0;
+let SXO = 0, G0 = 0, ICON = null, C = null, Rr = [], PR = [0, 0, 0, 0], BI = 0;
 const sh = document.createElement('canvas'); sh.width = W; sh.height = H; const sx = sh.getContext('2d');
 
 const merc = (lon, lat) => [lon * Math.PI / 180 * R0, R0 * Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360))];
@@ -24,7 +24,7 @@ function rnd(i) { const s = Math.sin(i * 127.1 + 311.7) * 43758.5453; return s -
 // ── kamera ve izdüşüm (ortografik; bakış yönü + eğim) ──
 function setCam(k, cu, cv_, psi) {
   const a = psi * Math.PI / 180, E = 37 * Math.PI / 180;
-  C = { k, cu, cv: cv_, fx: Math.sin(a), fy: -Math.cos(a), rx: Math.cos(a), ry: Math.sin(a), sE: Math.sin(E), cE: Math.cos(E), sx: SW / 2, sy: H / 2 + 20 };
+  C = { k, cu, cv: cv_, fx: Math.sin(a), fy: -Math.cos(a), rx: Math.cos(a), ry: Math.sin(a), sE: Math.sin(E), cE: Math.cos(E), sx: SW / 2 + SXO, sy: H / 2 + 20 };
 }
 const S = (u, v, z) => [C.sx + C.k * ((u - C.cu) * C.rx + (v - C.cv) * C.ry),
                         C.sy - C.k * C.sE * ((u - C.cu) * C.fx + (v - C.cv) * C.fy) - C.k * C.cE * (z || 0) * VE / mpp];
@@ -114,7 +114,8 @@ function camAt(t) {
   let fu = 0, fv = 0, n = 0; for (let j = 0; j < 30; j++) { const st = state(Math.max(0, Math.min(tot, t - j * 0.1))); fu += st.pos[0]; fv += st.pos[1]; n++; }
   fu /= n; fv /= n;
   const e = sm((t - G0 + .3) / 3.2) * (1 - sm((t - tot - 0.3) / 2.8));   // açılışta genel bakış, sonra yumuşak yakınlaşma
-  const k = OV.k * Math.pow(RT.yakin / OV.k, e);
+  const fE = RT.asistan ? sm((t - tot - RT.son_gec + 1.2) / 1.6) : 0; SXO = 190 * fE;   // sonda telefon solda: sahneyi sağa kaydır
+  const k = OV.k * Math.pow(RT.yakin / OV.k, e) * (1 - .14 * fE);
   return clampCam(k, lerp(OV.cu, fu, e), lerp(OV.cv, fv, e));
 }
 // kamera, sahne alanının dışına (doku sınırı ötesine) bakmasın
@@ -291,9 +292,9 @@ window.render = function (t) {
   // ── etiketler (ekran uzayı, çakışmasız) ──
   if (el < G0 + .3) card(['Follow the visitor  ·  orange ground = more PM₂.₅ (illustrative)'], Math.min(1, (G0 + .3 - el) * 2.5));
   const endK = done ? sm((el - tot - RT.son_gec) / .6) : 0;     // sonda: telefon (maruziyet asistanı) + sonuç kartı birlikte
-  const phA = phoneState(el, clock); if (phA) { phA.top = lerp(H + 20, H - 14 - PHH, phA.k); Rr.push([14, phA.top - 10, 34 + PHW + 16, H]); if (phA.k > .9) Rr.push([24 + PHW, phA.top + 30, 24 + PHW + 470, phA.top + 100]); }
+  const phA = phoneState(el, clock); if (phA) { phA.top = lerp(H + 20, H - 14 - PHH, phA.k); Rr.push([14, phA.top - 10, 34 + PHW + 16, H]); if (phA.k > .9) Rr.push([14, phA.top - 62, 24 + 470, phA.top - 8]); }
   if (endK > 0) card(RT.son, endK, 24 + PHW + 22);
-  caption(el, phA);
+  caption(el, phA, d);
   const LB = [];
   for (const [txt, ref, lo, la] of RT.etiketler) {
     let p = null, inside = false;
@@ -321,12 +322,16 @@ function capTimes() {
     if (c.son) t0 = tot + .3; else { const sg = segs.find(g => c.saat >= g.m0 && c.saat < g.m1) || segs[0]; t0 = sg.t0 + (c.saat - sg.m0) / (sg.m1 - sg.m0) * sg.dur; }
     return { t0, t1: t0 + (c.sn || 3.5), metin: c.metin }; });
 }
-function caption(el, ph) {
+function caption(el, ph, d) {
   const c = capTimes().find(c => el >= c.t0 && el < c.t1); if (!c) return;
   const a = sm((el - c.t0) / .45) * (1 - sm((el - c.t1 + .45) / .45)); if (a <= 0) return;
-  const l0 = ph ? 24 + PHW + 20 : 24, r0 = SW - 24, maxw = r0 - l0 - 40; let fs = 34, wt = 1;
-  for (;;) { fnt(fs, wt); if (x.measureText(c.metin).width <= maxw || (fs <= 30 && !wt)) break; if (fs > 30) fs -= 2; else wt = 0; }
-  const tw = Math.min(maxw, x.measureText(c.metin).width), cx = (l0 + r0) / 2, top = 520, h = fs + 26;
+  const fit = (l0, r0) => { const maxw = r0 - l0 - 40; let fs = 34, wt = 1;
+    for (;;) { fnt(fs, wt); if (x.measureText(c.metin).width <= maxw) return { l0, r0, maxw, fs, wt }; if (fs > 30) fs -= 2; else if (wt) wt = 0; else return null; } };
+  let F = fit(ph ? 24 + PHW + 20 : 24, SW - 24), top = 520;
+  if (!F) { F = fit(24, SW - 24); top = 18; }            // telefonun yanına sığmıyorsa: tam genişlikte, haritanın üstünde
+  fnt(F.fs, F.wt); const { l0, r0, maxw, fs } = F, tw = x.measureText(c.metin).width, cx = (l0 + r0) / 2, h = fs + 26;
+  // ziyaretçiyi (d = göğüs noktası; ayaklar ~45 px aşağıda) asla örtmesin: üste al
+  if (top > 100 && d && d[1] + 60 > top && d[1] - 90 < top + h && d[0] > cx - tw / 2 - 50 && d[0] < cx + tw / 2 + 50) top = 18;
   Rr.push([cx - tw / 2 - 20, top, cx + tw / 2 + 20, top + h]);
   x.globalAlpha = a; rr(cx - tw / 2 - 20, top, tw + 40, h, 14, 'rgba(255,255,255,.95)'); x.fillStyle = '#0E1626'; x.fillText(c.metin, cx - tw / 2, top + fs + 6, maxw); x.globalAlpha = 1;
 }
@@ -336,7 +341,7 @@ function phoneState(el, clock) {
   const N = RT.bildirim;
   if (N) { const sg = segs.find(g => N.saat >= g.m0 && N.saat < g.m1);
     if (sg) { const t0 = sg.t0 + (N.saat - sg.m0) / (sg.m1 - sg.m0) * sg.dur, u = el - t0;
-      if (u >= 0 && u < N.sn) return { kind: 'push', u, k: sm(u / .55) * (1 - sm((u - N.sn + .5) / .5)), tag: 'GTU AirLab app · push notification' }; } }
+      if (u >= 0 && u < N.sn) return { kind: 'push', clock, u, k: sm(u / .55) * (1 - sm((u - N.sn + .5) / .5)), tag: 'GTU AirLab app · push notification' }; } }
   if (RT.asistan && el - tot >= RT.son_gec) { const u = el - tot - RT.son_gec; return { kind: 'asst', u, k: sm(u / .6), tag: 'GTU AirLab app · exposure assistant' }; }
   return null;
 }
@@ -351,7 +356,7 @@ function phone(ph) {
   x.save(); x.beginPath(); x.roundRect(sx0, sy0, sw, shh, 40); x.clip(); x.fillStyle = g; x.fillRect(sx0, sy0, sw, shh);
   rr(X + PHW / 2 - 50, sy0 + 10, 100, 28, 14, '#05070B');                                   // çentik
   if (ph.kind === 'push') {
-    const N = RT.bildirim; x.fillStyle = '#F4F1EA'; x.textAlign = 'center'; fnt(24); x.fillText('Tuesday, 20 October', X + PHW / 2, sy0 + 80); fnt(64, 1); x.fillText('08:00', X + PHW / 2, sy0 + 146); x.textAlign = 'left';
+    const N = RT.bildirim; x.fillStyle = '#F4F1EA'; x.textAlign = 'center'; fnt(24); x.fillText('Tuesday, 20 October', X + PHW / 2, sy0 + 80); fnt(64, 1); x.fillText(tm(ph.clock), X + PHW / 2, sy0 + 146); x.textAlign = 'left';
     const pk = sm((ph.u - .55) / .3); if (pk > 0) {
       const cl = sx0 + 12, cw = sw - 24, ty = sy0 + 172; fnt(24, 1); const T = wrap(N.baslik, cw - 32); fnt(24); const B = wrap(N.metin, cw - 32);
       const ch = 70 + T.length * 29 + B.length * 29 + 14; x.globalAlpha = pk; const sc = .92 + .08 * pk;
@@ -373,7 +378,7 @@ function phone(ph) {
     x.fillStyle = '#5F6672'; x.fillText(A.pay_ad, cl + 14, y); y += 30; fnt(24, 1); x.fillStyle = '#11151C'; wrap(A.pay, cw - 28).forEach((t, i) => x.fillText(t, cl + 14, y + i * 29));
   }
   x.restore();
-  if (ph.k > .9) pill(X + PHW + 16 + 210, top + 70, ph.tag, 'rgba(14,22,38,.94)', '#F4F1EA', true, true);
+  if (ph.k > .9) pill(24 + PHW / 2, top - 18, ph.tag, 'rgba(14,22,38,.94)', '#F4F1EA', true, true);
 }
 function card(lines, al, l0) {
   if (al <= 0) return; l0 = l0 || 20; const w = SW - 20 - l0; x.globalAlpha = al; fnt(34, 1); const L1 = lines[0].split('\n').flatMap(t => wrap(t, w - 52));

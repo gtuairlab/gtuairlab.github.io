@@ -63,3 +63,7 @@
   push (kilit ekranı "Tuesday, 20 October 08:00", kart + sarsıntı, etiket "GTU AirLab app · push notification"), iki videonun sonunda
   maruziyet asistanı ("Your day 36.5 µg / 16.2 µg · 2.0 h / 8.0 h · largest share: walk to the Congress Center / late-afternoon walk").
   Not: uygulamanın kendisi asistanda µg'yi tam sayıya yuvarlar (36 / 16, `maruziyet.js` f0); videoda deste ile tutarlı 36.5 / 16.2.
+- 23 Ekim, 4. tur (bağımsız denetçi): altyazı ziyaretçiyi örtecekse ya da telefonun yanına 30 px'te sığmıyorsa haritanın üstüne çıkar;
+  telefon etiketi telefonun hemen üstünde; sonda kamera sağa kayar (telefon ziyaretçiyi/işaretleri örtmesin); bildirim 8,5 sn
+  (A kafe 12 sn, A ≈ 38,5 sn), "US EPA-corrected" bölünmez (bölünmez boşluk); kilit ekranı saati sahne saatini izler;
+  B yürüyüş altyazısı "…, in the cleaner hours" (16:00 en temiz saat değil, 3. en düşük).
