@@ -26,7 +26,7 @@
   "bildirim": {"saat": 480, "sn": 3.0, "ust": "AirLab · now",
     "baslik": "Good morning · Campus air: Moderate (AQI 58)",
     "metin": "PM₂.₅ 15.4 µg/m³ (30-min average, US EPA-corrected). Very sensitive people may consider limiting long, intense outdoor activity.",
-    "_kaynak": "backend/bildirim.py summary_payload('Günaydın'); 15.4 = kampüs profili P(08) = kafe 30.9 / R 2.0; hki(15.4) = 58 (colorscale.js)"},
+    "_kaynak": "backend/bildirim.py summary_payload('Günaydın'); 15.4 = kafe dilimi (07:30–08:30) kampüs profili ortalaması = kafe 30.9 / R 2.0; gerçek bildirim 07:30–08:00 ortalamasını (P07 16.0, HKİ 59) verirdi, sınıf aynı (Orta); hki(15.4) = 58 (colorscale.js)"},
   "kiyas": {"seg": 1, "metin": "Campus sensor: 15.4 · at this café terrace: 30.9 µg/m³"}
  },
  "B": {
