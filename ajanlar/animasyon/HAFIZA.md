@@ -51,3 +51,10 @@
   sürekli uyarı "Illustrative scenario · modelled dose, not a measured person", panelde "Elapsed", B sonuç kartı
   "2 hours in the wrong places > 8 hours in the right places". B'nin iç ortam durağı: "bir bölüm binasındaki amfi".
 - iso_engine.js (embed) da aynı etiketlere çekildi; Atmotube kişinin üstünden ve bağlantı çizgisi kaldırıldı (A 13 623, B 13 793 bayt).
+- 23 Ekim, 2. tur (ana ajan + bağımsız denetçi): A'ya 08:00 sabah özeti bildirimi ("Good morning · Campus air: Moderate (AQI 58)",
+  PM₂.₅ 15,4 = P(08) = kafe 30,9 / R 2,0) ve kafede "Campus sensor: 15.4 · at this café terrace: 30.9 µg/m³"; AQI > 100 uyarısı
+  gösterilmez (senaryoda hava Orta). "Main road" → "Road traffic" (yol D-100/TEM değil, kampüsün doğusundaki yerel yol).
+  Atmotube: hareketli rozet kaldırıldı; Güzide/Kongre (A) ve Kütüphane/Kimya ve Çevre (B) üzerinde sabit işaret + tek "Atmotube field data".
+  Döngü geçişi yok, sonuç kartı ≥ 5 sn; zemin lejantı "ground shading: illustrative"; panel metinleri "Busy café terrace",
+  "Walk to the Congress Center"; Amerikan yazımı (modeled, Center). A kafe durağı kafenin kuzey tarafına alındı (işaretle çakışmasın).
+  Videolar: A 18,5 sn 6,34 MB, B 18,3 sn 4,53 MB (CRF 19).

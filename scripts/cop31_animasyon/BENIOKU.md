@@ -31,3 +31,8 @@ python3 scripts/cop31_animasyon/harita_hazirla.py <ekran_goruntusu.png> <gecici>
 CRF=19 NODE_PATH=/opt/node-tools/node_modules node scripts/cop31_animasyon/kayit.js <gecici>/harita <gecici>/video AB --kareler
 ```
 Uydu görüntüsü (© Esri, Maxar) ve videolar repoya girmez; yalnızca kod ve sahne tanımı.
+
+Video A'da 08:00'de uygulamanın gerçek sabah özeti bildirimi görünür (metin `backend/bildirim.py` → `summary_payload`, İngilizce çeviri;
+15,4 µg/m³ = kampüs profili P(08), HKİ 58). Atmotube ziyaretçide değil, R katsayısının saha verisinden geldiği binalarda sabit işarettir.
+Döngü geçişi yok: son kare ve durağan PNG sonuç kartıdır (≥ 5 sn bekler). Videoya özgü süre ve panel metinleri `harita_rotalar.json`'da
+(`sure`, `bekle`, `etiket`); `sahneler.json` (embed ile ortak) değişmedi.

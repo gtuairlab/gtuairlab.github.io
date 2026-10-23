@@ -11,8 +11,8 @@ const FONT = "Inter, 'DejaVu Sans', Arial, sans-serif";
 // Kampüs saatlik PM2.5 profili (anlık görüntü, 20 Ekim 2026; iso_engine.js ile aynı)
 const PH = [13.36,13.76,14.36,14.83,15.32,15.81,16.3,15.98,14.94,13.98,13.09,12.39,12.31,12.35,11.51,10.64,9.66,9.41,9.42,10,10.59,11.57,12.41,13.03];
 const R0 = 6378137, U3 = 3;           // doku 3× büyütülmüş
-let D, SC, RT, G, TEX, mpp, VE, segs, tot, TOTAL, BLD = [], ROAD, CAFE, KEY, PATHS = [], OV, F0 = null, FIELD = null, FIELDHR = -1;
-let C = null, Rr = [], PR = [0, 0, 0, 0], BI = 0;
+let D, SC, RT, G, TEX, mpp, VE, segs, tot, TOTAL, BLD = [], ROAD, CAFE, KEY, PATHS = [], OV, FIELD = null, FIELDHR = -1;
+let ICON = null, C = null, Rr = [], PR = [0, 0, 0, 0], BI = 0;
 const sh = document.createElement('canvas'); sh.width = W; sh.height = H; const sx = sh.getContext('2d');
 
 const merc = (lon, lat) => [lon * Math.PI / 180 * R0, R0 * Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360))];
@@ -43,11 +43,13 @@ const aqi = v => v <= 12 ? '#3FB950' : v <= 35.4 ? '#E3B341' : v <= 55.4 ? '#F08
 const fnt = (n, b) => x.font = (b ? '700 ' : '400 ') + n + 'px ' + FONT;
 const rr = (l, t, w, h, r, f) => { x.fillStyle = f; x.beginPath(); x.roundRect(l, t, w, h, r); x.fill(); };
 const hit = a => a[0] < 12 || a[2] > SW - 8 || a[1] < 10 || a[3] > H - 10 || Rr.some(r => a[0] < r[2] && a[2] > r[0] && a[1] < r[3] && a[3] > r[1]);
-function pill(px, py, t, bg, fg, force, nofade) {   // ekran uzayında etiket; çakışırsa yukarı/aşağı kaydırır, olmazsa çizmez
+function pill(px, py, t, bg, fg, force, nofade, must) {   // ekran uzayında etiket; çakışırsa yukarı/aşağı kaydırır, olmazsa çizmez
   fnt(24, 1); const L = t.split('\n'), n = L.length - 1, tw = Math.max(...L.map(l => x.measureText(l).width)), hh = 38 + n * 30;
-  for (const dy of [0, -44, 44, -88, 88]) {
-    const cx = clamp(px, tw / 2 + 24, SW - tw / 2 - 20), top = py - 30 - n * 30 + dy, r = [cx - tw / 2 - 12, top, cx + tw / 2 + 12, top + hh];
-    if (!force && hit(r)) continue;
+  const PO = [[0, 0], [0, -44], [0, 44], [0, -88], [0, 88], [-170, 0], [170, 0], [-170, 60], [170, 60], [0, 132]];
+  for (let pi = 0; pi <= PO.length; pi++) {
+    const [dx, dy] = PO[pi % PO.length], last = pi === PO.length; if (last && !must) break;
+    const cx = clamp(px + dx, tw / 2 + 24, SW - tw / 2 - 20), top = py - 30 - n * 30 + dy, r = [cx - tw / 2 - 12, top, cx + tw / 2 + 12, top + hh];
+    if (!force && !last && hit(r)) continue;
     Rr.push(r); x.globalAlpha = !nofade && r[0] < PR[2] && r[2] > PR[0] && r[1] < PR[3] && r[3] > PR[1] ? .4 : 1;
     rr(r[0], r[1], tw + 24, hh, 10, bg); x.fillStyle = fg; L.forEach((l, i) => x.fillText(l, cx - tw / 2, top + 30 + i * 30)); x.globalAlpha = 1;
     return [cx, top + hh / 2];
@@ -75,8 +77,9 @@ window.init = async function (data) {
   D = data; KEY = data.key; SC = data.sahneler[KEY]; RT = data.rotalar[KEY]; G = data.georef; mpp = G.m_per_px; VE = data.rotalar.dikey_abartma;
   await document.fonts.load('700 24px Inter'); await document.fonts.load('400 24px Inter');
   TEX = new Image(); TEX.src = data.doku; await TEX.decode();
-  segs = SC.segs.map((s, i) => ({ ...s, path: RT.paths[i] ? RT.paths[i].map(P) : null, at: RT.at[i] ? P(RT.at[i]) : null }));
-  tot = 0; segs.forEach(s => { s.t0 = tot; tot += s.dur; }); TOTAL = tot + SC.hold;
+  if (data.ikon) { ICON = new Image(); ICON.src = data.ikon; await ICON.decode(); }
+  segs = SC.segs.map((s, i) => ({ ...s, dur: RT.sure ? RT.sure[i] : s.dur, label: (RT.etiket && RT.etiket[i]) || s.label, path: RT.paths[i] ? RT.paths[i].map(P) : null, at: RT.at[i] ? P(RT.at[i]) : null }));
+  tot = 0; segs.forEach(s => { s.t0 = tot; tot += s.dur; }); TOTAL = tot + (RT.bekle != null ? RT.bekle : SC.hold);
   ROAD = data.rotalar.ana_yol.map(P); CAFE = P(data.rotalar.kafe);
   const H_ = data.rotalar.yukseklik_m, flat = new RegExp(data.rotalar.duz_alan, 'i');
   data.geo.features.forEach((f, i) => {
@@ -98,8 +101,7 @@ window.init = async function (data) {
   const cu = all.reduce((m, q) => m + q[0], 0) / all.length, cvv = all.reduce((m, q) => m + q[1], 0) / all.length;
   setCam(k0, cu, cvv, RT.bakis); const c2 = S((Math.min(...all.map(q => q[0])) + Math.max(...all.map(q => q[0]))) / 2, (Math.min(...all.map(q => q[1])) + Math.max(...all.map(q => q[1]))) / 2, 0);
   OV = { k: k0, cu: (Math.min(...all.map(q => q[0])) + Math.max(...all.map(q => q[0]))) / 2, cv: (Math.min(...all.map(q => q[1])) + Math.max(...all.map(q => q[1]))) / 2 };
-  F0 = null; render(0); F0 = document.createElement('canvas'); F0.width = W; F0.height = H; F0.getContext('2d').drawImage(cv, 0, 0);
-  return { total: TOTAL, tot, still: TOTAL - 0.75, bld: BLD.length, k0 };
+  return { total: TOTAL, tot, still: TOTAL, bld: BLD.length, k0 };
 };
 
 // ── zaman çizelgesi ──
@@ -109,7 +111,7 @@ function state(el) {
   return { si, s, q, done, pos: s.path ? along(s.path, q)[1] : s.at, clock: s.m0 + (s.m1 - s.m0) * q };
 }
 function camAt(t) {
-  let fu = 0, fv = 0, n = 0; for (let j = 0; j < 12; j++) { const st = state(Math.max(0, Math.min(tot, t - j * 0.09))); fu += st.pos[0]; fv += st.pos[1]; n++; }
+  let fu = 0, fv = 0, n = 0; for (let j = 0; j < 20; j++) { const st = state(Math.max(0, Math.min(tot, t - j * 0.1))); fu += st.pos[0]; fv += st.pos[1]; n++; }
   fu /= n; fv /= n;
   const e = sm(t / 2.2) * (1 - sm((t - tot - 0.2) / 1.6));
   const k = OV.k * Math.pow(RT.yakin / OV.k, e);
@@ -256,6 +258,13 @@ window.render = function (t) {
       const sc = -depth(mx, my) + L2 * .2; if (!best || sc > best.sc) best = { sc, m: [mx, my] }; }
     items.push({ d: depth(chem.c[0], chem.c[1]) - 40, f: () => { const p = S(best.m[0], best.m[1], 1.4); rr(p[0] - 19, p[1] - 48, 38, 50, 4, '#FFE6A8'); pa([p[0], p[1]], el, .7); paIn = p; } });
   }
+  const atm = {};   // Atmotube saha verisinin geldiği binalar: sabit işaret (ziyaretçide değil)
+  for (const nm of RT.atmotube || []) { const b = BLD.filter(q => q.name === nm).sort((p, q) => q.h - p.h)[0]; if (!b) continue;
+    if (!b.atmP) {   // işaret, binanın ziyaretçi duraklarından en uzak köşesinde (ziyaretçide taşınıyormuş gibi görünmesin)
+      const ref = segs.flatMap(g => g.path ? [g.path[0], g.path.at(-1)] : [g.at]);
+      b.atmP = b.pts.map(q => [lerp(q[0], b.c[0], .12), lerp(q[1], b.c[1], .12)]).map(q => [Math.min(...ref.map(r => Math.hypot(q[0] - r[0], q[1] - r[1]))), q]).sort((u, v) => v[0] - u[0])[0][1]; }
+    items.push({ d: depth(b.atmP[0], b.atmP[1]) - .6, f: () => { const p = S(b.atmP[0], b.atmP[1], b.h); x.fillStyle = '#8C93A0'; x.fillRect(p[0] - 2, p[1] - 22, 4, 22);
+      x.beginPath(); x.arc(p[0], p[1] - 34, 15, 0, 6.29); x.fillStyle = '#E9EEF5'; x.fill(); x.strokeStyle = '#1C2028'; x.lineWidth = 2.5; x.stroke(); dev(p[0], p[1] - 29, 6.5, '#3FB950'); atm[nm] = [p[0], p[1] - 34]; } }); }
   items.sort((a, b) => b.d - a.d).forEach(i => i.f());
   // egzoz dumanı (araç başına son 6 püf), partikül pusu
   for (const cr of cars) for (let j = 0; j < 6; j++) {
@@ -280,7 +289,7 @@ window.render = function (t) {
   x.restore();
   const d = me; PR = [d[0] - 30, d[1] - 50, d[0] + 26, d[1] + 56]; Rr.push(PR.slice());
   // ── etiketler (ekran uzayı, çakışmasız) ──
-  if (el < 3.2) card(['Follow the visitor  ·  orange ground = more PM₂.₅'], Math.min(1, (3.2 - el) * 2.5));
+  if (el < 3.2) card(['Follow the visitor  ·  orange ground = more PM₂.₅ (illustrative)'], Math.min(1, (3.2 - el) * 2.5));
   if (done) card(RT.son, sm((el - tot) / .5));
   const LB = [];
   for (const [txt, ref, lo, la] of RT.etiketler) {
@@ -289,16 +298,37 @@ window.render = function (t) {
     else if (ref === '@nokta') { const q2 = P([lo, la]); p = S(q2[0], q2[1], 0); p[1] += 10; }
     else { const b = BLD.filter(b => b.name === ref).sort((a, b) => b.h - a.h)[0]; if (b) { p = S(b.c[0], b.c[1], b.h + 6); inside = inB === ref; if (inside) p[1] = Math.min(p[1], d[1] - 120); } }
     if (!p || p[0] < 40 || p[0] > SW - 40 || p[1] < 30 || p[1] > H - 20) continue;
-    LB.push({ inside, f: () => pill(p[0], p[1], txt + (inside ? ' · visitor inside' : ''), inside ? SC.col : 'rgba(14,22,38,.86)', '#F4F1EA', inside, inside) });
+    LB.push({ inside, pri: (RT.oncelik || []).includes(ref), f: () => pill(p[0], p[1], txt + (inside ? ' · visitor inside' : ''), inside ? SC.col : 'rgba(14,22,38,.86)', '#F4F1EA', inside, inside, (RT.oncelik || []).includes(ref)) });
   }
-  LB.filter(l => l.inside).forEach(l => l.f());          // öncelik: içerideki bina etiketi, Atmotube balonu, sensörler, diğer adlar
-  t0b = el; balloon(d, col);
+  const nb = notice(el, clock);                           // 08:00 telefon bildirimi (yalnız A): önce yer ayır
+  LB.filter(l => l.inside).forEach(l => l.f());          // öncelik: içerideki bina, karşılaştırma, kafe adı, Atmotube, sensörler, diğer adlar
+  if (RT.kiyas && si === RT.kiyas.seg && !done && clock >= RT.bildirim.saat + 6) {   // tek çatı sensörü kafeyi göremez
+    x.globalAlpha = sm((clock - RT.bildirim.saat - 6) / 4); pill(d[0], d[1] + 150, RT.kiyas.metin, 'rgba(14,22,38,.95)', '#F5A623', false, true, true); x.globalAlpha = 1;
+  }
+  LB.filter(l => !l.inside && l.pri).forEach(l => l.f());
+  { const a = atm[RT.atmotube_etiket]; if (a) pill(a[0] + 40, a[1] - 34, 'Atmotube field data', '#1C2028', '#F4F1EA'); }
   if (paRoof) pill(paRoof[0] + 130, paRoof[1] - 52, 'PurpleAir · rooftop\nmeasures every 2 min', '#6A3FB5', '#F4F1EA');
   if (paIn) pill(paIn[0] + 120, paIn[1] + 84, 'PurpleAir · indoor\n(lecture hall)', '#6A3FB5', '#F4F1EA');
-  LB.filter(l => !l.inside).forEach(l => l.f());
+  LB.filter(l => !l.inside && !l.pri).forEach(l => l.f());
+  if (nb) nb();
   panel(clock, s, col, dose, done);
-  if (F0 && t > TOTAL - .45) { x.globalAlpha = sm((t - (TOTAL - .45)) / .45); x.drawImage(F0, 0, 0); x.globalAlpha = 1; }   // döngü: ilk kareye yumuşak geçiş
 };
+// iOS tarzı bildirim kartı: harita alanının üstünden kayarak iner (~3 sn)
+function notice(el, clock) {
+  const N = RT.bildirim; if (!N) return null; const s0 = segs.find(s => N.saat >= s.m0 && N.saat < s.m1); if (!s0) return null;
+  const t0 = s0.t0 + (N.saat - s0.m0) / (s0.m1 - s0.m0) * s0.dur, u = el - t0; if (u < 0 || u > N.sn) return null;
+  const k = sm(u / .35) * (1 - sm((u - N.sn + .35) / .35)), w = 1010, l = (SW - w) / 2;
+  fnt(24); const words = N.metin.split(' '), lines = []; let cur = '';
+  for (const wd of words) { const tr = cur ? cur + ' ' + wd : wd; if (x.measureText(tr).width > w - 92) { lines.push(cur); cur = wd; } else cur = tr; } lines.push(cur);
+  const h = 108 + lines.length * 31, top = 14 - (1 - k) * (h + 30); Rr.push([l, 14, l + w, 14 + h]);
+  return () => {
+    x.save(); x.shadowColor = 'rgba(0,0,0,.35)'; x.shadowBlur = 24; x.shadowOffsetY = 6; rr(l, top, w, h, 26, 'rgba(246,246,248,.97)'); x.restore();
+    if (ICON) { x.save(); x.beginPath(); x.roundRect(l + 22, top + 20, 40, 40, 10); x.clip(); x.drawImage(ICON, l + 22, top + 20, 40, 40); x.restore(); }
+    fnt(24); x.fillStyle = '#5F6672'; x.fillText(N.ust, l + 76, top + 49);
+    fnt(26, 1); x.fillStyle = '#11151C'; x.fillText(N.baslik, l + 24, top + 96);
+    fnt(24); x.fillStyle = '#2A303A'; lines.forEach((t, i) => x.fillText(t, l + 24, top + 132 + i * 31));
+  };
+}
 function card(lines, al) {
   if (al <= 0) return; x.globalAlpha = al; const two = lines.length > 1, h = two ? 112 : 80, top = H - h - 20;
   Rr.push([20, top, SW - 20, H - 20]); rr(20, top, SW - 40, h, 20, 'rgba(14,22,38,.95)');
@@ -306,20 +336,10 @@ function card(lines, al) {
   if (two) { x.fillStyle = '#F4F1EA'; fnt(26, 0); x.fillText(lines[1], 46, top + 88); }
   x.globalAlpha = 1;
 }
-let t0b = 0;
-function balloon(d, col) {
-  const bw = 222, bh = 80, Cn = [[46, -150], [-46 - bw, -150], [46, 30], [-46 - bw, 30], [60, -60], [-60 - bw, -60]].map(v => [d[0] + v[0], d[1] + v[1]]), ok = v => !hit([v[0], v[1], v[0] + bw, v[1] + bh]);
-  if (!ok(Cn[BI])) { const fi = Cn.findIndex(ok); if (fi >= 0) BI = fi; else { // hiçbiri boş değilse en az çakışanı seç
-    const ov = v => Rr.reduce((m, r) => m + Math.max(0, Math.min(r[2], v[0] + bw) - Math.max(r[0], v[0])) * Math.max(0, Math.min(r[3], v[1] + bh) - Math.max(r[1], v[1])), 0) + (v[0] < 12 || v[1] < 10 || v[0] + bw > SW || v[1] + bh > H ? 1e6 : 0);
-    BI = Cn.map((v, i) => [ov(v), i]).sort((p, q) => p[0] - q[0])[0][1]; } } const o = Cn[BI]; Rr.push([o[0], o[1], o[0] + bw, o[1] + bh]);
-  const cx = o[0] + 40, cy = o[1] + 40; rr(o[0], o[1], bw, bh, 40, 'rgba(14,22,38,.94)');   // rozet (bağlantı çizgisi yok)
-  x.beginPath(); x.arc(cx, cy, 32, 0, 6.29); x.fillStyle = '#C9D6E6'; x.fill(); dev(cx, cy + 8, 13, col); ring(cx, cy - 2, t0b, '#F4F1EA');
-  x.strokeStyle = '#F4F1EA'; x.lineWidth = 3; x.beginPath(); x.arc(cx, cy, 32, 0, 6.29); x.stroke(); fnt(24, 1); x.fillStyle = '#F4F1EA'; x.fillText('Atmotube', o[0] + 84, o[1] + 35); fnt(24); x.fillStyle = '#AEB9CF'; x.fillText('wearable', o[0] + 84, o[1] + 64);
-}
 const tm = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(Math.floor(m % 60)).padStart(2, '0');
 function panel(clock, s, col, dose, done) {
   const L = SW + 14, PW = W - L - 14, X0 = L + 26, hrs = (segs.at(-1).m1 - segs[0].m0) / 60, el = (clock - segs[0].m0) / 60;
-  rr(L, 14, PW, 556, 20, 'rgba(14,22,38,.96)');
+  rr(L, 14, PW, 566, 20, 'rgba(14,22,38,.96)');
   fnt(30, 1); x.fillStyle = SC.col; x.fillText(SC.tag, X0, 58);
   fnt(24); x.fillStyle = '#AEB9CF'; x.fillText(`Elapsed: ${el.toFixed(1)} h of ${hrs} h`, X0, 94);
   fnt(54, 1); x.fillStyle = '#F4F1EA'; x.fillText(tm(clock), X0, 158);
@@ -332,11 +352,12 @@ function panel(clock, s, col, dose, done) {
   fnt(24, 1); x.fillStyle = '#F4F1EA'; x.fillText('Sensors in this scene', X0, 394);
   fnt(24); x.fillStyle = '#B79BFF'; x.fillText('■ PurpleAir: rooftop + lecture hall', X0, 428); x.fillStyle = '#F4F1EA'; x.fillText('● Atmotube: wearable (field sessions)', X0, 460);
   x.fillStyle = 'rgba(255,255,255,.12)'; x.fillRect(X0, 480, bw, 2);
-  fnt(24); x.fillStyle = '#F4F1EA'; x.fillText('Ground & path color = PM₂.₅', X0, 512);
+  fnt(24); x.fillStyle = '#F4F1EA'; x.fillText('Ground & path color = PM₂.₅', X0, 508);
+  x.fillStyle = '#AEB9CF'; x.fillText('ground shading: illustrative', X0, 538);
   const lg = x.createLinearGradient(X0 + 58, 0, X0 + 298, 0); lg.addColorStop(0, '#3FB950'); lg.addColorStop(.5, '#E3B341'); lg.addColorStop(1, '#F85149');
-  x.fillStyle = lg; x.fillRect(X0 + 58, 530, 240, 20); x.fillStyle = '#AEB9CF'; x.fillText('low', X0, 549); x.fillText('high', X0 + 310, 549);
+  x.fillStyle = lg; x.fillRect(X0 + 58, 552, 240, 18); x.fillStyle = '#AEB9CF'; x.fillText('low', X0, 570); x.fillText('high', X0 + 310, 570);
   // sürekli uyarı satırı (panelin altında)
-  rr(L, 580, PW, 106, 16, 'rgba(14,22,38,.96)'); fnt(24, 1); x.fillStyle = '#F5A623'; x.fillText('Illustrative scenario · modelled dose,', X0, 614);
-  x.fillText('not a measured person', X0, 644); fnt(24); x.fillStyle = '#8C97AD'; x.fillText('Imagery © Esri, Maxar', X0, 674);
+  rr(L, 590, PW, 98, 16, 'rgba(14,22,38,.96)'); fnt(24, 1); x.fillStyle = '#F5A623'; x.fillText('Illustrative scenario · modeled dose,', X0, 619);
+  x.fillText('not a measured person', X0, 648); fnt(24); x.fillStyle = '#8C97AD'; x.fillText('Imagery © Esri, Maxar', X0, 677);
 }
 </script></body></html>

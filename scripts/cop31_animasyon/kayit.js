@@ -10,7 +10,8 @@ fs.mkdirSync(OUT, { recursive: true });
 const J = p => JSON.parse(fs.readFileSync(p, 'utf8'));
 const data = { doku: 'data:image/png;base64,' + fs.readFileSync(path.join(HK, 'doku.png')).toString('base64'), georef: J(path.join(HK, 'georef.json')),
   geo: J(path.join(__dirname, '..', '..', 'frontend_v2', 'data', 'campus.geojson')), sahneler: J(path.join(__dirname, 'sahneler.json')),
-  rotalar: J(path.join(__dirname, 'harita_rotalar.json')) };
+  rotalar: J(path.join(__dirname, 'harita_rotalar.json')),
+  ikon: 'data:image/png;base64,' + fs.readFileSync(path.join(__dirname, '..', '..', 'frontend_v2', 'icons', 'icon-192.png')).toString('base64') };
 (async () => {
   const b = await chromium.launch(); const errs = [];
   for (const key of WHICH.split('')) {
@@ -22,7 +23,7 @@ const data = { doku: 'data:image/png;base64,' + fs.readFileSync(path.join(HK, 'd
     const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-i', '-', '-c:v', 'libx264', '-preset', 'slow',
       '-crf', process.env.CRF || '23', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-r', String(FPS), mp4], { stdio: ['pipe', 'inherit', 'inherit'] });
     const kd = path.join(OUT, 'kareler_' + key); if (KARE) fs.mkdirSync(kd, { recursive: true });
-    const stillF = Math.round(info.still * FPS);
+    const stillF = N - 1;   // durağan kare = son kare (sonuç kartı)
     for (let i = 0; i < N; i++) {
       await p.evaluate(t => render(t), i / FPS);
       const buf = await p.screenshot({ type: 'png' });
