@@ -18,6 +18,10 @@ Tek bir güncel sürüm olması için **tek kaynak `main` branch'idir**.
 ## Bekleyen işler (oturum başında kullanıcıya kısaca hatırlat, bitenleri buradan sil)
 - **Tuzla resmî ÇŞB toplayıcısı Haziran 2026'dan beri çalışmıyor** (yerel bilgisayardaki zamanlanmış görev); Tuzla saatlik
   arşivi 6 Ekim 2026'dan beri sunucuda İBB'den toplanıyor (`collector.collect_hourly`).
+  **22 Ekim 2026 09:00'dan beri Tuzla verisi yok:** İBB'nin tüm alan adları (havakalitesi.ibb.gov.tr, api.ibb.gov.tr,
+  www.ibb.istanbul) yurt dışından (Render, Supabase Frankfurt) zaman aşımına düşüyor; istanbul.gov.tr açılıyor. Kullanıcı
+  Türkiye'den siteyi açıp kontrol edecek: açılıyorsa yurt dışı engeli (çözüm: Türkiye'de çalışan toplayıcı), açılmıyorsa
+  İBB kesintisi (beklenir). `ibb.py` başarısız denemeden sonra 10 dk tekrar denemez (tek işçili sunucu 20 sn kilitlenmesin).
 - **CO₂ şimdilik kapalı (kullanıcının kararı, 13 Ekim 2026):** ölçüm alınmıyor; uygulamada `api.js` → `CO2_AKTIF = false`
   (panel, harita, lejant, Özet çipi, kesinti duyurusu gizli; veri silinmedi) ve rapordan çıkarıldı. Sensörler yeniden tanımlanınca
   `CO2_AKTIF = true` yap. Not: 22 Haziran 15:01'den sonraki 2 798 kayıt donmuş değer (toplayıcı çevrimdışı cihazın son değerini

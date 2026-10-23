@@ -23,6 +23,10 @@ MAX_KM = 15.0
 # 5 dk önbellek (İBB zaten saatlik günceller)
 _cache = {"ts": 0, "data": None}
 CACHE_SECONDS = 300
+# İBB'ye ulaşılamazsa (ör. 22 Ekim 2026'dan beri yurt dışı bağlantılar zaman aşımına düşüyor) 10 dk tekrar denenmez:
+# tek işçili sunucuda her istek 20 sn beklemesin.
+_fail = {"ts": 0, "err": ""}
+FAIL_SECONDS = 600
 
 _POINT_RE = re.compile(r"POINT \(([\d.]+) ([\d.]+)\)")
 
@@ -50,8 +54,14 @@ def get_nearest_station(force=False):
     if not force and _cache["data"] is not None and now - _cache["ts"] < CACHE_SECONDS:
         return _cache["data"]
 
-    r = requests.get(IBB_URL, timeout=20)
-    r.raise_for_status()
+    if not force and now - _fail["ts"] < FAIL_SECONDS:
+        raise RuntimeError("İBB'ye ulaşılamıyor (son deneme " + str(int(now - _fail["ts"])) + " sn önce): " + _fail["err"])
+    try:
+        r = requests.get(IBB_URL, timeout=(5, 20))
+        r.raise_for_status()
+    except Exception as e:
+        _fail["ts"], _fail["err"] = now, type(e).__name__
+        raise
     objects = r.json().get("objects", [])
 
     # ANLIK (saatlik) değer için LastMeasurement kullanılır; Values.PM25 ise
