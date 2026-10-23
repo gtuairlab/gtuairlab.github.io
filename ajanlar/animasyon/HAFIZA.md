@@ -20,7 +20,9 @@
 - Zamanlama slaytı (ayrı): aynı 1 saatlik yürüyüş 06–09 → 22,9 µg, 16–19 → 14,1 µg (−%38), rapor 13 Ekim `sayilar.json` F.
 
 ## Kurallar
-- Sahnedeki bina adları temsilî (Library, Café, Congress Centre, Chem. & Env. Eng., SUMER); gerçek yerleşim değildir, slayt altında yazar.
+- Sunum videoları (23 Ekim 2026'dan beri) gerçek kampüs yerleşimi üzerindedir: gerçek kampüs, temsilî ziyaretçi, temsilî kirlilik zemini,
+  bina yükseklikleri varsayım (dikey ×2). Slayt altı: "Real campus layout (imagery © Esri, Maxar; building heights assumed). Illustrative visitor, modelled dose…".
+  Eski izometrik embed motoru (`iso_engine.js`) temsilî sahnedir; yedek olarak durur.
 - Sensör renkleri: PurpleAir mor (#6A3FB5 / #B79BFF), Atmotube koyu cihaz + beyaz halka. Ziyaretçi A turuncu #F0883E, B mavi #5B8CFF.
 - Zemin rengi: yeşil → sarı → turuncu → kırmızı (HKİ sınıf renklerine yakın), sağ panelde açıklaması var.
 
@@ -36,3 +38,16 @@
   A yaya olarak kaldırımda yürür (b ≈ 9,3). İç ortam PurpleAir'i Chem'in sağ cephesinde (ön cephede içerideki ziyaretçiyi örter).
 - Kare denetimi: `kare.js`'e ek olarak saniyede bir kare alan yoğun yakalama + kontakt sayfası (geçici klasörde) çakışma ve zıplamaları yakalar.
 - Açık (isteğe bağlı): B 12:00'de kütüphaneden Chem'e sıçrar; arada yürüyüş eklemek dozu böler (onay gerekir).
+
+## Gerçek kampüs videoları (22–23 Ekim 2026, 2. iş)
+- Kullanıcı: "kampüs haritasını kullan, birebir gerçekçi olsun". Embed yerine VIDEO (1664×700, 30 fps, H.264): `harita_hazirla.py`,
+  `harita3b.html`, `harita_rotalar.json`, `kayit.js`. Çıktı geçici klasörde; uydu görüntüsü ve video repoya girmez.
+- Eşleme: 2,557 m/piksel, 8 etiket noktasında RMS 5,5 px (~14 m); Personel Yemekhanesi (55 px) ve Elektronik/İnşaat (21 px) etiketleri
+  aykırı (etiket yerleşimi). Bina yükseklikleri varsayım (varsayılan 12 m), dikey abartma ×2.
+- Güzergâh uzunlukları: A yürüyüş 1 ≈1,30 km, A yürüyüş 2 ≈1,49 km (Kuzey Girişi → Ana Kapı → doğu yolu → Kongre), B yürüyüşü ≈1,17 km;
+  her biri 30 dk dilimine göre kısa (5 km/sa ile 14–18 dk). Sayılar değişmedi.
+- Etiket kararları (ana ajan, 2. bağımsız kontrol): Atmotube ziyaretçinin üzerinde GÖSTERİLMEZ (doz model); rozet "Atmotube / wearable",
+  lejant "● Atmotube: wearable (field sessions)", "Ground & path color" (Amerikan yazımı), "dawn" yerine "early morning",
+  sürekli uyarı "Illustrative scenario · modelled dose, not a measured person", panelde "Elapsed", B sonuç kartı
+  "2 hours in the wrong places > 8 hours in the right places". B'nin iç ortam durağı: "bir bölüm binasındaki amfi".
+- iso_engine.js (embed) da aynı etiketlere çekildi; Atmotube kişinin üstünden ve bağlantı çizgisi kaldırıldı (A 13 623, B 13 793 bayt).

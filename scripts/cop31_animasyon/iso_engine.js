@@ -34,7 +34,7 @@ function dev(px,py,k,led){rr(px-k,py-k*1.4,k*2,k*2.8,k*.5,'#1C2028');x.strokeSty
 function person(a,b,col,walk,t,led){const g=iso(a,b,0);x.fillStyle='rgba(8,12,18,.4)';x.beginPath();x.ellipse(g[0],g[1],16,6,0,0,6.29);x.fill();
 const sw=walk?Math.sin(t/110)*8:0;x.strokeStyle='#1A2233';x.lineWidth=8;x.lineCap='round';x.beginPath();x.moveTo(g[0],g[1]-30);x.lineTo(g[0]-sw,g[1]-2);x.moveTo(g[0],g[1]-30);x.lineTo(g[0]+sw,g[1]-2);x.stroke();
 poly([[g[0]-13,g[1]-28],[g[0]+13,g[1]-28],[g[0]+10,g[1]-62],[g[0]-10,g[1]-62]],col);x.fillStyle='#E8C9A8';x.beginPath();x.arc(g[0],g[1]-74,11,0,6.29);x.fill();
-x.strokeStyle='#1A2233';x.lineWidth=3;x.beginPath();x.moveTo(g[0]-9,g[1]-62);x.lineTo(g[0]+11,g[1]-32);x.stroke();dev(g[0]+5,g[1]-46,6,led);ring(g[0]+5,g[1]-48,t,'#F4F1EA');return[g[0]+5,g[1]-48]}
+x.strokeStyle='#1A2233';x.lineWidth=3;x.beginPath();x.moveTo(g[0]-9,g[1]-62);x.lineTo(g[0]+11,g[1]-32);x.stroke();return[g[0]+5,g[1]-48]}
 function pa(p,t,k){x.fillStyle='#F4F1EA';x.beginPath();x.roundRect(p[0]-11,p[1]-32,22,30,5);x.fill();rr(p[0]-14,p[1]-40,28,11,5,'#6A3FB5');x.fillStyle='#8C93A0';x.fillRect(p[0]-7,p[1]-22,14,2);x.fillRect(p[0]-7,p[1]-15,14,2);ring(p[0],p[1]-20,t+k,'#B79BFF')}
 function card(t,al){x.globalAlpha=al;R.push([24,H-118,W-536,H-24]);rr(24,H-118,W-560,94,22,'rgba(14,22,38,.94)');x.fillStyle='#F5A623';fnt(36,1);x.fillText(t,52,H-58);x.globalAlpha=1}
 const segs=SC.segs;let tot=0;segs.forEach(s=>{s.t0=tot;tot+=s.dur});
@@ -78,14 +78,14 @@ if(s.in==='chem'&&s.inside){const g=Q(8.5,1.8,3.05);pill(g[0],g[1],ch.n+' · vis
 {const g=Z(pr);pill(g[0]+152,g[1]-34,'PurpleAir · rooftop\nmeasures every 2 min','#6A3FB5','#F4F1EA');const h=Z(pi);pill(h[0]+100,h[1]+72,'PurpleAir · indoor\n(lecture hall)','#6A3FB5','#F4F1EA')}
 {const g=Q(2.2,ROAD+1.2,0);pill(g[0],g[1]+30,'Road traffic','rgba(14,22,38,.85)','#F4F1EA')}
 {const bw=262,bh=80;const C=[[46,-150],[-46-bw,-150],[46,30],[-46-bw,30],[60,-60],[-60-bw,-60]].map(v=>[d[0]+v[0],d[1]+v[1]]),ok=v=>!hit([v[0],v[1],v[0]+bw,v[1]+bh]);if(!ok(C[BI]))BI=Math.max(0,C.findIndex(ok));const o=C[BI];
-const cx=o[0]+40,cy=o[1]+40;x.strokeStyle='#F4F1EA';x.lineWidth=3;x.beginPath();x.moveTo(d[0],d[1]);x.lineTo(cx,cy);x.stroke();rr(o[0],o[1],bw,bh,40,'rgba(14,22,38,.94)');
-x.save();x.beginPath();x.arc(cx,cy,32,0,6.29);x.fillStyle='#C9D6E6';x.fill();x.clip();poly([[cx-30,cy+40],[cx+30,cy+40],[cx+20,cy-14],[cx-20,cy-14]],SC.col);x.strokeStyle='#1A2233';x.lineWidth=5;x.beginPath();x.moveTo(cx-18,cy-14);x.lineTo(cx+24,cy+40);x.stroke();dev(cx+4,cy+8,11,col);x.restore();
-x.strokeStyle='#F4F1EA';x.lineWidth=3;x.beginPath();x.arc(cx,cy,32,0,6.29);x.stroke();fnt(24,1);x.fillStyle='#F4F1EA';x.fillText('Atmotube',o[0]+84,o[1]+35);fnt(24);x.fillStyle='#AEB9CF';x.fillText('worn by visitor',o[0]+84,o[1]+64)}
+const cx=o[0]+40,cy=o[1]+40;rr(o[0],o[1],bw,bh,40,'rgba(14,22,38,.94)');
+x.save();x.beginPath();x.arc(cx,cy,32,0,6.29);x.fillStyle='#C9D6E6';x.fill();x.clip();dev(cx,cy+8,13,col);x.restore();
+x.strokeStyle='#F4F1EA';x.lineWidth=3;x.beginPath();x.arc(cx,cy,32,0,6.29);x.stroke();fnt(24,1);x.fillStyle='#F4F1EA';x.fillText('Atmotube',o[0]+84,o[1]+35);fnt(24);x.fillStyle='#AEB9CF';x.fillText('wearable',o[0]+84,o[1]+64)}
 rr(W-500,24,476,H-48,22,'rgba(14,22,38,.95)');fnt(32,1);x.fillStyle=SC.col;x.fillText(SC.tag,W-470,72);fnt(26);x.fillStyle='#AEB9CF';x.fillText('Time on campus: '+((clock-segs[0].m0)/60).toFixed(1)+' h',W-470,110);
 x.translate(0,110);x.fillStyle='#F4F1EA';fnt(56,1);x.fillText(tm(clock),W-470,92);fnt(26);x.fillStyle='#AEB9CF';x.fillText(s.label,W-470,134);
 x.fillStyle=col;x.beginPath();x.arc(W-458,176,12,0,6.29);x.fill();x.fillStyle='#F4F1EA';fnt(30,1);x.fillText(s.c.toFixed(1)+' µg/m³ here',W-436,186);
 fnt(26);x.fillStyle='#AEB9CF';x.fillText('Inhaled PM₂.₅ so far',W-470,232);rr(W-470,248,416,42,10,'#22304B');
 rr(W-470,248,Math.max(4,416*dose/40),42,10,SC.col);x.fillStyle='#F4F1EA';fnt(30,1);x.fillText(dose.toFixed(1)+' µg',W-460,280);
-fnt(24,1);x.fillStyle='#F4F1EA';x.fillText('Sensors in this scene',W-470,346);fnt(24);x.fillStyle='#B79BFF';x.fillText('■ PurpleAir: rooftop + lecture hall',W-470,384);x.fillStyle='#F4F1EA';x.fillText('● Atmotube: worn by the visitor',W-470,418);x.setTransform(1,0,0,1,0,0);x.fillStyle='rgba(255,255,255,.12)';x.fillRect(W-470,H-128,416,2);fnt(24);x.fillStyle='#F4F1EA';x.fillText('Ground & path colour = PM₂.₅',W-470,H-82);
+fnt(24,1);x.fillStyle='#F4F1EA';x.fillText('Sensors in this scene',W-470,346);fnt(24);x.fillStyle='#B79BFF';x.fillText('■ PurpleAir: rooftop + lecture hall',W-470,384);x.fillStyle='#F4F1EA';x.fillText('● Atmotube: wearable (field sessions)',W-470,418);x.setTransform(1,0,0,1,0,0);x.fillStyle='rgba(255,255,255,.12)';x.fillRect(W-470,H-128,416,2);fnt(24);x.fillStyle='#F4F1EA';x.fillText('Ground & path color = PM₂.₅',W-470,H-82);
 const lg=x.createLinearGradient(W-412,0,W-172,0);lg.addColorStop(0,'#3FB950');lg.addColorStop(.5,'#E3B341');lg.addColorStop(1,'#F85149');x.fillStyle=lg;x.fillRect(W-412,H-62,240,22);x.fillStyle='#AEB9CF';x.fillText('low',W-470,H-42);x.fillText('high',W-160,H-42);
 requestAnimationFrame(frame)}requestAnimationFrame(frame);

@@ -1,0 +1,342 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>COP31 · ziyaretçi (gerçek kampüs)</title>
+<!-- Gerçek GTÜ kampüsü üzerinde 3B ziyaretçi animasyonu (video için). Veriyi kayit.js verir: init(veri), render(t sn).
+     Zaman deterministiktir (requestAnimationFrame yok); her kare yalnızca t'ye bağlıdır. Ağ kullanılmaz. -->
+<link rel="stylesheet" href="../../frontend_v2/vendor/fonts/fonts.css">
+<style>html,body{margin:0;background:#0E1626;overflow:hidden}canvas{display:block}</style>
+</head><body><canvas id="c" width="1664" height="700"></canvas>
+<script>
+const cv = document.getElementById('c'), x = cv.getContext('2d'), W = 1664, H = 700, SW = 1168;   // SW: sahne genişliği (sağda panel)
+const FONT = "Inter, 'DejaVu Sans', Arial, sans-serif";
+// Kampüs saatlik PM2.5 profili (anlık görüntü, 20 Ekim 2026; iso_engine.js ile aynı)
+const PH = [13.36,13.76,14.36,14.83,15.32,15.81,16.3,15.98,14.94,13.98,13.09,12.39,12.31,12.35,11.51,10.64,9.66,9.41,9.42,10,10.59,11.57,12.41,13.03];
+const R0 = 6378137, U3 = 3;           // doku 3× büyütülmüş
+let D, SC, RT, G, TEX, mpp, VE, segs, tot, TOTAL, BLD = [], ROAD, CAFE, KEY, PATHS = [], OV, F0 = null, FIELD = null, FIELDHR = -1;
+let C = null, Rr = [], PR = [0, 0, 0, 0], BI = 0;
+const sh = document.createElement('canvas'); sh.width = W; sh.height = H; const sx = sh.getContext('2d');
+
+const merc = (lon, lat) => [lon * Math.PI / 180 * R0, R0 * Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360))];
+const P = ll => { const m = merc(ll[0], ll[1]); return [G.s * m[0] + G.tx, -G.s * m[1] + G.ty]; };   // boylam/enlem → kaynak pikseli
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), sm = v => { v = clamp(v, 0, 1); return v * v * (3 - 2 * v); };
+const lerp = (a, b, f) => a + (b - a) * f;
+function rnd(i) { const s = Math.sin(i * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
+
+// ── kamera ve izdüşüm (ortografik; bakış yönü + eğim) ──
+function setCam(k, cu, cv_, psi) {
+  const a = psi * Math.PI / 180, E = 37 * Math.PI / 180;
+  C = { k, cu, cv: cv_, fx: Math.sin(a), fy: -Math.cos(a), rx: Math.cos(a), ry: Math.sin(a), sE: Math.sin(E), cE: Math.cos(E), sx: SW / 2, sy: H / 2 + 20 };
+}
+const S = (u, v, z) => [C.sx + C.k * ((u - C.cu) * C.rx + (v - C.cv) * C.ry),
+                        C.sy - C.k * C.sE * ((u - C.cu) * C.fx + (v - C.cv) * C.fy) - C.k * C.cE * (z || 0) * VE / mpp];
+const depth = (u, v) => (u - C.cu) * C.fx + (v - C.cv) * C.fy;   // büyük = uzak
+function groundT(zm) {   // doku pikseli → ekran (zm: metre yükseklik)
+  const o = S(G.crop[0], G.crop[1], zm);
+  x.setTransform(C.k * C.rx / U3, -C.k * C.sE * C.fx / U3, C.k * C.ry / U3, -C.k * C.sE * C.fy / U3, o[0], o[1]);
+}
+
+// ── yardımcılar ──
+function poly(pts, f, s, w) { x.beginPath(); pts.forEach((p, i) => i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1])); x.closePath(); if (f) { x.fillStyle = f; x.fill(); } if (s) { x.strokeStyle = s; x.lineWidth = w || 1.5; x.stroke(); } }
+function shade(rgb, k) { return `rgb(${clamp(rgb[0] * k, 0, 255) | 0},${clamp(rgb[1] * k, 0, 255) | 0},${clamp(rgb[2] * k, 0, 255) | 0})`; }
+function heat(v) { const s = [[0, [63, 185, 80]], [.5, [227, 179, 65]], [1, [240, 136, 62]], [1.4, [248, 81, 73]]]; v = clamp(v, 0, 1.4);
+  for (let i = 1; i < s.length; i++) if (v <= s[i][0]) { const f = (v - s[i - 1][0]) / (s[i][0] - s[i - 1][0]), A = s[i - 1][1], B = s[i][1]; return A.map((u, k) => u + (B[k] - u) * f | 0); } return s[3][1]; }
+const aqi = v => v <= 12 ? '#3FB950' : v <= 35.4 ? '#E3B341' : v <= 55.4 ? '#F0883E' : '#F85149';
+const fnt = (n, b) => x.font = (b ? '700 ' : '400 ') + n + 'px ' + FONT;
+const rr = (l, t, w, h, r, f) => { x.fillStyle = f; x.beginPath(); x.roundRect(l, t, w, h, r); x.fill(); };
+const hit = a => a[0] < 12 || a[2] > SW - 8 || a[1] < 10 || a[3] > H - 10 || Rr.some(r => a[0] < r[2] && a[2] > r[0] && a[1] < r[3] && a[3] > r[1]);
+function pill(px, py, t, bg, fg, force, nofade) {   // ekran uzayında etiket; çakışırsa yukarı/aşağı kaydırır, olmazsa çizmez
+  fnt(24, 1); const L = t.split('\n'), n = L.length - 1, tw = Math.max(...L.map(l => x.measureText(l).width)), hh = 38 + n * 30;
+  for (const dy of [0, -44, 44, -88, 88]) {
+    const cx = clamp(px, tw / 2 + 24, SW - tw / 2 - 20), top = py - 30 - n * 30 + dy, r = [cx - tw / 2 - 12, top, cx + tw / 2 + 12, top + hh];
+    if (!force && hit(r)) continue;
+    Rr.push(r); x.globalAlpha = !nofade && r[0] < PR[2] && r[2] > PR[0] && r[1] < PR[3] && r[3] > PR[1] ? .4 : 1;
+    rr(r[0], r[1], tw + 24, hh, 10, bg); x.fillStyle = fg; L.forEach((l, i) => x.fillText(l, cx - tw / 2, top + 30 + i * 30)); x.globalAlpha = 1;
+    return [cx, top + hh / 2];
+  }
+  return null;
+}
+function along(p, q) { const L = []; let tot = 0; for (let i = 0; i < p.length - 1; i++) { const d = Math.hypot(p[i + 1][0] - p[i][0], p[i + 1][1] - p[i][1]); L.push(d); tot += d; }
+  let d = clamp(q, 0, 1) * tot; for (let i = 0; i < L.length; i++) { if (d <= L[i] || i === L.length - 1) { const f = L[i] ? Math.min(1, d / L[i]) : 0; return [i, [lerp(p[i][0], p[i + 1][0], f), lerp(p[i][1], p[i + 1][1], f)]]; } d -= L[i]; } }
+function plen(p) { let t = 0; for (let i = 0; i < p.length - 1; i++) t += Math.hypot(p[i + 1][0] - p[i][0], p[i + 1][1] - p[i][1]); return t; }
+function dseg(px, py, a, b) { const dx = b[0] - a[0], dy = b[1] - a[1], l = dx * dx + dy * dy, t = l ? clamp(((px - a[0]) * dx + (py - a[1]) * dy) / l, 0, 1) : 0; return Math.hypot(px - a[0] - t * dx, py - a[1] - t * dy); }
+const dpoly = (u, v, p) => { let m = 1e9; for (let i = 0; i < p.length - 1; i++) m = Math.min(m, dseg(u, v, p[i], p[i + 1])); return m; };
+
+// Güneş konumu (20 Ekim, 40,8° K, 29,36° D, UTC+3): yükseklik ve azimut (kuzeyden saat yönünde)
+function sun(clockMin) {
+  const doy = 293, dec = -23.44 * Math.cos(2 * Math.PI / 365 * (doy + 10)) * Math.PI / 180, B = 2 * Math.PI * (doy - 81) / 364;
+  const eot = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B), solar = clockMin - 180 + 4 * 29.36 + eot;
+  const ha = (solar / 4 - 180) * Math.PI / 180, la = 40.806 * Math.PI / 180;
+  const el = Math.asin(Math.sin(la) * Math.sin(dec) + Math.cos(la) * Math.cos(dec) * Math.cos(ha));
+  const az = Math.atan2(Math.sin(ha), Math.cos(ha) * Math.sin(la) - Math.tan(dec) * Math.cos(la)) + Math.PI;
+  return { el: el * 180 / Math.PI, az };
+}
+
+// ── kurulum ──
+window.init = async function (data) {
+  D = data; KEY = data.key; SC = data.sahneler[KEY]; RT = data.rotalar[KEY]; G = data.georef; mpp = G.m_per_px; VE = data.rotalar.dikey_abartma;
+  await document.fonts.load('700 24px Inter'); await document.fonts.load('400 24px Inter');
+  TEX = new Image(); TEX.src = data.doku; await TEX.decode();
+  segs = SC.segs.map((s, i) => ({ ...s, path: RT.paths[i] ? RT.paths[i].map(P) : null, at: RT.at[i] ? P(RT.at[i]) : null }));
+  tot = 0; segs.forEach(s => { s.t0 = tot; tot += s.dur; }); TOTAL = tot + SC.hold;
+  ROAD = data.rotalar.ana_yol.map(P); CAFE = P(data.rotalar.kafe);
+  const H_ = data.rotalar.yukseklik_m, flat = new RegExp(data.rotalar.duz_alan, 'i');
+  data.geo.features.forEach((f, i) => {
+    const p = f.properties; if (p.cat !== 'bina') return; const name = (p.name || '').trim();
+    if (name && flat.test(name)) return; const h = name in H_ ? H_[name] : H_._varsayilan; if (!h) return;
+    const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates[0]] : f.geometry.coordinates.map(q => q[0]);
+    for (const ring of polys) {
+      let pts = ring.map(P); if (Math.hypot(pts[0][0] - pts.at(-1)[0], pts[0][1] - pts.at(-1)[1]) < 1e-6) pts = pts.slice(0, -1);
+      let a = 0; pts.forEach((q, j) => { const r = pts[(j + 1) % pts.length]; a += q[0] * r[1] - r[0] * q[1]; });
+      const c = pts.reduce((m, q) => [m[0] + q[0] / pts.length, m[1] + q[1] / pts.length], [0, 0]);
+      BLD.push({ name, id: i, pts, h, c, cw: a > 0, plain: (G.masked[i] || 0) > 0.2 });
+    }
+  });
+  tintBuildings();
+  // genel bakış kamerası: tüm güzergâh
+  const all = segs.flatMap(s => s.path || [s.at]); setCam(1, 0, 0, RT.bakis);
+  const sp = all.map(q => S(q[0], q[1], 0)), xs = sp.map(q => q[0]), ys = sp.map(q => q[1]);
+  const k0 = Math.min((SW - 220) / (Math.max(...xs) - Math.min(...xs)), (H - 230) / (Math.max(...ys) - Math.min(...ys)));
+  const cu = all.reduce((m, q) => m + q[0], 0) / all.length, cvv = all.reduce((m, q) => m + q[1], 0) / all.length;
+  setCam(k0, cu, cvv, RT.bakis); const c2 = S((Math.min(...all.map(q => q[0])) + Math.max(...all.map(q => q[0]))) / 2, (Math.min(...all.map(q => q[1])) + Math.max(...all.map(q => q[1]))) / 2, 0);
+  OV = { k: k0, cu: (Math.min(...all.map(q => q[0])) + Math.max(...all.map(q => q[0]))) / 2, cv: (Math.min(...all.map(q => q[1])) + Math.max(...all.map(q => q[1]))) / 2 };
+  F0 = null; render(0); F0 = document.createElement('canvas'); F0.width = W; F0.height = H; F0.getContext('2d').drawImage(cv, 0, 0);
+  return { total: TOTAL, tot, still: TOTAL - 0.75, bld: BLD.length, k0 };
+};
+
+// ── zaman çizelgesi ──
+function state(el) {
+  let si = segs.findIndex(s => el < s.t0 + s.dur); const done = si < 0; if (done) si = segs.length - 1;
+  const s = segs[si], q = done ? 1 : (el - s.t0) / s.dur;
+  return { si, s, q, done, pos: s.path ? along(s.path, q)[1] : s.at, clock: s.m0 + (s.m1 - s.m0) * q };
+}
+function camAt(t) {
+  let fu = 0, fv = 0, n = 0; for (let j = 0; j < 12; j++) { const st = state(Math.max(0, Math.min(tot, t - j * 0.09))); fu += st.pos[0]; fv += st.pos[1]; n++; }
+  fu /= n; fv /= n;
+  const e = sm(t / 2.2) * (1 - sm((t - tot - 0.2) / 1.6));
+  const k = OV.k * Math.pow(RT.yakin / OV.k, e);
+  return clampCam(k, lerp(OV.cu, fu, e), lerp(OV.cv, fv, e));
+}
+// kamera, sahne alanının dışına (doku sınırı ötesine) bakmasın
+function clampCam(k, cu, cvv) {
+  setCam(k, cu, cvv, RT.bakis); const us = [], vs = [];
+  for (const [X, Y] of [[0, 0], [SW, 0], [0, H], [SW, H]]) { const a = (X - C.sx) / k, b = (C.sy - Y) / (k * C.sE); us.push(cu + a * C.rx + b * C.fx); vs.push(cvv + a * C.ry + b * C.fy); }
+  const lo = [G.crop[0] + 2, G.crop[1] + 2], hi = [G.crop[0] + TEX.width / U3 - 2, G.crop[1] + TEX.height / U3 - 2];
+  const fix = (mn, mx, l, h) => mx - mn > h - l ? (l + h) / 2 - (mn + mx) / 2 : mn < l ? l - mn : mx > h ? h - mx : 0;
+  return [k, cu + fix(Math.min(...us), Math.max(...us), lo[0], hi[0]), cvv + fix(Math.min(...vs), Math.max(...vs), lo[1], hi[1])];
+}
+
+// ── kirlilik alanı (temsilî): ana yol kenarı + kafe çevresi; saatlik profil ile ölçeklenir ──
+function fieldVal(u, v) { return .55 + 1.9 * Math.exp(-dpoly(u, v, ROAD) / 22) + 1.0 * Math.exp(-Math.hypot(u - CAFE[0], v - CAFE[1]) / 14); }
+function buildField(hr) {
+  const cs = 3, w = Math.ceil(1200 / cs), h = Math.ceil(820 / cs), c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d'), im = g.createImageData(w, h), base = PH[hr] / 16;
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const v = fieldVal(G.crop[0] + (i + .5) * cs, G.crop[1] + (j + .5) * cs) * base, col = heat((v - .55) / 2.2), o = (j * w + i) * 4;
+    im.data[o] = col[0]; im.data[o + 1] = col[1]; im.data[o + 2] = col[2]; im.data[o + 3] = 255 * (.08 + .44 * clamp((v - .5) / 1.6, 0, 1));
+  }
+  g.putImageData(im, 0, 0); return { c, cs };
+}
+
+// ── çizim parçaları ──
+const WALL = [218, 211, 199];
+function tintBuildings() {   // duvar rengi: çatının uydu rengine hafifçe yaklaştır (gerçekçilik)
+  const c = document.createElement('canvas'), w = TEX.width / 6 | 0, h = TEX.height / 6 | 0; c.width = w; c.height = h; const g = c.getContext('2d');
+  g.drawImage(TEX, 0, 0, w, h); const im = g.getImageData(0, 0, w, h).data;
+  for (const b of BLD) { let r = 0, gg = 0, bb = 0, n = 0; for (const q of [b.c, ...b.pts.map(p => [lerp(p[0], b.c[0], .4), lerp(p[1], b.c[1], .4)])]) {
+      const i = Math.round((q[0] - G.crop[0]) * U3 / 6), j = Math.round((q[1] - G.crop[1]) * U3 / 6); if (i < 0 || j < 0 || i >= w || j >= h) continue;
+      const o = (j * w + i) * 4; r += im[o]; gg += im[o + 1]; bb += im[o + 2]; n++; }
+    const a = n ? [r / n, gg / n, bb / n] : WALL, L = (a[0] + a[1] + a[2]) / 3, k = 205 / Math.max(L, 60);
+    b.wall = b.plain ? WALL : WALL.map((u, i) => lerp(u, clamp(a[i] * k, 120, 240), .35)); }
+}
+function building(b, al, glow, sn) {
+  x.globalAlpha = al; const walls = [], n = b.pts.length;
+  for (let j = 0; j < n; j++) {
+    const a = b.pts[j], c = b.pts[(j + 1) % n], ex = c[0] - a[0], ey = c[1] - a[1], L = Math.hypot(ex, ey) || 1;
+    let nx = ey / L, ny = -ex / L; if (!b.cw) { nx = -nx; ny = -ny; }     // dışa bakan normal
+    // kaynak pikselde v aşağı doğru; saat yönü kontrolü ters olabilir → merkezden uzaklaşan yönü seç
+    const mx = (a[0] + c[0]) / 2, my = (a[1] + c[1]) / 2; if ((mx + nx - b.c[0]) ** 2 + (my + ny - b.c[1]) ** 2 < (mx - nx - b.c[0]) ** 2 + (my - ny - b.c[1]) ** 2) { nx = -nx; ny = -ny; }
+    if (nx * C.fx + ny * C.fy >= 0) continue;                                 // kameraya bakmıyor
+    walls.push({ a, c, nx, ny, L, d: depth(mx, my) });
+  }
+  walls.sort((p, q) => q.d - p.d);
+  for (const w of walls) {
+    const lit = .58 + .42 * sn.str * Math.max(0, w.nx * sn.dx + w.ny * sn.dy);
+    poly([S(w.a[0], w.a[1], 0), S(w.c[0], w.c[1], 0), S(w.c[0], w.c[1], b.h), S(w.a[0], w.a[1], b.h)], shade(b.wall || WALL, lit * sn.amb), 'rgba(30,34,44,.35)', 1);
+    if (w.L * mpp > 5 && b.h >= 4) for (let z = 1.0; z + 1.3 < b.h - .4; z += 3.4) {     // pencere bantları (kat başına)
+      const p = (f, zz) => S(lerp(w.a[0], w.c[0], f), lerp(w.a[1], w.c[1], f), zz);
+      poly([p(.06, z), p(.94, z), p(.94, z + 1.4), p(.06, z + 1.4)], glow ? 'rgba(255,214,130,.95)' : `rgba(38,52,72,${.55 + .2 * (1 - lit)})`);
+    }
+  }
+  const roof = b.pts.map(q => S(q[0], q[1], b.h));
+  x.save(); x.beginPath(); roof.forEach((p, i) => i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1])); x.closePath(); x.clip();
+  if (b.plain) { x.fillStyle = shade([196, 192, 184], sn.amb); x.fill(); }
+  else { groundT(b.h); x.drawImage(TEX, 0, 0); x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = `rgba(214,208,196,.30)`; x.fill(); }
+  x.restore(); poly(roof, null, 'rgba(255,255,255,.45)', 1.5);
+  x.globalAlpha = 1;
+}
+function shadowOf(b, off) {
+  const n = b.pts.length, g = q => S(q[0], q[1], 0), o = q => S(q[0] + off[0] * b.h, q[1] + off[1] * b.h, 0);
+  const fill = pts => { sx.beginPath(); pts.forEach((p, i) => i ? sx.lineTo(p[0], p[1]) : sx.moveTo(p[0], p[1])); sx.closePath(); sx.fill(); };
+  fill(b.pts.map(g)); fill(b.pts.map(o)); for (let j = 0; j < n; j++) { const a = b.pts[j], c = b.pts[(j + 1) % n]; fill([g(a), g(c), o(c), o(a)]); }
+}
+function dev(px, py, k, led) { rr(px - k, py - k * 1.4, k * 2, k * 2.8, k * .5, '#1C2028'); x.strokeStyle = led; x.lineWidth = k * .35; x.beginPath(); x.arc(px, py - k * .5, k * .5, 0, 6.29); x.stroke(); }
+function ring(px, py, t, col) { const k = (t / 1.4) % 1; x.strokeStyle = col; x.globalAlpha = 1 - k; x.lineWidth = 3; x.beginPath(); x.arc(px, py, 8 + k * 30, 0, 6.29); x.stroke(); x.globalAlpha = 1; }
+function person(u, v, col, walk, t, led) {
+  const g0 = S(u, v, 0), K = .85; x.save(); x.translate(g0[0], g0[1]); x.scale(K, K); x.translate(-g0[0], -g0[1]); const r = person0(g0, col, walk, t, led); x.restore();
+  return [g0[0] + (r[0] - g0[0]) * K, g0[1] + (r[1] - g0[1]) * K];
+}
+function person0(g, col, walk, t, led) { x.fillStyle = 'rgba(8,12,18,.45)'; x.beginPath(); x.ellipse(g[0], g[1], 18, 7, 0, 0, 6.29); x.fill();
+  x.strokeStyle = col; x.lineWidth = 3; x.beginPath(); x.ellipse(g[0], g[1], 24, 9, 0, 0, 6.29); x.stroke();
+  const sw = walk ? Math.sin(t * 9) * 8 : 0; x.lineCap = 'round';
+  x.strokeStyle = '#F4F1EA'; x.lineWidth = 12; x.beginPath(); x.moveTo(g[0], g[1] - 30); x.lineTo(g[0] - sw, g[1] - 2); x.moveTo(g[0], g[1] - 30); x.lineTo(g[0] + sw, g[1] - 2); x.stroke();
+  x.strokeStyle = '#1A2233'; x.lineWidth = 8; x.beginPath(); x.moveTo(g[0], g[1] - 30); x.lineTo(g[0] - sw, g[1] - 2); x.moveTo(g[0], g[1] - 30); x.lineTo(g[0] + sw, g[1] - 2); x.stroke();
+  poly([[g[0] - 13, g[1] - 28], [g[0] + 13, g[1] - 28], [g[0] + 10, g[1] - 62], [g[0] - 10, g[1] - 62]], col, '#F4F1EA', 2.5);
+  x.fillStyle = '#E8C9A8'; x.strokeStyle = '#F4F1EA'; x.lineWidth = 2.5; x.beginPath(); x.arc(g[0], g[1] - 74, 11, 0, 6.29); x.fill(); x.stroke();
+  x.strokeStyle = '#1A2233'; x.lineWidth = 3; x.beginPath(); x.moveTo(g[0] - 9, g[1] - 62); x.lineTo(g[0] + 11, g[1] - 32); x.stroke();
+  return [g[0] + 5, g[1] - 48];   // Atmotube ziyaretçinin üstünde gösterilmez: doz modeldir, ölçülmüş kişi değil
+}
+function pa(p, t, ph) { x.fillStyle = '#F4F1EA'; x.beginPath(); x.roundRect(p[0] - 11, p[1] - 32, 22, 30, 5); x.fill(); rr(p[0] - 14, p[1] - 40, 28, 11, 5, '#6A3FB5');
+  x.fillStyle = '#8C93A0'; x.fillRect(p[0] - 7, p[1] - 22, 14, 2); x.fillRect(p[0] - 7, p[1] - 15, 14, 2); ring(p[0], p[1] - 20, t + ph, '#B79BFF'); }
+function car(cr, sn) {
+  const [u, v] = cr.p, hx = cr.dx * 1.8, hy = cr.dy * 1.8, wx = -cr.dy * .8, wy = cr.dx * .8, z = 1.6;
+  const base = [[u - hx - wx, v - hy - wy], [u + hx - wx, v + hy - wy], [u + hx + wx, v + hy + wy], [u - hx + wx, v - hy + wy]];
+  poly(base.map(q => S(q[0], q[1], 0)), 'rgba(10,12,16,.45)');
+  const top = base.map(q => S(q[0], q[1], z));
+  poly([S(base[0][0], base[0][1], 0), S(base[1][0], base[1][1], 0), top[1], top[0]], shade(cr.col, .62 * sn.amb));
+  poly([S(base[3][0], base[3][1], 0), S(base[2][0], base[2][1], 0), top[2], top[3]], shade(cr.col, .72 * sn.amb));
+  poly(top, shade(cr.col, 1.05 * sn.amb), 'rgba(0,0,0,.4)', 1);
+}
+
+// ── kare ──
+window.render = function (t) {
+  const el = Math.min(t, TOTAL); Rr = []; x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
+  const st = state(el), { s, q, done, si } = st, clock = st.clock, hr = Math.floor(clock / 60) % 24;
+  const base = PH[hr] / 16, dose = done ? segs.reduce((u, v) => u + v.dose, 0) : segs.slice(0, si).reduce((u, v) => u + v.dose, 0) + s.dose * q, col = aqi(s.c);
+  const pos = st.pos, sp = sun(clock), sn = { str: sm((sp.el + 1) / 9), amb: lerp(.78, 1, sm((sp.el + 2) / 14)), dx: Math.sin(sp.az), dy: -Math.cos(sp.az) };
+  const [k, cu, cvv] = camAt(el); setCam(k, cu, cvv, RT.bakis);
+  // zemin
+  x.fillStyle = '#1A2230'; x.fillRect(0, 0, W, H);
+  x.save(); x.beginPath(); x.rect(0, 0, SW, H); x.clip();
+  groundT(0); x.imageSmoothingQuality = 'high'; x.drawImage(TEX, 0, 0);
+  if (FIELDHR !== hr) { FIELD = buildField(hr); FIELDHR = hr; }
+  { const o = S(G.crop[0], G.crop[1], 0); x.setTransform(C.k * C.rx * FIELD.cs, -C.k * C.sE * C.fx * FIELD.cs, C.k * C.ry * FIELD.cs, -C.k * C.sE * C.fy * FIELD.cs, o[0], o[1]); x.drawImage(FIELD.c, 0, 0); }
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  // gölgeler (tek katman: üst üste binmez)
+  const vis = BLD.filter(b => { const p = S(b.c[0], b.c[1], 0); return p[0] > -300 && p[0] < SW + 300 && p[1] > -300 && p[1] < H + 400; });
+  const se = Math.max(sp.el, 6) * Math.PI / 180, L = Math.min(3.2, 1 / Math.tan(se)) * VE / mpp;
+  const off = [-sn.dx * L, -sn.dy * L];
+  sx.clearRect(0, 0, W, H); sx.fillStyle = '#000'; vis.forEach(b => shadowOf(b, off));
+  x.globalAlpha = .34 * sn.str; x.drawImage(sh, 0, 0); x.globalAlpha = 1;
+  // güzergâh: gelecek (soluk kesikli) ve geçilen (derişim renginde)
+  x.lineCap = x.lineJoin = 'round';
+  const line = (pp, w, c, dash) => { x.setLineDash(dash || []); x.strokeStyle = c; x.lineWidth = w; x.beginPath(); pp.forEach((p, i) => { const z = S(p[0], p[1], 0); i ? x.lineTo(z[0], z[1]) : x.moveTo(z[0], z[1]); }); x.stroke(); x.setLineDash([]); };
+  segs.forEach((g, i) => { if (g.path && i >= si && !done) line(g.path, 4, 'rgba(244,241,234,.55)', [10, 12]); });
+  segs.forEach((g, i) => { if (g.path && (i < si || (i === si) || done)) { const [kk, p] = along(g.path, i < si || done ? 1 : q), pp = [...g.path.slice(0, kk + 1), p]; line(pp, 12, 'rgba(8,12,18,.55)'); line(pp, 6, aqi(g.c)); } });
+  // iç mekândan iç mekâna geçiş (B: 12:00 kütüphane → bölüm binası): kısa kesikli ok
+  if (s.inside && si > 0 && segs[si - 1].inside && segs[si - 1].at && (el - s.t0) < 1.4) {
+    const a = S(segs[si - 1].at[0], segs[si - 1].at[1], 0), b = S(s.at[0], s.at[1], 0), m = [(a[0] + b[0]) / 2, Math.min(a[1], b[1]) - 90], f = sm((el - s.t0) / .6), al = 1 - sm((el - s.t0 - .9) / .5);
+    x.globalAlpha = al; x.setLineDash([12, 10]); x.strokeStyle = SC.col; x.lineWidth = 5; x.beginPath(); x.moveTo(a[0], a[1]);
+    for (let i = 1; i <= 20; i++) { const u = i / 20 * f; x.lineTo((1 - u) ** 2 * a[0] + 2 * u * (1 - u) * m[0] + u * u * b[0], (1 - u) ** 2 * a[1] + 2 * u * (1 - u) * m[1] + u * u * b[1]); } x.stroke(); x.setLineDash([]); x.globalAlpha = 1;
+  }
+  // nesneler: binalar, araçlar, ziyaretçi, sensörler — uzaktan yakına
+  const items = [], inB = s.inside ? D.rotalar[KEY].ic[s.in] : null;
+  for (const b of vis) { const inside = inB && b.name === inB; items.push({ d: depth(b.c[0], b.c[1]), f: () => building(b, inside ? .42 : 1, inside, sn) }); }
+  const cars = []; const RL = plen(ROAD);
+  for (let i = 0; i < 16; i++) { const dir = i % 2, v = (32 + 14 * rnd(i)) / mpp, s0 = rnd(i + 50) * RL, dd = ((s0 + (dir ? -1 : 1) * v * el) % RL + RL) % RL;
+    const [j, p] = along(ROAD, dd / RL), a = ROAD[j], b = ROAD[j + 1], l = Math.hypot(b[0] - a[0], b[1] - a[1]), dx = (b[0] - a[0]) / l, dy = (b[1] - a[1]) / l, side = dir ? 1.9 : -1.9;
+    const cr = { p: [p[0] - dy * side, p[1] + dx * side], dx, dy, col: [[233, 229, 220], [59, 91, 169], [178, 59, 59], [44, 47, 54], [220, 196, 138], [160, 165, 170]][i % 6], i, dir, v, s0 };
+    cars.push(cr); items.push({ d: depth(cr.p[0], cr.p[1]), f: () => car(cr, sn) }); }
+  let me = [0, 0];
+  items.push({ d: s.inside ? 1e9 : depth(pos[0], pos[1]) - 1, f: () => { me = person(pos[0], pos[1], SC.col, !!s.path && !done, el, col); } });
+  const sumer = BLD.find(b => b.name === 'SUMER'), chem = BLD.find(b => b.name === 'Kimya ve Çevre Mühendisliği Bölümü');
+  let paRoof = null, paIn = null;
+  if (sumer) items.push({ d: depth(sumer.c[0], sumer.c[1]) - .5, f: () => { const p = S(sumer.c[0], sumer.c[1], sumer.h); x.fillStyle = '#8C93A0'; x.fillRect(p[0] - 2, p[1] - 8, 4, 10); pa([p[0], p[1] - 6], el, 0); paRoof = p; } });
+  if (chem) { // iç ortam PurpleAir (Amfi 1, zemin kat): kameraya bakan cephede aydınlık pencere
+    let best = null; const n = chem.pts.length;
+    for (let j = 0; j < n; j++) { const a = chem.pts[j], c = chem.pts[(j + 1) % n], mx = (a[0] + c[0]) / 2, my = (a[1] + c[1]) / 2, L2 = Math.hypot(c[0] - a[0], c[1] - a[1]);
+      const sc = -depth(mx, my) + L2 * .2; if (!best || sc > best.sc) best = { sc, m: [mx, my] }; }
+    items.push({ d: depth(chem.c[0], chem.c[1]) - 40, f: () => { const p = S(best.m[0], best.m[1], 1.4); rr(p[0] - 19, p[1] - 48, 38, 50, 4, '#FFE6A8'); pa([p[0], p[1]], el, .7); paIn = p; } });
+  }
+  items.sort((a, b) => b.d - a.d).forEach(i => i.f());
+  // egzoz dumanı (araç başına son 6 püf), partikül pusu
+  for (const cr of cars) for (let j = 0; j < 6; j++) {
+    const te = Math.floor(el / .35) * .35 - j * .35, age = el - te; if (age < 0 || age > 2.1) continue; const lf = 1 - age / 2.1;
+    const dd = ((cr.s0 + (cr.dir ? -1 : 1) * cr.v * te) % RL + RL) % RL, [, p] = along(ROAD, dd / RL), g = S(p[0] - cr.dx * 2, p[1] - cr.dy * 2 + age * .6, .8 + age * 2.2);
+    x.fillStyle = `rgba(96,94,90,${.30 * lf * clamp(base, .4, 1.2)})`; x.beginPath(); x.arc(g[0], g[1], 5 + age * 9, 0, 6.29); x.fill();
+  }
+  for (let i = 0; i < 220; i++) {
+    const u = cu + (rnd(i) - .5) * 1400 / k * 1.2, v = cvv + (rnd(i + 999) - .5) * 1400 / k * 1.2, f = fieldVal(u, v) * base;
+    if (f < .75) continue; const ph = rnd(i + 77) * 6.28 + el * .5, g = S(u + Math.sin(ph) * 2, v, 2 + 6 * rnd(i + 5) + Math.cos(ph) * .6);
+    x.fillStyle = `rgba(214,204,188,${Math.min(.5, .085 * f * f)})`; x.beginPath(); x.arc(g[0], g[1], 2.5 + 2.6 * f, 0, 6.29); x.fill();
+  }
+  // solunan parçacıklar (doz hızına bağlı, deterministik)
+  if (!done) { const rate = s.dose / s.dur * 1.6, dt = 1 / Math.max(rate, .3);
+    for (let j = 0; j < 40; j++) { const te = Math.floor(el / dt) * dt - j * dt, age = el - te; if (age < 0 || age > .75) continue; const id = Math.round(te / dt), lf = 1 - age / .75;
+      const ox = (rnd(id) - .5) * 140, oy = (rnd(id + 3) - .5) * 100, px = me[0] + ox * lf, py = me[1] - 26 + oy * lf;
+      x.fillStyle = `rgba(118,106,96,${lf})`; x.beginPath(); x.arc(px, py, 4.5, 0, 6.29); x.fill(); } }
+  // gün ışığı tonu
+  x.globalCompositeOperation = 'multiply'; const tw = sm((sp.el + 3) / 10), gold = sm((sp.el - 2) / 14);
+  x.fillStyle = `rgb(${lerp(184, 255, tw) | 0},${lerp(192, lerp(232, 255, gold), tw) | 0},${lerp(218, lerp(205, 255, gold), tw) | 0})`; x.fillRect(0, 0, SW, H);
+  x.globalCompositeOperation = 'source-over';
+  x.restore();
+  const d = me; PR = [d[0] - 30, d[1] - 50, d[0] + 26, d[1] + 56]; Rr.push(PR.slice());
+  // ── etiketler (ekran uzayı, çakışmasız) ──
+  if (el < 3.2) card(['Follow the visitor  ·  orange ground = more PM₂.₅'], Math.min(1, (3.2 - el) * 2.5));
+  if (done) card(RT.son, sm((el - tot) / .5));
+  const LB = [];
+  for (const [txt, ref, lo, la] of RT.etiketler) {
+    let p = null, inside = false;
+    if (ref === '@yol') { let bst = null; for (let i = 0; i <= 40; i++) { const [, q2] = along(ROAD, i / 40), z = S(q2[0], q2[1], 0); if (z[0] > 120 && z[0] < SW - 160 && z[1] > 90 && z[1] < H - 60) { const sc = -Math.abs(z[0] - SW * .35); if (!bst || sc > bst.sc) bst = { sc, z }; } } if (bst) p = [bst.z[0], bst.z[1] + 46]; }
+    else if (ref === '@nokta') { const q2 = P([lo, la]); p = S(q2[0], q2[1], 0); p[1] += 10; }
+    else { const b = BLD.filter(b => b.name === ref).sort((a, b) => b.h - a.h)[0]; if (b) { p = S(b.c[0], b.c[1], b.h + 6); inside = inB === ref; if (inside) p[1] = Math.min(p[1], d[1] - 120); } }
+    if (!p || p[0] < 40 || p[0] > SW - 40 || p[1] < 30 || p[1] > H - 20) continue;
+    LB.push({ inside, f: () => pill(p[0], p[1], txt + (inside ? ' · visitor inside' : ''), inside ? SC.col : 'rgba(14,22,38,.86)', '#F4F1EA', inside, inside) });
+  }
+  LB.filter(l => l.inside).forEach(l => l.f());          // öncelik: içerideki bina etiketi, Atmotube balonu, sensörler, diğer adlar
+  t0b = el; balloon(d, col);
+  if (paRoof) pill(paRoof[0] + 130, paRoof[1] - 52, 'PurpleAir · rooftop\nmeasures every 2 min', '#6A3FB5', '#F4F1EA');
+  if (paIn) pill(paIn[0] + 120, paIn[1] + 84, 'PurpleAir · indoor\n(lecture hall)', '#6A3FB5', '#F4F1EA');
+  LB.filter(l => !l.inside).forEach(l => l.f());
+  panel(clock, s, col, dose, done);
+  if (F0 && t > TOTAL - .45) { x.globalAlpha = sm((t - (TOTAL - .45)) / .45); x.drawImage(F0, 0, 0); x.globalAlpha = 1; }   // döngü: ilk kareye yumuşak geçiş
+};
+function card(lines, al) {
+  if (al <= 0) return; x.globalAlpha = al; const two = lines.length > 1, h = two ? 112 : 80, top = H - h - 20;
+  Rr.push([20, top, SW - 20, H - 20]); rr(20, top, SW - 40, h, 20, 'rgba(14,22,38,.95)');
+  x.fillStyle = '#F5A623'; fnt(two ? 31 : 34, 1); x.fillText(lines[0], 46, top + (two ? 46 : 52));
+  if (two) { x.fillStyle = '#F4F1EA'; fnt(26, 0); x.fillText(lines[1], 46, top + 88); }
+  x.globalAlpha = 1;
+}
+let t0b = 0;
+function balloon(d, col) {
+  const bw = 222, bh = 80, Cn = [[46, -150], [-46 - bw, -150], [46, 30], [-46 - bw, 30], [60, -60], [-60 - bw, -60]].map(v => [d[0] + v[0], d[1] + v[1]]), ok = v => !hit([v[0], v[1], v[0] + bw, v[1] + bh]);
+  if (!ok(Cn[BI])) { const fi = Cn.findIndex(ok); if (fi >= 0) BI = fi; else { // hiçbiri boş değilse en az çakışanı seç
+    const ov = v => Rr.reduce((m, r) => m + Math.max(0, Math.min(r[2], v[0] + bw) - Math.max(r[0], v[0])) * Math.max(0, Math.min(r[3], v[1] + bh) - Math.max(r[1], v[1])), 0) + (v[0] < 12 || v[1] < 10 || v[0] + bw > SW || v[1] + bh > H ? 1e6 : 0);
+    BI = Cn.map((v, i) => [ov(v), i]).sort((p, q) => p[0] - q[0])[0][1]; } } const o = Cn[BI]; Rr.push([o[0], o[1], o[0] + bw, o[1] + bh]);
+  const cx = o[0] + 40, cy = o[1] + 40; rr(o[0], o[1], bw, bh, 40, 'rgba(14,22,38,.94)');   // rozet (bağlantı çizgisi yok)
+  x.beginPath(); x.arc(cx, cy, 32, 0, 6.29); x.fillStyle = '#C9D6E6'; x.fill(); dev(cx, cy + 8, 13, col); ring(cx, cy - 2, t0b, '#F4F1EA');
+  x.strokeStyle = '#F4F1EA'; x.lineWidth = 3; x.beginPath(); x.arc(cx, cy, 32, 0, 6.29); x.stroke(); fnt(24, 1); x.fillStyle = '#F4F1EA'; x.fillText('Atmotube', o[0] + 84, o[1] + 35); fnt(24); x.fillStyle = '#AEB9CF'; x.fillText('wearable', o[0] + 84, o[1] + 64);
+}
+const tm = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(Math.floor(m % 60)).padStart(2, '0');
+function panel(clock, s, col, dose, done) {
+  const L = SW + 14, PW = W - L - 14, X0 = L + 26, hrs = (segs.at(-1).m1 - segs[0].m0) / 60, el = (clock - segs[0].m0) / 60;
+  rr(L, 14, PW, 556, 20, 'rgba(14,22,38,.96)');
+  fnt(30, 1); x.fillStyle = SC.col; x.fillText(SC.tag, X0, 58);
+  fnt(24); x.fillStyle = '#AEB9CF'; x.fillText(`Elapsed: ${el.toFixed(1)} h of ${hrs} h`, X0, 94);
+  fnt(54, 1); x.fillStyle = '#F4F1EA'; x.fillText(tm(clock), X0, 158);
+  fnt(24); x.fillStyle = '#AEB9CF'; x.fillText(s.label, X0, 194);
+  x.fillStyle = col; x.beginPath(); x.arc(X0 + 11, 230, 11, 0, 6.29); x.fill(); x.fillStyle = '#F4F1EA'; fnt(28, 1); x.fillText(s.c.toFixed(1) + ' µg/m³ here', X0 + 32, 240);
+  fnt(24); x.fillStyle = '#AEB9CF'; x.fillText(done ? 'Inhaled PM₂.₅, total' : 'Inhaled PM₂.₅ so far', X0, 284);
+  const bw = PW - 52; rr(X0, 298, bw, 42, 10, '#22304B'); rr(X0, 298, Math.max(4, bw * dose / 40), 42, 10, SC.col);
+  x.fillStyle = '#F4F1EA'; fnt(28, 1); x.fillText(dose.toFixed(1) + ' µg', X0 + 12, 329);
+  x.fillStyle = 'rgba(255,255,255,.12)'; x.fillRect(X0, 360, bw, 2);
+  fnt(24, 1); x.fillStyle = '#F4F1EA'; x.fillText('Sensors in this scene', X0, 394);
+  fnt(24); x.fillStyle = '#B79BFF'; x.fillText('■ PurpleAir: rooftop + lecture hall', X0, 428); x.fillStyle = '#F4F1EA'; x.fillText('● Atmotube: wearable (field sessions)', X0, 460);
+  x.fillStyle = 'rgba(255,255,255,.12)'; x.fillRect(X0, 480, bw, 2);
+  fnt(24); x.fillStyle = '#F4F1EA'; x.fillText('Ground & path color = PM₂.₅', X0, 512);
+  const lg = x.createLinearGradient(X0 + 58, 0, X0 + 298, 0); lg.addColorStop(0, '#3FB950'); lg.addColorStop(.5, '#E3B341'); lg.addColorStop(1, '#F85149');
+  x.fillStyle = lg; x.fillRect(X0 + 58, 530, 240, 20); x.fillStyle = '#AEB9CF'; x.fillText('low', X0, 549); x.fillText('high', X0 + 310, 549);
+  // sürekli uyarı satırı (panelin altında)
+  rr(L, 580, PW, 106, 16, 'rgba(14,22,38,.96)'); fnt(24, 1); x.fillStyle = '#F5A623'; x.fillText('Illustrative scenario · modelled dose,', X0, 614);
+  x.fillText('not a measured person', X0, 644); fnt(24); x.fillStyle = '#8C97AD'; x.fillText('Imagery © Esri, Maxar', X0, 674);
+}
+</script></body></html>
