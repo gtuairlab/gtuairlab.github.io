@@ -12,7 +12,7 @@ const FONT = "Inter, 'DejaVu Sans', Arial, sans-serif";
 const PH = [13.36,13.76,14.36,14.83,15.32,15.81,16.3,15.98,14.94,13.98,13.09,12.39,12.31,12.35,11.51,10.64,9.66,9.41,9.42,10,10.59,11.57,12.41,13.03];
 const R0 = 6378137, U3 = 3;           // doku 3× büyütülmüş
 let D, SC, RT, G, TEX, mpp, VE, segs, tot, TOTAL, BLD = [], ROAD, CAFE, KEY, PATHS = [], OV, FIELD = null, FIELDHR = -1;
-let ICON = null, C = null, Rr = [], PR = [0, 0, 0, 0], BI = 0;
+let G0 = 0, ICON = null, C = null, Rr = [], PR = [0, 0, 0, 0], BI = 0;
 const sh = document.createElement('canvas'); sh.width = W; sh.height = H; const sx = sh.getContext('2d');
 
 const merc = (lon, lat) => [lon * Math.PI / 180 * R0, R0 * Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360))];
@@ -79,7 +79,7 @@ window.init = async function (data) {
   TEX = new Image(); TEX.src = data.doku; await TEX.decode();
   if (data.ikon) { ICON = new Image(); ICON.src = data.ikon; await ICON.decode(); }
   segs = SC.segs.map((s, i) => ({ ...s, dur: RT.sure ? RT.sure[i] : s.dur, label: (RT.etiket && RT.etiket[i]) || s.label, path: RT.paths[i] ? RT.paths[i].map(P) : null, at: RT.at[i] ? P(RT.at[i]) : null }));
-  tot = 0; segs.forEach(s => { s.t0 = tot; tot += s.dur; }); TOTAL = tot + (RT.bekle != null ? RT.bekle : SC.hold);
+  G0 = RT.giris || 0; tot = G0; segs.forEach(s => { s.t0 = tot; tot += s.dur; }); TOTAL = tot + (RT.bekle != null ? RT.bekle : SC.hold);   // tot = son durağın bitiş anı
   ROAD = data.rotalar.ana_yol.map(P); CAFE = P(data.rotalar.kafe);
   const H_ = data.rotalar.yukseklik_m, flat = new RegExp(data.rotalar.duz_alan, 'i');
   data.geo.features.forEach((f, i) => {
@@ -107,13 +107,13 @@ window.init = async function (data) {
 // ── zaman çizelgesi ──
 function state(el) {
   let si = segs.findIndex(s => el < s.t0 + s.dur); const done = si < 0; if (done) si = segs.length - 1;
-  const s = segs[si], q = done ? 1 : (el - s.t0) / s.dur;
+  const s = segs[si], q = done ? 1 : clamp((el - s.t0) / s.dur, 0, 1);
   return { si, s, q, done, pos: s.path ? along(s.path, q)[1] : s.at, clock: s.m0 + (s.m1 - s.m0) * q };
 }
 function camAt(t) {
-  let fu = 0, fv = 0, n = 0; for (let j = 0; j < 20; j++) { const st = state(Math.max(0, Math.min(tot, t - j * 0.1))); fu += st.pos[0]; fv += st.pos[1]; n++; }
+  let fu = 0, fv = 0, n = 0; for (let j = 0; j < 30; j++) { const st = state(Math.max(0, Math.min(tot, t - j * 0.1))); fu += st.pos[0]; fv += st.pos[1]; n++; }
   fu /= n; fv /= n;
-  const e = sm(t / 2.2) * (1 - sm((t - tot - 0.2) / 1.6));
+  const e = sm((t - G0 + .3) / 3.2) * (1 - sm((t - tot - 0.3) / 2.8));   // açılışta genel bakış, sonra yumuşak yakınlaşma
   const k = OV.k * Math.pow(RT.yakin / OV.k, e);
   return clampCam(k, lerp(OV.cu, fu, e), lerp(OV.cv, fv, e));
 }
@@ -248,7 +248,7 @@ window.render = function (t) {
     const cr = { p: [p[0] - dy * side, p[1] + dx * side], dx, dy, col: [[233, 229, 220], [59, 91, 169], [178, 59, 59], [44, 47, 54], [220, 196, 138], [160, 165, 170]][i % 6], i, dir, v, s0 };
     cars.push(cr); items.push({ d: depth(cr.p[0], cr.p[1]), f: () => car(cr, sn) }); }
   let me = [0, 0];
-  items.push({ d: s.inside ? 1e9 : depth(pos[0], pos[1]) - 1, f: () => { me = person(pos[0], pos[1], SC.col, !!s.path && !done, el, col); } });
+  items.push({ d: s.inside ? 1e9 : depth(pos[0], pos[1]) - 1, f: () => { me = person(pos[0], pos[1], SC.col, !!s.path && !done && el >= G0, el, col); } });
   const sumer = BLD.find(b => b.name === 'SUMER'), chem = BLD.find(b => b.name === 'Kimya ve Çevre Mühendisliği Bölümü');
   let paRoof = null, paIn = null;
   if (sumer) items.push({ d: depth(sumer.c[0], sumer.c[1]) - .5, f: () => { const p = S(sumer.c[0], sumer.c[1], sumer.h); x.fillStyle = '#8C93A0'; x.fillRect(p[0] - 2, p[1] - 8, 4, 10); pa([p[0], p[1] - 6], el, 0); paRoof = p; } });
@@ -278,7 +278,7 @@ window.render = function (t) {
     x.fillStyle = `rgba(214,204,188,${Math.min(.5, .085 * f * f)})`; x.beginPath(); x.arc(g[0], g[1], 2.5 + 2.6 * f, 0, 6.29); x.fill();
   }
   // solunan parçacıklar (doz hızına bağlı, deterministik)
-  if (!done) { const rate = s.dose / s.dur * 1.6, dt = 1 / Math.max(rate, .3);
+  if (!done && el >= G0) { const rate = s.dose / s.dur * 1.6, dt = 1 / Math.max(rate, .3);
     for (let j = 0; j < 40; j++) { const te = Math.floor(el / dt) * dt - j * dt, age = el - te; if (age < 0 || age > .75) continue; const id = Math.round(te / dt), lf = 1 - age / .75;
       const ox = (rnd(id) - .5) * 140, oy = (rnd(id + 3) - .5) * 100, px = me[0] + ox * lf, py = me[1] - 26 + oy * lf;
       x.fillStyle = `rgba(118,106,96,${lf})`; x.beginPath(); x.arc(px, py, 4.5, 0, 6.29); x.fill(); } }
@@ -289,8 +289,11 @@ window.render = function (t) {
   x.restore();
   const d = me; PR = [d[0] - 30, d[1] - 50, d[0] + 26, d[1] + 56]; Rr.push(PR.slice());
   // ── etiketler (ekran uzayı, çakışmasız) ──
-  if (el < 3.2) card(['Follow the visitor  ·  orange ground = more PM₂.₅ (illustrative)'], Math.min(1, (3.2 - el) * 2.5));
-  if (done) card(RT.son, sm((el - tot) / .5));
+  if (el < G0 + .3) card(['Follow the visitor  ·  orange ground = more PM₂.₅ (illustrative)'], Math.min(1, (G0 + .3 - el) * 2.5));
+  const endK = done ? sm((el - tot - RT.son_gec) / .6) : 0;     // sonda: telefon (maruziyet asistanı) + sonuç kartı birlikte
+  const phA = phoneState(el, clock); if (phA) { phA.top = lerp(H + 20, H - 14 - PHH, phA.k); Rr.push([14, phA.top - 10, 34 + PHW + 16, H]); if (phA.k > .9) Rr.push([24 + PHW, phA.top + 30, 24 + PHW + 470, phA.top + 100]); }
+  if (endK > 0) card(RT.son, endK, 24 + PHW + 22);
+  caption(el, phA);
   const LB = [];
   for (const [txt, ref, lo, la] of RT.etiketler) {
     let p = null, inside = false;
@@ -300,40 +303,84 @@ window.render = function (t) {
     if (!p || p[0] < 40 || p[0] > SW - 40 || p[1] < 30 || p[1] > H - 20) continue;
     LB.push({ inside, pri: (RT.oncelik || []).includes(ref), f: () => pill(p[0], p[1], txt + (inside ? ' · visitor inside' : ''), inside ? SC.col : 'rgba(14,22,38,.86)', '#F4F1EA', inside, inside, (RT.oncelik || []).includes(ref)) });
   }
-  const nb = notice(el, clock);                           // 08:00 telefon bildirimi (yalnız A): önce yer ayır
   LB.filter(l => l.inside).forEach(l => l.f());          // öncelik: içerideki bina, karşılaştırma, kafe adı, Atmotube, sensörler, diğer adlar
   if (RT.kiyas && si === RT.kiyas.seg && !done && clock >= RT.bildirim.saat + 6) {   // tek çatı sensörü kafeyi göremez
-    x.globalAlpha = sm((clock - RT.bildirim.saat - 6) / 4); pill(d[0], d[1] + 150, RT.kiyas.metin, 'rgba(14,22,38,.95)', '#F5A623', false, true, true); x.globalAlpha = 1;
+    x.globalAlpha = sm((clock - RT.bildirim.saat - 6) / 4); pill(phA ? d[0] + 230 : d[0], phA ? d[1] + 40 : d[1] + 150, phA ? RT.kiyas.metin2 : RT.kiyas.metin, 'rgba(14,22,38,.95)', '#F5A623', false, true, true); x.globalAlpha = 1;
   }
   LB.filter(l => !l.inside && l.pri).forEach(l => l.f());
   { const a = atm[RT.atmotube_etiket]; if (a) pill(a[0] + 40, a[1] - 34, 'Atmotube field data', '#1C2028', '#F4F1EA'); }
   if (paRoof) pill(paRoof[0] + 130, paRoof[1] - 52, 'PurpleAir · rooftop\nmeasures every 2 min', '#6A3FB5', '#F4F1EA');
   if (paIn) pill(paIn[0] + 120, paIn[1] + 84, 'PurpleAir · indoor\n(lecture hall)', '#6A3FB5', '#F4F1EA');
   LB.filter(l => !l.inside && !l.pri).forEach(l => l.f());
-  if (nb) nb();
+  if (phA) phone(phA);
   panel(clock, s, col, dose, done);
 };
-// iOS tarzı bildirim kartı: harita alanının üstünden kayarak iner (~3 sn)
-function notice(el, clock) {
-  const N = RT.bildirim; if (!N) return null; const s0 = segs.find(s => N.saat >= s.m0 && N.saat < s.m1); if (!s0) return null;
-  const t0 = s0.t0 + (N.saat - s0.m0) / (s0.m1 - s0.m0) * s0.dur, u = el - t0; if (u < 0 || u > N.sn) return null;
-  const k = sm(u / .35) * (1 - sm((u - N.sn + .35) / .35)), w = 1010, l = (SW - w) / 2;
-  fnt(24); const words = N.metin.split(' '), lines = []; let cur = '';
-  for (const wd of words) { const tr = cur ? cur + ' ' + wd : wd; if (x.measureText(tr).width > w - 92) { lines.push(cur); cur = wd; } else cur = tr; } lines.push(cur);
-  const h = 108 + lines.length * 31, top = 14 - (1 - k) * (h + 30); Rr.push([l, 14, l + w, 14 + h]);
-  return () => {
-    x.save(); x.shadowColor = 'rgba(0,0,0,.35)'; x.shadowBlur = 24; x.shadowOffsetY = 6; rr(l, top, w, h, 26, 'rgba(246,246,248,.97)'); x.restore();
-    if (ICON) { x.save(); x.beginPath(); x.roundRect(l + 22, top + 20, 40, 40, 10); x.clip(); x.drawImage(ICON, l + 22, top + 20, 40, 40); x.restore(); }
-    fnt(24); x.fillStyle = '#5F6672'; x.fillText(N.ust, l + 76, top + 49);
-    fnt(26, 1); x.fillStyle = '#11151C'; x.fillText(N.baslik, l + 24, top + 96);
-    fnt(24); x.fillStyle = '#2A303A'; lines.forEach((t, i) => x.fillText(t, l + 24, top + 132 + i * 31));
-  };
+// ── adım altyazısı: büyük, tek satır, saate bağlı (alt üçte bir) ──
+function capTimes() {
+  return (RT.altyazi || []).map(c => { let t0;
+    if (c.son) t0 = tot + .3; else { const sg = segs.find(g => c.saat >= g.m0 && c.saat < g.m1) || segs[0]; t0 = sg.t0 + (c.saat - sg.m0) / (sg.m1 - sg.m0) * sg.dur; }
+    return { t0, t1: t0 + (c.sn || 3.5), metin: c.metin }; });
 }
-function card(lines, al) {
-  if (al <= 0) return; x.globalAlpha = al; const two = lines.length > 1, h = two ? 112 : 80, top = H - h - 20;
-  Rr.push([20, top, SW - 20, H - 20]); rr(20, top, SW - 40, h, 20, 'rgba(14,22,38,.95)');
-  x.fillStyle = '#F5A623'; fnt(two ? 31 : 34, 1); x.fillText(lines[0], 46, top + (two ? 46 : 52));
-  if (two) { x.fillStyle = '#F4F1EA'; fnt(26, 0); x.fillText(lines[1], 46, top + 88); }
+function caption(el, ph) {
+  const c = capTimes().find(c => el >= c.t0 && el < c.t1); if (!c) return;
+  const a = sm((el - c.t0) / .45) * (1 - sm((el - c.t1 + .45) / .45)); if (a <= 0) return;
+  const l0 = ph ? 24 + PHW + 20 : 24, r0 = SW - 24, maxw = r0 - l0 - 40; let fs = 34, wt = 1;
+  for (;;) { fnt(fs, wt); if (x.measureText(c.metin).width <= maxw || (fs <= 30 && !wt)) break; if (fs > 30) fs -= 2; else wt = 0; }
+  const tw = Math.min(maxw, x.measureText(c.metin).width), cx = (l0 + r0) / 2, top = 520, h = fs + 26;
+  Rr.push([cx - tw / 2 - 20, top, cx + tw / 2 + 20, top + h]);
+  x.globalAlpha = a; rr(cx - tw / 2 - 20, top, tw + 40, h, 14, 'rgba(255,255,255,.95)'); x.fillStyle = '#0E1626'; x.fillText(c.metin, cx - tw / 2, top + fs + 6, maxw); x.globalAlpha = 1;
+}
+// ── telefon: 08:00 bildirimi (A) ve sonda maruziyet asistanı sonucu (A, B) ──
+const PHW = 380, PHH = 530;
+function phoneState(el, clock) {
+  const N = RT.bildirim;
+  if (N) { const sg = segs.find(g => N.saat >= g.m0 && N.saat < g.m1);
+    if (sg) { const t0 = sg.t0 + (N.saat - sg.m0) / (sg.m1 - sg.m0) * sg.dur, u = el - t0;
+      if (u >= 0 && u < N.sn) return { kind: 'push', u, k: sm(u / .55) * (1 - sm((u - N.sn + .5) / .5)), tag: 'GTU AirLab app · push notification' }; } }
+  if (RT.asistan && el - tot >= RT.son_gec) { const u = el - tot - RT.son_gec; return { kind: 'asst', u, k: sm(u / .6), tag: 'GTU AirLab app · exposure assistant' }; }
+  return null;
+}
+function wrap(t, w) { const out = []; let cur = ''; for (const wd of t.split(' ')) { const tr = cur ? cur + ' ' + wd : wd; if (x.measureText(tr).width > w && cur) { out.push(cur); cur = wd; } else cur = tr; } out.push(cur); return out; }
+function phone(ph) {
+  const x0 = 24, top0 = H - 14 - PHH, top = lerp(H + 20, top0, ph.k); ph.top = top;
+  const shake = ph.kind === 'push' && ph.u > .7 && ph.u < 1.25 ? Math.sin((ph.u - .7) * 70) * 6 * (1 - (ph.u - .7) / .55) : 0, X = x0 + shake;
+  x.save(); x.shadowColor = 'rgba(0,0,0,.5)'; x.shadowBlur = 30; rr(X, top, PHW, PHH, 50, '#0A0D13'); x.restore();
+  x.strokeStyle = '#3A4252'; x.lineWidth = 3; x.beginPath(); x.roundRect(X + 1.5, top + 1.5, PHW - 3, PHH - 3, 49); x.stroke();
+  const sx0 = X + 12, sy0 = top + 12, sw = PHW - 24, shh = PHH - 24;
+  const g = x.createLinearGradient(0, sy0, 0, sy0 + shh); g.addColorStop(0, '#1C2A4A'); g.addColorStop(1, '#3B2F5E');
+  x.save(); x.beginPath(); x.roundRect(sx0, sy0, sw, shh, 40); x.clip(); x.fillStyle = g; x.fillRect(sx0, sy0, sw, shh);
+  rr(X + PHW / 2 - 50, sy0 + 10, 100, 28, 14, '#05070B');                                   // çentik
+  if (ph.kind === 'push') {
+    const N = RT.bildirim; x.fillStyle = '#F4F1EA'; x.textAlign = 'center'; fnt(24); x.fillText('Tuesday, 20 October', X + PHW / 2, sy0 + 80); fnt(64, 1); x.fillText('08:00', X + PHW / 2, sy0 + 146); x.textAlign = 'left';
+    const pk = sm((ph.u - .55) / .3); if (pk > 0) {
+      const cl = sx0 + 12, cw = sw - 24, ty = sy0 + 172; fnt(24, 1); const T = wrap(N.baslik, cw - 32); fnt(24); const B = wrap(N.metin, cw - 32);
+      const ch = 70 + T.length * 29 + B.length * 29 + 14; x.globalAlpha = pk; const sc = .92 + .08 * pk;
+      x.translate(cl + cw / 2, ty + ch / 2); x.scale(sc, sc); x.translate(-(cl + cw / 2), -(ty + ch / 2));
+      rr(cl, ty, cw, ch, 22, 'rgba(246,246,248,.97)');
+      if (ICON) { x.save(); x.beginPath(); x.roundRect(cl + 16, ty + 14, 36, 36, 9); x.clip(); x.drawImage(ICON, cl + 16, ty + 14, 36, 36); x.restore(); }
+      fnt(24); x.fillStyle = '#5F6672'; x.fillText(N.ust, cl + 64, ty + 41);
+      fnt(24, 1); x.fillStyle = '#11151C'; T.forEach((t, i) => x.fillText(t, cl + 16, ty + 84 + i * 29));
+      fnt(24); x.fillStyle = '#2A303A'; B.forEach((t, i) => x.fillText(t, cl + 16, ty + 84 + T.length * 29 + 4 + i * 29));
+    }
+  } else {
+    const A = RT.asistan, cl = sx0 + 16, cw = sw - 32; let y = sy0 + 74;
+    if (ICON) { x.save(); x.beginPath(); x.roundRect(cl, y - 26, 40, 40, 10); x.clip(); x.drawImage(ICON, cl, y - 26, 40, 40); x.restore(); }
+    fnt(24, 1); x.fillStyle = '#F4F1EA'; wrap(A.baslik, cw - 52).forEach((t, i) => x.fillText(t, cl + 52, y + i * 28)); y += 74;
+    rr(cl - 4, y - 8, cw + 8, shh - (y - sy0) - 8, 22, 'rgba(246,246,248,.97)'); y += 30;
+    fnt(24); x.fillStyle = '#5F6672'; x.fillText(A.gun, cl + 14, y); y += 58;
+    fnt(52, 1); x.fillStyle = SC.col; x.fillText(A.doz, cl + 14, y); y += 34;
+    fnt(24); x.fillStyle = '#11151C'; x.fillText(A.birim, cl + 14, y); y += 34; x.fillText(A.sure, cl + 14, y); y += 44;
+    x.fillStyle = '#5F6672'; x.fillText(A.pay_ad, cl + 14, y); y += 30; fnt(24, 1); x.fillStyle = '#11151C'; wrap(A.pay, cw - 28).forEach((t, i) => x.fillText(t, cl + 14, y + i * 29));
+  }
+  x.restore();
+  if (ph.k > .9) pill(X + PHW + 16 + 210, top + 70, ph.tag, 'rgba(14,22,38,.94)', '#F4F1EA', true, true);
+}
+function card(lines, al, l0) {
+  if (al <= 0) return; l0 = l0 || 20; const w = SW - 20 - l0; x.globalAlpha = al; fnt(34, 1); const L1 = lines[0].split('\n').flatMap(t => wrap(t, w - 52));
+  const h = 30 + L1.length * 42 + (lines[1] ? 40 : 0) + 6, top = H - h - 20;
+  Rr.push([l0, top, SW - 20, H - 20]); rr(l0, top, w, h, 20, 'rgba(14,22,38,.96)');
+  x.fillStyle = '#F5A623'; L1.forEach((t, i) => x.fillText(t, l0 + 26, top + 52 + i * 42));
+  if (lines[1]) { x.fillStyle = '#F4F1EA'; fnt(26, 0); x.fillText(lines[1], l0 + 26, top + 52 + L1.length * 42); }
   x.globalAlpha = 1;
 }
 const tm = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(Math.floor(m % 60)).padStart(2, '0');

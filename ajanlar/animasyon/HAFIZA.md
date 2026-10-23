@@ -58,3 +58,8 @@
   Döngü geçişi yok, sonuç kartı ≥ 5 sn; zemin lejantı "ground shading: illustrative"; panel metinleri "Busy café terrace",
   "Walk to the Congress Center"; Amerikan yazımı (modeled, Center). A kafe durağı kafenin kuzey tarafına alındı (işaretle çakışmasın).
   Videolar: A 18,5 sn 6,34 MB, B 18,3 sn 4,53 MB (CRF 19).
+- 23 Ekim, 3. tur (kullanıcı: "çok hızlı", "net notlar", "bildirimi uygulama gönderiyormuş gibi"): A 34,5 sn, B 34 sn; açılış genel
+  planı 3 sn; altyazı çubuğu (beyaz, ≥ 30 px, tek satır, 2,6–3,5 sn, saate bağlı); telefon (380×530) sol altta yükselir: A'da 08:00
+  push (kilit ekranı "Tuesday, 20 October 08:00", kart + sarsıntı, etiket "GTU AirLab app · push notification"), iki videonun sonunda
+  maruziyet asistanı ("Your day 36.5 µg / 16.2 µg · 2.0 h / 8.0 h · largest share: walk to the Congress Center / late-afternoon walk").
+  Not: uygulamanın kendisi asistanda µg'yi tam sayıya yuvarlar (36 / 16, `maruziyet.js` f0); videoda deste ile tutarlı 36.5 / 16.2.

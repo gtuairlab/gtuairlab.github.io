@@ -36,3 +36,7 @@ Video A'da 08:00'de uygulamanın gerçek sabah özeti bildirimi görünür (meti
 15,4 µg/m³ = kafe dilimi kampüs profili ortalaması, HKİ 58; gerçek bildirim 16,0 · HKİ 59 olurdu, sınıf aynı). Atmotube ziyaretçide değil, R katsayısının saha verisinden geldiği binalarda sabit işarettir.
 Döngü geçişi yok: son kare ve durağan PNG sonuç kartıdır (≥ 5 sn bekler). Videoya özgü süre ve panel metinleri `harita_rotalar.json`'da
 (`sure`, `bekle`, `etiket`); `sahneler.json` (embed ile ortak) değişmedi.
+
+3. tur (23 Ekim): videolar yavaşlatıldı (~34 sn; `giris` 3 sn açılış, `sure`, `bekle` 8,5 sn), saate bağlı büyük adım altyazıları
+(`altyazi`), 08:00 bildirimi artık telefon kilit ekranında (sarsıntılı), sonda telefonda maruziyet asistanı sonucu (`asistan`) +
+sonuç kartı birlikte. Kayıt yaklaşık 12 dakika sürer (iki video).

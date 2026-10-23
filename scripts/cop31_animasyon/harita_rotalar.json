@@ -18,16 +18,23 @@
   "etiketler": [["Güzide Café", "Güzide Kafe"], ["Congress & Culture Center", "Kongre ve Kültür Merkezi"], ["Road traffic", "@yol"]],
   "son": ["Visitor A: 36.5 µg in just 2 hours"],
   "_sure": "Videoya özgü sahne süreleri (sn); kafe uzatıldı ki 08:00 bildirimi ve karşılaştırma kafedeyken görünsün. Doz ve saatler değişmez.",
-  "sure": [4, 5.0, 4],
-  "bekle": 5.5,
+  "giris": 3, "sure": [7, 9, 7], "bekle": 8.5, "son_gec": 3.0,
   "etiket": [null, "Busy café terrace", "Walk to the Congress Center"],
   "oncelik": ["Güzide Kafe"],
   "atmotube": ["Güzide Kafe", "Kongre ve Kültür Merkezi"], "atmotube_etiket": "Güzide Kafe",
-  "bildirim": {"saat": 480, "sn": 3.0, "ust": "AirLab · now",
+  "bildirim": {"saat": 480, "sn": 4.5, "ust": "AirLab · now",
     "baslik": "Good morning · Campus air: Moderate (AQI 58)",
     "metin": "PM₂.₅ 15.4 µg/m³ (30-min average, US EPA-corrected). Very sensitive people may consider limiting long, intense outdoor activity.",
     "_kaynak": "backend/bildirim.py summary_payload('Günaydın'); 15.4 = kafe dilimi (07:30–08:30) kampüs profili ortalaması = kafe 30.9 / R 2.0; gerçek bildirim 07:30–08:00 ortalamasını (P07 16.0, HKİ 59) verirdi, sınıf aynı (Orta); hki(15.4) = 58 (colorscale.js)"},
-  "kiyas": {"seg": 1, "metin": "Campus sensor: 15.4 · at this café terrace: 30.9 µg/m³"}
+  "altyazi": [{"saat": 420, "metin": "Visitor A arrives, walking along a road with traffic"},
+    {"saat": 450, "metin": "Breakfast on a busy café terrace: about 2× the campus level"},
+    {"saat": 480, "metin": "08:00: the AirLab app sends its morning summary"},
+    {"saat": 510, "metin": "A brisk walk to the Congress Center: breathing faster, inhaling more"},
+    {"son": true, "sn": 2.6, "metin": "2 hours on campus: 36.5 µg PM₂.₅ inhaled"}],
+  "asistan": {"baslik": "AirLab exposure assistant", "gun": "Your day", "doz": "36.5 µg", "birim": "PM₂.₅ inhaled", "sure": "2.0 h",
+    "pay_ad": "Largest share:", "pay": "walk to the Congress Center",
+    "_kaynak": "frontend_v2/js/maruziyet.js satır ~427 'Toplam X µg · Y saat · en büyük pay: <yer>' (uygulama µg'yi tam sayıya yuvarlar: 36)"},
+  "kiyas": {"seg": 1, "metin": "Campus sensor: 15.4 · at this café terrace: 30.9 µg/m³", "metin2": "Campus sensor: 15.4 µg/m³\nat this café terrace: 30.9 µg/m³"}
  },
  "B": {
   "bakis": 0, "yakin": 3.6,
@@ -36,10 +43,17 @@
             null],
   "at": [[29.358702,40.806514],[29.362312,40.805986],null,[29.358671,40.806491]],
   "ic": {"lib": "Kütüphane", "chem": "Kimya ve Çevre Mühendisliği Bölümü"},
-  "bekle": 5.5,
+  "giris": 3, "sure": [4.5, 6.5, 7.5, 4], "bekle": 8.5, "son_gec": 3.0,
+  "altyazi": [{"saat": 600, "metin": "Visitor B studies in the library, windows closed: low exposure"},
+    {"saat": 720, "metin": "Lectures in a department building all afternoon"},
+    {"saat": 990, "metin": "A late-afternoon walk through the green core: the cleanest hours outdoors"},
+    {"saat": 1020, "metin": "Back to the library"},
+    {"son": true, "sn": 2.6, "metin": "8 hours on campus: 16.2 µg, less than half of A"}],
+  "asistan": {"baslik": "AirLab exposure assistant", "gun": "Your day", "doz": "16.2 µg", "birim": "PM₂.₅ inhaled", "sure": "8.0 h",
+    "pay_ad": "Largest share:", "pay": "late-afternoon walk"},
   "atmotube": ["Kütüphane", "Kimya ve Çevre Mühendisliği Bölümü"], "atmotube_etiket": "Kütüphane",
   "_atmotube": "Bina katsayısı R'si Atmotube saha oturumlarından gelen binalar (HAFIZA: Güzide 2,0 n122; Kongre 1,40 n49; Kimya ve Çevre 0,92 n3959; Kütüphane 0,62 n135).",
   "etiketler": [["Library", "Kütüphane"], ["Chem. & Env. Eng.", "Kimya ve Çevre Mühendisliği Bölümü"], ["Green lawns", "@nokta", 29.3576, 40.8048]],
-  "son": ["2 hours in the wrong places > 8 hours in the right places", "A: 36.5 µg in 2 h · B: 16.2 µg in 8 h"]
+  "son": ["2 hours in the wrong places >\n8 hours in the right places", "A: 36.5 µg in 2 h · B: 16.2 µg in 8 h"]
  }
 }
