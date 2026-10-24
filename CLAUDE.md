@@ -64,6 +64,10 @@ Tek bir güncel sürüm olması için **tek kaynak `main` branch'idir**.
   kayıtlar arşive girmiyordu (7 günde 0–32 kayıt). Saatlik `collect_atmotube_history`: son kayıttan bugüne (≤30 gün) her saat; 1 Haziran
   2026'dan beri eski günler bir kez (`atmotube_backfill` tablosu, çalışma başına cihaz başına 25 gün → ~6 saatte biter). Kontrol:
   `measurements`'ta ATP kayıt sayıları; artmazsa Render loglarında `[collector/atmotube_history]`.
+  **24 Ekim 2026 düzeltmesi:** bulut HTTP 429 (istek sınırı) veriyordu; toplayıcı önce Haziran'daki eski günleri sorduğu için
+  hata alınca yakın günlere hiç geçmiyordu (ör. ATP-1 22 Ekim: bulutta 87, arşivde 2 kayıt). Artık önce bütün cihazların yakın
+  günleri (en yenisi önce), sonra çalışma başına cihaz başına 5 eski gün; 429'da o saatlik çalışma durur. Nem -128 (sensör geçersiz)
+  artık boş yazılır (`atmotube_cloud.clean_humidity`); arşivde önceden yazılmış 160 kayıt -128 olarak duruyor (kullanıcıya soruldu).
 - **Atmotube bulutu (14 Ekim 2026):** Bulut uzun tarih aralığını (120 gün) reddediyordu; son verisi 2 günden eski cihazlar
   "bulut yanıt vermiyor" görünüyordu. Geriye bakma kaldırıldı, son ölçüm `measurements` arşivinden geliyor. Hata metni o güne kadar
   herkese açık çıktıya anahtarla birlikte yazılabiliyordu (maskelendi) → kullanıcıya Atmotube anahtarını yenilemeyi öner (karar onun).

@@ -27,6 +27,11 @@ _cache = {"ts": 0, "data": None}
 CACHE_SECONDS = 60
 
 
+def clean_humidity(h):
+    """Atmotube nem sensörü geçersizken -128 gönderir; 0–100 dışındaki değer yok sayılır."""
+    return h if isinstance(h, (int, float)) and 0 <= h <= 100 else None
+
+
 def _fetch_device_latest(mac):
     """Bir cihazın son ölçümünü döner. Son okumada GPS yoksa, yakın geçmişteki
     son bilinen konumu (lat/lon) ekler — böylece kapalı alanda bile harita işaretçisi çıkar."""
@@ -91,7 +96,7 @@ def _fetch_device_latest(mac):
         "pm2_5": it.get("pm25"),
         "pm10_0": it.get("pm10"),
         "temperature_c": it.get("t"),
-        "humidity_pct": it.get("h"),
+        "humidity_pct": clean_humidity(it.get("h")),
         "pressure_hpa": it.get("p"),
         "lat": lat,
         "lon": lon,
