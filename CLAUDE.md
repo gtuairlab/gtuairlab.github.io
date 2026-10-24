@@ -22,6 +22,9 @@ Tek bir güncel sürüm olması için **tek kaynak `main` branch'idir**.
   www.ibb.istanbul) yurt dışından (Render, Supabase Frankfurt) zaman aşımına düşüyor; istanbul.gov.tr açılıyor. Kullanıcı
   Türkiye'den siteyi açıp kontrol edecek: açılıyorsa yurt dışı engeli (çözüm: Türkiye'de çalışan toplayıcı), açılmıyorsa
   İBB kesintisi (beklenir). `ibb.py` başarısız denemeden sonra 10 dk tekrar denemez (tek işçili sunucu 20 sn kilitlenmesin).
+  24 Ekim: kullanıcı İBB sayfasını Türkiye'den açabiliyor → yurt dışı engeli. Yurt dışından erişilebilen yedek: WAQI (aqicn.org)
+  istasyon @14848 "Tuzla" (ÇŞB Ulusal Hava Kalitesi İzleme Ağı, aynı konum), PM₂.₅'i US EPA AQI olarak verir (µg/m³'e geri çevrilmeli,
+  kesim tablosu sürümü doğrulanmalı) ve birkaç saat gecikmeli. Resmî API ücretsiz anahtar ister (WAQI_TOKEN, Render). Kullanıcının kararı bekleniyor.
 - **CO₂ şimdilik kapalı (kullanıcının kararı, 13 Ekim 2026):** ölçüm alınmıyor; uygulamada `api.js` → `CO2_AKTIF = false`
   (panel, harita, lejant, Özet çipi, kesinti duyurusu gizli; veri silinmedi) ve rapordan çıkarıldı. Sensörler yeniden tanımlanınca
   `CO2_AKTIF = true` yap. Not: 22 Haziran 15:01'den sonraki 2 798 kayıt donmuş değer (toplayıcı çevrimdışı cihazın son değerini
@@ -67,7 +70,8 @@ Tek bir güncel sürüm olması için **tek kaynak `main` branch'idir**.
   **24 Ekim 2026 düzeltmesi:** bulut HTTP 429 (istek sınırı) veriyordu; toplayıcı önce Haziran'daki eski günleri sorduğu için
   hata alınca yakın günlere hiç geçmiyordu (ör. ATP-1 22 Ekim: bulutta 87, arşivde 2 kayıt). Artık önce bütün cihazların yakın
   günleri (en yenisi önce), sonra çalışma başına cihaz başına 5 eski gün; 429'da o saatlik çalışma durur. Nem -128 (sensör geçersiz)
-  artık boş yazılır (`atmotube_cloud.clean_humidity`); arşivde önceden yazılmış 160 kayıt -128 olarak duruyor (kullanıcıya soruldu).
+  artık boş yazılır (`atmotube_cloud.clean_humidity`); eski kayıtlar da kullanıcının onayıyla boşaltıldı (24 Ekim 2026: measurements 160,
+  atmotube_readings 149; yedek `yedek_atmotube_nem_128`).
 - **Atmotube bulutu (14 Ekim 2026):** Bulut uzun tarih aralığını (120 gün) reddediyordu; son verisi 2 günden eski cihazlar
   "bulut yanıt vermiyor" görünüyordu. Geriye bakma kaldırıldı, son ölçüm `measurements` arşivinden geliyor. Hata metni o güne kadar
   herkese açık çıktıya anahtarla birlikte yazılabiliyordu (maskelendi) → kullanıcıya Atmotube anahtarını yenilemeyi öner (karar onun).
