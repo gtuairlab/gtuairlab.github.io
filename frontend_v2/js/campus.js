@@ -714,9 +714,11 @@ const Campus = (() => {
             const diff = period !== "all" && e.stats && e.stats.n > s.n ? s.avg - e.stats.avg : null;
             const sub = worst ? `en kötü ay: ${monthLabel(worst.ym, true)} ${f1tr(worst.avg)}${worst.n < FEW ? ` (${worst.n} ölçüm)` : ""}`
                       : diff != null ? `genelden ${diff >= 0 ? "+" : "−"}${f1tr(Math.abs(diff))}` : "";
-            return `<button class="rk-row" data-i="${features.indexOf(e)}">
+            // FEW'den az ölçümlü bina sıralamada kalır ama soluk ve "(az ölçüm)" notlu (Sağlık › Binalar ile aynı eşik)
+            const thin = s.n < FEW;
+            return `<button class="rk-row${thin ? " thin" : ""}" data-i="${features.indexOf(e)}">
                 <span class="rk-no">${i + 1}</span>
-                <span class="rk-name">${UNIT[e.unit].icon} ${nameOf(e)}<small>${s.n.toLocaleString("tr-TR")} ölçümün ortalaması${sub ? " · " + sub : ""}</small></span>
+                <span class="rk-name">${UNIT[e.unit].icon} ${nameOf(e)}<small>${s.n.toLocaleString("tr-TR")} ölçümün ortalaması${thin ? " (az ölçüm)" : ""}${sub ? " · " + sub : ""}</small></span>
                 <b class="rk-val" style="background:${pm25Color(s.avg)}">${f1tr(s.avg)}</b></button>`;
         });
         if (few.length) {
@@ -815,5 +817,5 @@ const Campus = (() => {
     function buildingsGeo() { return ready ? features.filter(e => e.cat === "bina").map(e => e.feature) : []; }
 
     return { init, colorByPoints, setVisible, setChoropleth, setPeriod, getPeriod, monthOf, fitCampus, buildingStats, focusByKey,
-             buildingShape, campusOutline, buildingsGeo, buildingAt };
+             buildingShape, campusOutline, buildingsGeo, buildingAt, shortName };
 })();

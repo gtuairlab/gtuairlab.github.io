@@ -72,7 +72,7 @@ const Ozet = (() => {
         let html = `<div class="oz-head"><span>Günlük özet</span><small>Bugün · ${today}</small></div>`;
 
         if (!src) {
-            html += `<div class="oz-card"><div class="wh-empty">Şu an güncel ölçüm yok: sabit hava kalitesi sensörü ve bölge istasyonu veri göndermiyor.
+            html += `<div class="oz-card"><div class="wh-empty">Şu an güncel ölçüm yok: sabit hava kalitesi sensöründen ve bölge istasyonundan güncel veri alınamıyor.
                 Sensör durumlarını aşağıda görebilirsiniz.</div></div>`;
         } else {
             const h = hki(src.v), a = ADVICE[h.ad] || ADVICE["Orta"];
@@ -105,10 +105,11 @@ const Ozet = (() => {
         }
         // Kampüs ile Tuzla aynı saatte (Tuzla değeri 1–3 saat geride olabilir; anlık kampüs değeriyle karşılaştırılmaz)
         const same = paFresh && tzFresh && typeof paSameHour === "function" ? paSameHour(hist, tz) : null;
-        if (same) {
-            const d = same.v - tz.pm2_5;
-            html += `<div class="oz-line">${d < -0.5 ? ico("trending-down") + " Kampüs bölgeden daha temiz" : d > 0.5 ? ico("trending-up") + " Kampüs bölgeden daha kirli" : ico("equal") + " Kampüs ve bölge benzer"}
-                <small>(saat ${same.hour} · kampüs ${f1(same.v)} · Tuzla ${f1(tz.pm2_5)})</small></div>`;
+        // Dil kiyas.js → verdict ile aynı (±%5 "benzer"; "temiz/kirli" hükmü yok, ölçüm yöntemleri farklı)
+        const sv = same && tz.pm2_5 > 0 ? Kiyas.verdict({ pct: (same.v - tz.pm2_5) / tz.pm2_5 * 100 }) : null;
+        if (sv) {
+            html += `<div class="oz-line">${sv.icon} ${sv.txt}
+                <small>(saat ${same.hour} · kampüs ${f1(same.v)} · Tuzla ${f1(tz.pm2_5)} µg/m³ · ${sv.not})</small></div>`;
         }
 
         // Sensör durumu
@@ -137,7 +138,7 @@ const Ozet = (() => {
         const top = Math.max(12, ...vals), hh = t => t.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Istanbul" });
         const mx = hours.reduce((a, b) => (b.v ?? -1) > (a.v ?? -1) ? b : a), mn = hours.reduce((a, b) => b.v != null && (a.v == null || b.v < a.v) ? b : a);
         return `<div class="oz-24"><div class="oz-24-head"><span>Son 24 saat (PM₂.₅)</span>
-              <span>en yüksek <b>${f1(mx.v)}</b> · en düşük <b>${f1(mn.v)}</b></span></div>
+              <span>en yüksek <b>${f1(mx.v)}</b> · en düşük <b>${f1(mn.v)}</b> µg/m³</span></div>
             <div class="oz-24-bars" role="img" aria-label="Son 24 saatin saatlik PM₂.₅ değerleri">${hours.map((x, i) => x.v == null
                 ? `<i class="gap" title="${hh(x.t).slice(0, 2)}:00 · ölçüm yok"></i>`
                 : `<i class="${i === 23 ? "now" : ""}" style="--c:${pm25Color(x.v)};height:${Math.max(8, x.v / top * 100).toFixed(0)}%" title="${hh(x.t).slice(0, 2)}:00 · ${f1(x.v)} µg/m³"></i>`).join("")}</div>
@@ -203,7 +204,7 @@ const Ozet = (() => {
                 // ±%5 içi "benzer" (kampüs–Tuzla karşılaştırmasıyla aynı eşik, kiyas.js → verdict)
                 trend = ap < 5
                     ? `<div class="oz-trend">${ico("equal")} ${prevName} ayıyla benzer <small>(fark %${ap})</small></div>`
-                    : `<div class="oz-trend ${pct > 0 ? "up" : "down"}">${pct > 0 ? "▲" : "▼"} ${prevName} ayına göre %${ap} ${pct > 0 ? "daha kirli" : "daha temiz"}</div>`;
+                    : `<div class="oz-trend ${pct > 0 ? "up" : "down"}">${ico(pct > 0 ? "trending-up" : "trending-down")} ${prevName} ayına göre %${ap} ${pct > 0 ? "daha yüksek" : "daha düşük"}</div>`;
             }
             html += `<div class="oz-card">
                 <div class="wh-k">Kampüs ortalaması · PM₂.₅ · PurpleAir</div>
@@ -212,8 +213,8 @@ const Ozet = (() => {
                 <div class="oz-tiles">
                   <div class="${s.exceed ? "bad" : "ok"}"><span>WHO günlük değeri (${g.day}) aşılan gün</span><b>${s.exceed} / ${s.usable.length}</b></div>
                   <div class="${ok ? "ok" : "bad"}"><span>WHO yıllık değerine (${g.year}) göre</span><b>${f1(s.mean / g.year)} kat</b></div>
-                  ${s.usable.length >= 2 ? `<div><span>En kirli gün</span><b>${dayLabel(s.worst.k)}</b><small>${f1(s.worst.v)} µg/m³</small></div>
-                  <div><span>En temiz gün</span><b>${dayLabel(s.best.k)}</b><small>${f1(s.best.v)} µg/m³</small></div>` : ""}
+                  ${s.usable.length >= 2 ? `<div><span>En yüksek PM₂.₅ günü</span><b>${dayLabel(s.worst.k)}</b><small>${f1(s.worst.v)} µg/m³</small></div>
+                  <div><span>En düşük PM₂.₅ günü</span><b>${dayLabel(s.best.k)}</b><small>${f1(s.best.v)} µg/m³</small></div>` : ""}
                 </div>
                 <div class="who-cap">${s.hours} saatlik ölçüm; ${s.usable.length} gün değerlendirmeye girdi (en az ${WHO.MIN_H} saat ölçülen günler).</div>
               </div>`;

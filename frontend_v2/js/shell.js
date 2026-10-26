@@ -195,10 +195,10 @@ const Shell = (() => {
             API.co2Live().then(r => r.data || []).catch(() => []),
         ]);
         const out = [];
-        const outage = (key, name, t, extra) => out.push({
+        const outage = (key, name, t, extra, baslik, son) => out.push({
             id: `durum-${key}-${dkey.format(t)}`, tarih: dkey.format(t), etiket: "Sensör durumu", oto: true,
-            baslik: `${name} ${trDate(t)} tarihinden beri veri göndermiyor`,
-            metin: `Son ölçüm: ${trDate(t)}. ${extra} Bu not, sensör yeniden veri göndermeye başladığında kendiliğinden kalkar.`,
+            baslik: baslik || `${name} ${trDate(t)} tarihinden beri veri göndermiyor`,
+            metin: `Son ölçüm: ${trDate(t)}. ${extra} ${son || "Bu not, sensör yeniden veri göndermeye başladığında kendiliğinden kalkar."}`,
         });
         const paT = pa && parseT(pa.recorded_at);
         const paFresh = paT && hoursSince(paT) <= 2;
@@ -206,19 +206,23 @@ const Shell = (() => {
             "Bu sürede Özet ekranında en yakın resmî istasyonun (Tuzla) değeri gösterilir; kampüs geçmişi son ölçüme kadar kullanılabilir.");
         const tzT = tz && parseT(tz.recorded_at);
         const tzFresh = tzT && !tz.stale && hoursSince(tzT) <= 6;
-        if (tzT && !tzFresh) outage("tuzla", "Tuzla hava kalitesi istasyonu", tzT, "Kampüs–bölge karşılaştırması bu sürede güncellenmez.");
+        // Tuzla: sorun çoğunlukla istasyonda değil, verinin kaynaktan (İBB/ÇŞB) alınmasında; istasyon ölçüme devam ediyor olabilir
+        if (tzT && !tzFresh) outage("tuzla", "Tuzla hava kalitesi istasyonu", tzT,
+            "Veri kaynağına (İBB / ÇŞB) erişilemiyor; istasyonun kendisi ölçüme devam ediyor olabilir. Kampüs–bölge karşılaştırması bu sürede güncellenmez.",
+            `Tuzla istasyonunun verisi ${trDate(tzT)} tarihinden beri alınamıyor (kaynak erişimi)`,
+            "Bu not, veri yeniden alındığında kendiliğinden kalkar.");
         const co2T = co2.map(d => d.reading && parseT(d.reading.recorded_at)).filter(Boolean).sort((a, b) => b - a)[0];
         if (co2T && hoursSince(co2T) > 24) outage("co2", "İç mekân CO₂ sensörleri", co2T, "İç mekân CO₂ değerleri bu sürede gösterilemez.");
 
         // Hava kalitesi uyarısı: güncel değer HKİ "Hassas" (> 100, PM₂.₅ ≥ 35,5 µg/m³) ya da üstündeyse
-        const src = paFresh && pa.pm2_5 != null ? { v: +pa.pm2_5, where: "sabit hava kalitesi sensörü (PurpleAir)", t: paT }
-                  : tzFresh && tz.pm2_5 != null ? { v: +tz.pm2_5, where: "Tuzla istasyonu", t: tzT } : null;
+        const src = paFresh && pa.pm2_5 != null ? { v: +pa.pm2_5, where: "Kampüsteki sabit hava kalitesi sensörünün (PurpleAir)", t: paT }
+                  : tzFresh && tz.pm2_5 != null ? { v: +tz.pm2_5, where: "Tuzla istasyonunun", t: tzT } : null;
         const h = src && typeof hki === "function" ? hki(src.v) : null;
         if (h && h.i > 100) {
             const cat = h.ad;
             out.push({ id: `uyari-${dkey.format(new Date())}-${cat}`, tarih: dkey.format(new Date()), etiket: "Hava kalitesi", oto: true, uyari: true,
                 baslik: `Hava kalitesi: ${cat} (HKİ ${h.i})`,
-                metin: `${src.where} son ölçümü **${src.v.toFixed(1).replace(".", ",")} µg/m³** PM₂.₅ ` +
+                metin: `${src.where} son ölçümü **${f1tr(src.v)} µg/m³** PM₂.₅ ` +
                        `(${src.t.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Istanbul" })}). ` +
                        `Hassas grupların (astım, kalp-akciğer hastalığı, yaşlılar, gebeler) uzun süreli ve yoğun açık hava etkinliklerini azaltması önerilir. ` +
                        `Ayrıntılar Özet ekranındadır. Değer düşünce bu not kendiliğinden kalkar.` });
@@ -265,11 +269,11 @@ const Shell = (() => {
             const [res, auto] = await Promise.all([fetch(NEWS_URL, { cache: "no-cache" }), statusNotices().catch(() => [])]);
             if (!res.ok) throw new Error(res.status);
             const data = await res.json();
-            // Otomatik durum notları sabit duyurunun altında, tarihe göre sıralanır
+            // Sıra: hava kalitesi uyarısı > otomatik durum notu (sensör kesintisi) > sabit duyuru > tarihe göre (yeniden eskiye)
+            const rank = n => n.uyari ? 3 : n.oto ? 2 : n.sabit ? 1 : 0;
             news = (Array.isArray(data) ? data : []).concat(auto)
                 .filter(n => n && n.id && n.baslik)
-                // sıra: hava kalitesi uyarısı, sabit duyurular, sonra tarihe göre (yeniden eskiye)
-                .sort((a, b) => (b.uyari ? 2 : b.sabit ? 1 : 0) - (a.uyari ? 2 : a.sabit ? 1 : 0) || String(b.tarih).localeCompare(String(a.tarih)));
+                .sort((a, b) => rank(b) - rank(a) || String(b.tarih).localeCompare(String(a.tarih)));
         } catch (e) {
             console.warn("[duyurular]", e);
             if (!news.length) $("news-list").innerHTML = `<div class="news-empty">Duyurular yüklenemedi.</div>`;

@@ -5,8 +5,8 @@
 const CACHE = "gtu-hava-v1";
 const SHELL = [
     "./", "index.html", "manifest.webmanifest",
-    "js/icons.js", "js/colorscale.js", "js/api.js", "js/campus.js", "js/app.js", "js/who.js", "js/kiyas.js", "js/ozet.js", "js/maruziyet.js", "js/shell.js", "js/bildirim.js",
-    "data/campus.geojson", "data/duyurular.json", "data/tuzla_saatlik.json",
+    "js/icons.js", "js/colorscale.js", "js/api.js", "js/campus.js", "js/app.js", "js/who.js", "js/kiyas.js", "js/trend.js", "js/ic.js", "js/ozet.js", "js/maruziyet.js", "js/shell.js", "js/bildirim.js",
+    "data/campus.geojson", "data/duyurular.json", "data/tuzla_saatlik.json", "data/amfi1_program.json",
     "icons/icon.svg", "icons/icon-192.png",
     "vendor/leaflet/leaflet.js", "vendor/leaflet/leaflet.css", "vendor/leaflet-heat.js", "vendor/chart.umd.min.js", "vendor/fonts/fonts.css",
 ];

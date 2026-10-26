@@ -315,7 +315,7 @@ const Maruziyet = (() => {
             data: { labels: d.map(x => x.label), datasets: [{ data: d.map(x => +x.dose.toFixed(1)), backgroundColor: d.map(x => pm25Color(x.c)), borderRadius: 4, maxBarThickness: 22 }] },
             options: {
                 indexAxis: "y", responsive: true, maintainAspectRatio: false, animation: false,
-                plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.raw} µg · derişim ${f1(d[c.dataIndex].c)} µg/m³` } } },
+                plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${f1(d[c.dataIndex].dose)} µg · derişim ${f1(d[c.dataIndex].c)} µg/m³` } } },
                 scales: {
                     x: { beginAtZero: true, title: { display: true, text: "Solunan PM₂.₅ (µg)", color: "#a2adc2" }, ticks: { color: "#a2adc2" }, grid: { color: "rgba(160,180,220,0.1)" } },
                     y: { ticks: { color: "#e9edf5", font: { size: 11 } }, grid: { display: false } },
@@ -408,18 +408,21 @@ const Maruziyet = (() => {
             const px = p => jmap.latLngToContainerPoint(p.ll);
             const side = p => { const a = px(p);
                 return named.some(q => { if (q === p) return false; const b = px(q), gap = rad(p.dose) + rad(q.dose);
-                    return b.x >= a.x && b.x - a.x < gap + 34 && Math.abs(b.y - a.y) < gap + 8; }) ? "left" : "right"; };
+                    return b.x >= a.x && b.x - a.x < gap + 110 && Math.abs(b.y - a.y) < gap + 8; }) ? "left" : "right"; };   // etiket ≈ 110 px
             for (const [key, p] of places) {
                 if (!key) continue;
                 p.circle.setRadius(rad(p.dose));
                 if (p.shape) p.shape.setStyle({ opacity: 0.8, fillOpacity: 0.3 });
-                // kalıcı kısa etiket: yüzde pay
+                // kalıcı kısa etiket: yüzde pay + kısa bina adı (campus.js → shortName; uzunsa CSS ile kesilir)
                 const dir = side(p);
                 p.circle.unbindTooltip();
-                p.circle.bindTooltip(pct(p.dose),
+                p.circle.bindTooltip(`${pct(p.dose)} · ${esc(Campus.shortName ? Campus.shortName(p.name) : p.name)}`,
                     { permanent: true, direction: dir, offset: [(dir === "right" ? 1 : -1) * (rad(p.dose) - 2), 0], className: "mx-jtip" }).openTooltip();
                 p.circle.bindPopup(`<b>${esc(p.name)}</b><br>${f0(p.dose)} µg · ${f1(p.ch / p.h)} µg/m³`);
             }
+            // Küçük daireler büyüklerin altında kalmasın: büyükten küçüğe öne getir (en küçük en üstte)
+            named.slice().sort((a, b) => b.dose - a.dose).forEach(p => p.circle.bringToFront());
+            you.bringToFront();
             path.setLatLngs(steps.filter(s => s.key).map(s => llOf(s.key)));
             const lastKey = [...steps].reverse().find(s => s.key);
             if (lastKey) you.setLatLng(llOf(lastKey.key));

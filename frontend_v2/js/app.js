@@ -77,6 +77,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     initChartDrawer();
 
     document.getElementById("legend").innerHTML = buildLegend() + (CO2_AKTIF ? buildCO2Legend() : "");
+    const strip = document.getElementById("hki-strip");
+    if (strip) {
+        strip.innerHTML = buildLegendStrip();
+        strip.addEventListener("click", () => strip.setAttribute("aria-expanded", document.body.classList.toggle("legend-open")));
+    }
     if (!CO2_AKTIF) {   // CO₂ kapalı: paneli ve harita seçeneğini gizle
         document.querySelector('section.panel[data-key="co2"]')?.setAttribute("hidden", "");
         document.getElementById("tg-co2")?.closest("label")?.setAttribute("hidden", "");
@@ -252,8 +257,25 @@ function updatePAPanel(d) {
 
     set("pa-pm10", d.pm10_0 != null ? f1tr(d.pm10_0) : "--");
     set("pa-temp", d.temperature_c != null ? f1tr(d.temperature_c) + "°" : "--");
-    set("pa-hum",  d.humidity_pct != null ? d.humidity_pct.toFixed(0) + "%" : "--");
+    set("pa-hum",  d.humidity_pct != null ? "%" + Math.round(d.humidity_pct) : "--");
     set("pa-time", d.recorded_at ? new Date(d.recorded_at).toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" }) : "—");
+}
+
+// Oynatmada o gün için PurpleAir kaydı yoksa: panel ve harita etiketi boşaltılır, neden yazılır
+function clearPAPanel(msg) {
+    const set = (id, v) => document.getElementById(id).textContent = v;
+    ["pa-pm25", "pa-pm10", "pa-temp", "pa-hum"].forEach(id => set(id, "--"));
+    document.getElementById("pa-pm25").style.color = "";
+    document.getElementById("pa-pm25").style.opacity = "";
+    const cat = document.getElementById("pa-cat");
+    cat.textContent = msg; cat.style.color = "var(--text-2)"; cat.style.fontSize = "12px";
+    set("pa-raw", ""); set("pa-time", "—");
+    if (paMarker) {
+        paMarker.setIcon(L.divIcon({ className: "", html: `<div class="pulse-marker stale" style="--marker-color:#69758c"></div>`,
+                                     iconSize: [20, 20], iconAnchor: [10, 10] }));
+        paMarker.setTooltipContent(`PurpleAir <b>--</b> · kayıt yok`);
+        paMarker.setPopupContent(`<b>PurpleAir PA-II</b> · sabit hava kalitesi sensörü<br>${msg}`);
+    }
 }
 
 function updatePAMarker(d) {
@@ -262,10 +284,15 @@ function updatePAMarker(d) {
     // Canlı modda sensör uzun süredir veri göndermiyorsa etiket eski değeri güncelmiş gibi göstermesin
     const stale = paLive && d.recorded_at && (Date.now() - new Date(d.recorded_at).getTime()) / 60000 > PA_STALE_MIN;
     const col = stale ? "#69758c" : pm25Color(d.pm2_5);
-    const when = stale ? `<br><small style="color:#f3d48f">Çevrimdışı · son veri ${new Date(d.recorded_at).toLocaleDateString("tr-TR",
-        { day: "numeric", month: "long", timeZone: "Europe/Istanbul" })}</small>` : "";
+    // Ölçüm zamanı her zaman yazılır (canlıda "son ölçüm SS:DD (x dk önce)", oynatmada o kaydın tarihi ve saati)
+    const t = d.recorded_at ? new Date(d.recorded_at) : null;
+    const hm = t ? t.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Istanbul" }) : null;
+    const dm = t ? t.toLocaleDateString("tr-TR", { day: "numeric", month: "long", timeZone: "Europe/Istanbul" }) : null;
+    const when = !t ? "" : stale ? `<br><small style="color:#f3d48f">Çevrimdışı · son ölçüm ${dm} ${hm} (${timeAgo(d.recorded_at)})</small>`
+        : paLive ? `<br><small style="color:#9aa4b8">Son ölçüm ${hm} (${timeAgo(d.recorded_at)})</small>`
+        : `<br><small style="color:#9aa4b8">Ölçüm ${dm} ${hm}</small>`;
     // Kalıcı etiket tek satır (binaları örtmesin); ayrıntı dokununca açılan kutuda
-    const label = `PurpleAir <b style="color:${col}">${f1tr(d.pm2_5) ?? "--"}</b> µg/m³`;
+    const label = `PurpleAir <b style="color:${col}">${f1tr(d.pm2_5) ?? "--"}</b> µg/m³${stale ? " · çevrimdışı" : ""}`;
     const html = `<b>PurpleAir PA-II</b> · sabit hava kalitesi sensörü<br>SUMER Lab — GTÜ çatısı<br>PM₂.₅: <b style="color:${col}">${f1tr(d.pm2_5) ?? "--"}</b> µg/m³ · ${pm25Label(d.pm2_5)}
         <br><small style="color:#9aa4b8">US EPA düzeltmeli${d.pm2_5_raw != null ? ` · ham ${f1tr(d.pm2_5_raw)} µg/m³` : ""}</small>${when}`;
     const icon = L.divIcon({
@@ -303,7 +330,7 @@ function startCountdown() {
         if (!paLive) return;
         s--;
         if (s <= 0) { s = 120; loadPurpleAir(); }
-        document.getElementById("pa-countdown").textContent = `↻ ${s}s`;
+        document.getElementById("pa-countdown").textContent = `↻ ${s} sn`;
     }, 1000);
 }
 
@@ -320,6 +347,10 @@ function paSameHour(rows, tz) {
     const r = (rows || []).find(x => x.pm2_5 != null && Math.floor(new Date(x.recorded_at).getTime() / 3600e3) === h);
     return r ? { v: +r.pm2_5, hour: t.toLocaleTimeString("tr-TR", { timeZone: "Europe/Istanbul", hour: "2-digit", minute: "2-digit" }) } : null;
 }
+
+const verdictStyle = cls => cls === "ok" ? "background:rgba(52,210,123,0.13);color:#34d27b;border:1px solid rgba(52,210,123,0.35)"
+    : cls === "bad" ? "background:rgba(244,97,94,0.13);color:#f4615e;border:1px solid rgba(244,97,94,0.35)"
+    : "background:rgba(245,184,64,0.13);color:#f5b840;border:1px solid rgba(245,184,64,0.35)";
 
 async function loadComparison() {
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
@@ -374,9 +405,7 @@ async function loadComparison() {
                 paEl.textContent = f1tr(hs.c); paEl.style.color = pm25Color(hs.c);
                 csbEl.textContent = f1tr(hs.r); csbEl.style.color = pm25Color(hs.r);
                 verdict.innerHTML = `${v.icon} ${v.txt} <span style="font-weight:500;opacity:.85">· geçmiş ölçümler · ${v.not}</span>`;
-                verdict.style.cssText = v.cls === "ok" ? "background:rgba(52,210,123,0.13);color:#34d27b;border:1px solid rgba(52,210,123,0.35)"
-                    : v.cls === "bad" ? "background:rgba(244,97,94,0.13);color:#f4615e;border:1px solid rgba(244,97,94,0.35)"
-                    : "background:rgba(245,184,64,0.13);color:#f5b840;border:1px solid rgba(245,184,64,0.35)";
+                verdict.style.cssText = verdictStyle(v.cls);
                 set("cmp-note", `Sabit hava kalitesi sensörü çevrimdışı · ${dl(hs.first)} – ${dl(hs.last)} arası ${hs.n} ortak saatin PM₂.₅ ortalaması`);
                 return;
             }
@@ -394,18 +423,10 @@ async function loadComparison() {
             verdict.style.cssText = "border:1px solid var(--stroke-2);color:var(--text-2)";
             return;
         }
-        const diff = paAvg - csb;
-        const abs = f1tr(Math.abs(diff));
-        if (diff < -0.5) {
-            verdict.innerHTML = `${ico("trending-down")} Kampüs bölgeden <b>${abs} µg/m³ daha temiz</b>`;
-            verdict.style.cssText = "background:rgba(52,210,123,0.13);color:#34d27b;border:1px solid rgba(52,210,123,0.35)";
-        } else if (diff > 0.5) {
-            verdict.innerHTML = `${ico("trending-up")} Kampüs bölgeden <b>${abs} µg/m³ daha kirli</b>`;
-            verdict.style.cssText = "background:rgba(244,97,94,0.13);color:#f4615e;border:1px solid rgba(244,97,94,0.35)";
-        } else {
-            verdict.innerHTML = `${ico("equal")} Kampüs ve bölge <b>benzer</b> (~${abs} fark)`;
-            verdict.style.cssText = "background:rgba(245,184,64,0.13);color:#f5b840;border:1px solid rgba(245,184,64,0.35)";
-        }
+        // Dil kiyas.js → verdict ile aynı: "%x düşük/yüksek · ölçüm yöntemleri farklı" ("temiz/kirli" hükmü verilmez)
+        const v = Kiyas.verdict({ pct: csb > 0 ? (paAvg - csb) / csb * 100 : 0 });
+        verdict.innerHTML = `${v.icon} ${v.txt} <span style="font-weight:500;opacity:.85">· fark ${f1tr(Math.abs(paAvg - csb))} µg/m³ · ${v.not}</span>`;
+        verdict.style.cssText = verdictStyle(v.cls);
     } catch (e) {
         const v = document.getElementById("cmp-verdict");
         if (v) { v.textContent = "Karşılaştırma alınamadı"; }
@@ -1065,11 +1086,11 @@ const Player = {
     play() {
         if (!this.pts.length || this.timer) return;
         this.timer = setInterval(() => this.step(), 1000 / this.speed);
-        document.getElementById("pl-play").textContent = "⏸";
+        document.getElementById("pl-play").innerHTML = ico("pause");
     },
     pause() {
         clearInterval(this.timer); this.timer = null;
-        document.getElementById("pl-play").textContent = "▶";
+        document.getElementById("pl-play").innerHTML = ico("play");
     },
     stop() {
         this.pause();
@@ -1146,6 +1167,8 @@ async function startPlayback(sessionId) {
         const hist = await API.purpleairHistory(day + "T00:00:00", day + "T23:59:59", "raw");
         paHistory = (hist.data || []).map(r => ({ ...r, ts: new Date(r.recorded_at).getTime() }));
     } catch (_) {}
+    // O gün PurpleAir kaydı yoksa panel bugünün canlı değerini göstermesin (rozet geçmiş günü gösteriyor)
+    if (!paHistory.length) clearPAPanel("Bu gün için PurpleAir kaydı yok");
 
     // Karşılaştırma grafiği
     loadCompareChart(pts, paHistory, person);
@@ -1170,8 +1193,10 @@ function onStep(pt, idx, total) {
     const dt = new Date(pt.recorded_at);
     document.getElementById("pl-time").textContent =
         dt.toLocaleTimeString("tr-TR", { timeZone: "Europe/Istanbul", hour: "2-digit", minute: "2-digit" });
+    // Konum: etkinlik notu > noktanın düştüğü bina (campus.js → buildingAt) > koordinat
+    const bld = !pt.activity && typeof Campus !== "undefined" ? Campus.buildingAt(pt.lat, pt.lon) : null;
     document.getElementById("pl-loc").textContent =
-        pt.activity || `${pt.lat.toFixed(5)}, ${pt.lon.toFixed(5)}`;
+        pt.activity || (bld ? bld.name : `${pt.lat.toFixed(5)}, ${pt.lon.toFixed(5)}`);
 
     const pmEl = document.getElementById("pl-pm");
     pmEl.style.color = pm25Color(pt.pm2_5);
@@ -1316,15 +1341,16 @@ function loadCompareChart(atmoPts, paHist, person) {
                 },
             },
             scales: {
-                x: { ticks: { color: "#5d6678", font: { size: 9.5 }, maxTicksLimit: 12 }, grid: { color: "rgba(255,255,255,0.04)" } },
+                // Eksen yazıları #9aa4b8 (koyu zeminde karşıtlık ≥ 4,5:1; diğer grafiklerle aynı)
+                x: { ticks: { color: "#9aa4b8", font: { size: 10.5 }, maxTicksLimit: 12 }, grid: { color: "rgba(255,255,255,0.04)" } },
                 y: { type: useLog ? "logarithmic" : "linear",
                      min: useLog ? Math.max(0.5, allVals[0] * 0.8) : undefined,
-                     ticks: { color: "#5d6678", font: { size: 9.5 },
+                     ticks: { color: "#9aa4b8", font: { size: 10.5 },
                               callback: v => Number(v.toFixed(1)).toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" }) },
                      grid: { color: "rgba(255,255,255,0.05)" },
                      title: { display: true,
                               text: useLog ? "PM₂.₅ (µg/m³) — log ölçek" : "PM₂.₅ (µg/m³)",
-                              color: "#5d6678", font: { size: 10 } } },
+                              color: "#9aa4b8", font: { size: 10.5 } } },
             },
         },
     });

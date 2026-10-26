@@ -156,3 +156,8 @@ function buildLegend() {
       <div class="legend-hki6">${rows}</div>
       <div class="legend-note">Ulusal Hava Kalitesi İndeksi (ÇŞB). PurpleAir değerleri US EPA düzeltmelidir.</div>`;
 }
+
+// Telefon harita lejantı: HKİ sınıflarının renk + ad şeridi; dokununca tam lejant (aralıklarla) açılır
+function buildLegendStrip() {
+    return HKI_PM25.map(b => `<span><i style="background:${b.renk}"></i>${b.ad}</span>`).join("") + ico("chevron-down");
+}

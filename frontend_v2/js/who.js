@@ -209,14 +209,15 @@ const WHO = (() => {
                         label: it => {
                             const d = days[it.dataIndex];
                             if (d.n < MIN_H) return `${f1(d.v)} µg/m³ · yalnızca ${d.n} saat ölçüm (değerlendirmeye girmez)`;
-                            return `${f1(d.v)} µg/m³ ${d.v > g.day ? "⚠ WHO aşıldı" : "✓ WHO altında"} · ${d.n} saat ölçüm`;
+                            return `${f1(d.v)} µg/m³ · ${d.v > g.day ? "WHO günlük değerinin üstünde" : "WHO günlük değerinin altında"} · ${d.n} saat ölçüm`;
                         },
                     } },
                 },
                 scales: {
                     x: { grid: { display: false }, ticks: { color: "#9aa4b8", font: { size: 9.5 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 6 } },
                     y: { min: 0, suggestedMax: Math.max(g.day * 1.6, ...data.filter(v => v != null)) * 1.1, grid: { color: "rgba(255,255,255,0.06)" },
-                         border: { display: false }, ticks: { color: "#9aa4b8", font: { size: 10 }, maxTicksLimit: 5 } },
+                         border: { display: false }, ticks: { color: "#9aa4b8", font: { size: 10 }, maxTicksLimit: 5 },
+                         title: { display: true, text: "PM₂.₅ (µg/m³)", color: "#9aa4b8", font: { size: 10 } } },
                 },
             },
             plugins: [guideLine],
@@ -249,7 +250,7 @@ const WHO = (() => {
         const pm10 = new Map(days10.map(d => [d.k, d]));
         const cell = (d, lim) => !d ? `<td class="na">—</td>`
             : d.n < MIN_H ? `<td class="na">${f1(d.v)}</td>`
-            : `<td class="${d.v > lim ? "bad" : ""}">${f1(d.v)}${d.v > lim ? " ⚠" : ""}</td>`;
+            : `<td class="${d.v > lim ? "bad" : ""}">${f1(d.v)}${d.v > lim ? " " + ico("triangle-alert") : ""}</td>`;
         const rowsHtml = days.slice().reverse().map(d =>
             `<tr><td>${dayLabel(d.k)}</td>${cell(d, G.pm2_5.day)}${cell(pm10.get(d.k), G.pm10_0.day)}<td class="na">${d.n}</td></tr>`).join("");
         return `<details class="who-table"><summary>Günlük değerler (tablo)</summary>
@@ -307,11 +308,13 @@ const WHO = (() => {
                 responsive: true, maintainAspectRatio: false, animation: false, layout: { padding: { right: 30 } },
                 datasets: { bar: { categoryPercentage: 0.8, barPercentage: 0.9 } },
                 plugins: { legend: { display: false }, tooltip: { callbacks: {
+                    label: c => ` ${c.dataset.label}: ${c.parsed.y != null ? f1(c.parsed.y) + " µg/m³" : "—"}`,
                     afterBody: it => days[it[0].dataIndex].empty ? "" : `${days[it[0].dataIndex].n} ortak saat` } } },
                 scales: {
                     x: { grid: { display: false }, ticks: { color: "#9aa4b8", font: { size: 9.5 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 6 } },
                     y: { min: 0, suggestedMax: G.pm2_5.day * 1.6, grid: { color: "rgba(255,255,255,0.06)" }, border: { display: false },
-                         ticks: { color: "#9aa4b8", font: { size: 10 }, maxTicksLimit: 5 } },
+                         ticks: { color: "#9aa4b8", font: { size: 10 }, maxTicksLimit: 5 },
+                         title: { display: true, text: "PM₂.₅ (µg/m³)", color: "#9aa4b8", font: { size: 10 } } },
                 },
             },
             plugins: [guideLine],
@@ -329,9 +332,10 @@ const WHO = (() => {
         if (list == null) return head + `<div class="who-cap">Kampüs haritası yükleniyor…</div>`;
         if (!list.length) return head + `<div class="who-cap">${periodLabel()} döneminde bina içine düşen saha ölçümü yok.</div>`;
         const ref = mean(pts.map(p => +p.pm2_5));
-        list.sort((a, b) => b.avg - a.avg);
+        // 30'dan az ölçümlü binalar (few) listenin altında: az ölçümlü bir bina sıralamanın başına geçmesin
+        list.sort((a, b) => (a.few - b.few) || b.avg - a.avg);
         const over = list.filter(b => b.avg > ref).length;
-        const max = Math.max(ref * 1.6, list[0].avg) * 1.05;
+        const max = Math.max(ref * 1.6, ...list.map(b => b.avg)) * 1.05;
         const pct = v => (v / max * 100).toFixed(1);
         const diff = b => { const d = (b.avg - ref) / ref * 100; return Math.abs(d) < 5 ? "≈" : `${d > 0 ? "+" : "−"}%${Math.abs(d).toFixed(0)}`; };
         const rowHtml = b => `
@@ -347,7 +351,7 @@ const WHO = (() => {
               <b>${over}</b> tanesinde ortalama PM₂.₅, kampüs saha ortalamasının (<b>${f1(ref)}</b> µg/m³) üstünde.</div>
             <div class="wb-list">${rowsHtml}</div>
             <div class="who-legend"><span><i style="background:${BAR}"></i>Kampüs ortalamasının altında</span><span><i style="background:${BAD}"></i>Üstünde</span>
-              <span><i class="tick"></i>Kampüs saha ortalaması</span><span>Soluk: 30'dan az ölçüm</span></div>
+              <span><i class="tick"></i>Kampüs saha ortalaması</span><span>Soluk ve listenin altında: 30'dan az ölçüm</span></div>
             <div class="who-cap">Saha ölçümleri yürürken alınan kısa süreli değerlerdir; WHO kılavuz değeri ise 24 saatlik ortalama için
               tanımlandığından binalar WHO ile değil, aynı dönemdeki tüm saha ölçümlerinin ortalamasıyla karşılaştırılır. Süre, binada
               ölçüm yapılan toplam süredir. Binaya dokununca haritada açılır.</div>`;
