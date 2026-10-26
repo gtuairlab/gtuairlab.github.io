@@ -133,7 +133,8 @@ def collect_atmotube_history():
        geç bağlansa da belleğindeki ölçümler gelir. 2) Eski günler (1 Haziran 2026'dan beri): her gün bir kez
        çekilir, atmotube_backfill tablosuna işaretlenir; yük yayılsın diye her çalışmada en çok 5 gün.
     Yakın günler önce sorulur ve her gün ayrı denenir: eski bir günün hatası yakın günleri engellemez.
-    Bulut "çok fazla istek" (HTTP 429) derse çalışma o saat için durur (22 Ekim 2026: önce eski günler
+    Bulutun sınırı dakikada 60 istek (Atmotube destek belgesi); istekler 2 sn arayla gider. 429 gelirse 65 sn
+    beklenip aynı gün bir kez daha denenir; üçüncü 429'da o saatlik çalışma durur (22 Ekim 2026: önce eski günler
     sorulduğu için 429'a takılıp yakın günlerin dakikalık kaydı arşive hiç girmiyordu)."""
     import time
     if not archive.is_enabled() or not atmotube_cloud.ATMOTUBE_API_KEY:
@@ -157,18 +158,25 @@ def collect_atmotube_history():
             print(f"[collector/atmotube_history] {name}: {atmotube_cloud._safe_error(e)}")
     recent.sort(key=lambda x: x[2], reverse=True)   # en yeni günler önce: uzun süredir eşitlenmeyen cihaz diğerlerini bekletmesin
     total = 0
+    limits = 0
     for name, mac, day, is_old in recent + old:
-        try:
-            total += archive.log_rows(_atmotube_day_rows(name, mac, day))
-            if is_old:
-                archive.mark_backfilled(name, day)
-        except Exception as e:
-            err = atmotube_cloud._safe_error(e)
-            print(f"[collector/atmotube_history] {name} {day}: {err}")
-            if err == "HTTP 429":
-                print("[collector/atmotube_history] bulut istek sınırı: bu saatlik çalışma durduruldu")
+        for attempt in (1, 2):
+            try:
+                total += archive.log_rows(_atmotube_day_rows(name, mac, day))
+                if is_old:
+                    archive.mark_backfilled(name, day)
                 break
-        time.sleep(1.0)   # bulutu yormamak için
+            except Exception as e:
+                err = atmotube_cloud._safe_error(e)
+                print(f"[collector/atmotube_history] {name} {day}: {err}")
+                if err != "HTTP 429":
+                    break
+                limits += 1
+                time.sleep(65)    # sayaç her dakika başında sıfırlanır; bekle, aynı günü bir kez daha dene
+        if limits >= 3:
+            print("[collector/atmotube_history] bulut istek sınırı tekrarlandı: bu saatlik çalışma durduruldu")
+            break
+        time.sleep(2.0)   # bulut sınırı dakikada 60 istek (canlı toplayıcı da soruyor): ≤ 30/dk
     if total:
         print(f"[collector/atmotube_history] {total} ölçüm arşivlendi (geçmiş/gecikmeli).")
         sync_atmotube_sessions()

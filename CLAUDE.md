@@ -69,7 +69,8 @@ Tek bir güncel sürüm olması için **tek kaynak `main` branch'idir**.
   `measurements`'ta ATP kayıt sayıları; artmazsa Render loglarında `[collector/atmotube_history]`.
   **24 Ekim 2026 düzeltmesi:** bulut HTTP 429 (istek sınırı) veriyordu; toplayıcı önce Haziran'daki eski günleri sorduğu için
   hata alınca yakın günlere hiç geçmiyordu (ör. ATP-1 22 Ekim: bulutta 87, arşivde 2 kayıt). Artık önce bütün cihazların yakın
-  günleri (en yenisi önce), sonra çalışma başına cihaz başına 5 eski gün; 429'da o saatlik çalışma durur. Nem -128 (sensör geçersiz)
+  günleri (en yenisi önce), sonra çalışma başına cihaz başına 5 eski gün. Bulut sınırı dakikada 60 istek: istekler 2 sn arayla,
+  429'da 65 sn bekleyip aynı gün yeniden denenir, üçüncü 429'da o saat durur (26 Ekim: 1 sn aralıkla eski günler hiç ilerlemiyordu). Nem -128 (sensör geçersiz)
   artık boş yazılır (`atmotube_cloud.clean_humidity`); eski kayıtlar da kullanıcının onayıyla boşaltıldı (24 Ekim 2026: measurements 160,
   atmotube_readings 149; yedek `yedek_atmotube_nem_128`).
 - **Atmotube bulutu (14 Ekim 2026):** Bulut uzun tarih aralığını (120 gün) reddediyordu; son verisi 2 günden eski cihazlar
