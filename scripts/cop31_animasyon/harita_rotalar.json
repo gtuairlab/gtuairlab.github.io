@@ -34,6 +34,17 @@
   "asistan": {"baslik": "AirLab exposure assistant", "gun": "Your day", "doz": "36.5 µg", "birim": "PM₂.₅ inhaled", "sure": "2.0 h",
     "pay_ad": "Largest share:", "pay": "walk to the Congress Center",
     "_kaynak": "frontend_v2/js/maruziyet.js satır ~427 'Toplam X µg · Y saat · en büyük pay: <yer>' (uygulama µg'yi tam sayıya yuvarlar: 36)"},
+  "dogal": {"_not": "harita_dogal.html: yalnız bu binalar vurgulanır; etiketler dünyadaki sabit noktaya bağlı, ofset ekran pikseli, pencere = görünür zaman aralıkları (0, giris, sN/eN = durak başı/sonu, @dakika, son, bitis).",
+   "yakin": 2.5, "genis_max": 2.2, "yay": 1.4,
+   "vurgu": ["Güzide Kafe", "Kongre ve Kültür Merkezi", "SUMER", "Kimya ve Çevre Mühendisliği Bölümü"],
+   "etiketler": [
+    {"metin": "Güzide Café", "bina": "Güzide Kafe", "ofset": [-110, -60], "pencere": [["0", "bitis"]]},
+    {"metin": "Congress & Culture Center", "bina": "Kongre ve Kültür Merkezi", "ofset": [0, -70], "pencere": [["0", "giris"], ["s2", "bitis"]]},
+    {"metin": "Road traffic", "nokta": [29.367926, 40.805389], "ofset": [0, 56], "pencere": [["0", "e0"], ["son", "bitis"]]},
+    {"metin": "PurpleAir · rooftop\nmeasures every 2 min", "sensor": "cati", "tur": "pa", "ofset": [-150, 40], "pencere": [["0", "giris"], ["s1", "e1"]]},
+    {"metin": "PurpleAir · indoor\n(lecture hall)", "sensor": "ic", "tur": "pa", "ofset": [-160, 60], "pencere": [["0", "giris"]]},
+    {"metin": "Atmotube field data", "atmotube": "Güzide Kafe", "tur": "atm", "ofset": [150, -80], "pencere": [["s1", "e1"]]},
+    {"metin": "@kiyas", "bina": "Güzide Kafe", "tur": "kiyas", "ofset": [250, 90], "pencere": [["@486", "e1"]]}]},
   "kiyas": {"seg": 1, "metin": "Campus sensor: 15.4 · at this café terrace: 30.9 µg/m³", "metin2": "Campus sensor: 15.4 µg/m³\nat this café terrace: 30.9 µg/m³"}
  },
  "B": {
@@ -51,6 +62,15 @@
     {"son": true, "sn": 2.6, "metin": "8 hours on campus: 16.2 µg, less than half of A"}],
   "asistan": {"baslik": "AirLab exposure assistant", "gun": "Your day", "doz": "16.2 µg", "birim": "PM₂.₅ inhaled", "sure": "8.0 h",
     "pay_ad": "Largest share:", "pay": "late-afternoon walk"},
+  "dogal": {"yakin": 3.0, "genis_max": 2.4, "yay": 1.4,
+   "vurgu": ["Kütüphane", "Kimya ve Çevre Mühendisliği Bölümü", "SUMER"],
+   "etiketler": [
+    {"metin": "Library", "bina": "Kütüphane", "ofset": [0, -75], "pencere": [["0", "bitis"]]},
+    {"metin": "Chem. & Env. Eng.", "bina": "Kimya ve Çevre Mühendisliği Bölümü", "ofset": [0, -80], "pencere": [["0", "bitis"]]},
+    {"metin": "PurpleAir · rooftop\nmeasures every 2 min", "sensor": "cati", "tur": "pa", "ofset": [-175, 40], "pencere": [["0", "giris"], ["s1", "e1"]]},
+    {"metin": "PurpleAir · indoor\n(lecture hall)", "sensor": "ic", "tur": "pa", "ofset": [150, 60], "pencere": [["0", "giris"], ["s1", "e1"]]},
+    {"metin": "Atmotube field data", "atmotube": "Kütüphane", "tur": "atm", "ofset": [-200, 45], "pencere": [["s0", "e0"], ["s3", "son"]]},
+    {"metin": "Green lawns", "nokta": [29.3576, 40.8048], "ofset": [0, 30], "pencere": [["0", "giris"], ["s2", "e2"], ["son", "bitis"]]}]},
   "atmotube": ["Kütüphane", "Kimya ve Çevre Mühendisliği Bölümü"], "atmotube_etiket": "Kütüphane",
   "_atmotube": "Bina katsayısı R'si Atmotube saha oturumlarından gelen binalar (HAFIZA: Güzide 2,0 n122; Kongre 1,40 n49; Kimya ve Çevre 0,92 n3959; Kütüphane 0,62 n135).",
   "etiketler": [["Library", "Kütüphane"], ["Chem. & Env. Eng.", "Kimya ve Çevre Mühendisliği Bölümü"], ["Green lawns", "@nokta", 29.3576, 40.8048]],

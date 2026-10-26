@@ -67,3 +67,6 @@
   telefon etiketi telefonun hemen üstünde; sonda kamera sağa kayar (telefon ziyaretçiyi/işaretleri örtmesin); bildirim 8,5 sn
   (A kafe 12 sn, A ≈ 38,5 sn), "US EPA-corrected" bölünmez (bölünmez boşluk); kilit ekranı saati sahne saatini izler;
   B yürüyüş altyazısı "…, in the cleaner hours" (16:00 en temiz saat değil, 3. en düşük).
+- 26 Ekim, 5. tur ("takılıyor, binalar karışık"): eski motorda etiketler her karede yer değiştiriyordu (A 317 sıçrama, en büyük 345 px),
+  B 12:00 ziyaretçi 417 px ışınlanıyordu, kamera ivme sıçraması 9–14 px/kare, anahtar kare 8,3 sn. Yeni `harita_dogal.html` (sabit çapalı
+  etiketler, önceden hesaplı yay kamerası, sönüp yanan geçiş, 3–4 vurgulu bina ×1, -g 30). Açık: 12,3 / 9,4 MB; CRF 26 ile ≈ 8,6 MB.

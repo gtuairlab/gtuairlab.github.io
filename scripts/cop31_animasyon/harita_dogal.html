@@ -1,0 +1,469 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>COP31 · ziyaretçi (gerçek kampüs, doğal görünüm)</title>
+<!-- Gerçek GTÜ kampüsü üzerinde ziyaretçi animasyonu, sade ve akıcı sürüm (26 Ekim 2026). Veriyi kayit.js verir: init(veri), render(t sn).
+     Akıcılık ilkeleri: her kare yalnızca t'ye bağlıdır; kamera yolu açılışta önceden hesaplanır (kritik sönümlü yay + yumuşatma);
+     ziyaretçi yumuşatılmış yolda sabit hızla (başta/sonda kısa hızlanma) yürür; etiketler dünyadaki sabit noktaya bağlıdır, yer
+     değiştirmez, 0,4 sn'de belirir/kaybolur. Görünüm: uydu görüntüsü zemindir; yalnızca sahnede önemli 4–5 bina hafifçe vurgulanır
+     (gerçek yükseklik ×1). Ağ kullanılmaz. -->
+<link rel="stylesheet" href="../../frontend_v2/vendor/fonts/fonts.css">
+<style>html,body{margin:0;background:#0E1626;overflow:hidden}canvas{display:block}</style>
+</head><body><canvas id="c" width="1664" height="700"></canvas>
+<script>
+const cv = document.getElementById('c'), x = cv.getContext('2d'), W = 1664, H = 700, SW = 1168;   // SW: sahne genişliği (sağda panel)
+const FONT = "Inter, 'DejaVu Sans', Arial, sans-serif";
+// Kampüs saatlik PM2.5 profili (anlık görüntü, 20 Ekim 2026; iso_engine.js ile aynı)
+const PH = [13.36,13.76,14.36,14.83,15.32,15.81,16.3,15.98,14.94,13.98,13.09,12.39,12.31,12.35,11.51,10.64,9.66,9.41,9.42,10,10.59,11.57,12.41,13.03];
+const R0 = 6378137, U3 = 3, ELEV = 58;          // doku 3× büyütülmüş; bakış yüksekliği 58° (hafif eğik)
+const FADE = .4;                                // etiket belirme/kaybolma süresi (sn)
+let D, SC, RT, DG, G, TEX, TEXM, HAZE, ICON, mpp, segs, tot, TOTAL, G0, BLD = [], ROAD, ROADL, CAFE, KEY, CAM, CAPS, LBL, MOTES, CARS, C = null;
+
+const merc = (lon, lat) => [lon * Math.PI / 180 * R0, R0 * Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360))];
+const P = ll => { const m = merc(ll[0], ll[1]); return [G.s * m[0] + G.tx, -G.s * m[1] + G.ty]; };   // boylam/enlem → kaynak pikseli
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, f) => a + (b - a) * f;
+const sm = v => { v = clamp(v, 0, 1); return v * v * (3 - 2 * v); }, smm = v => { v = clamp(v, 0, 1); return v * v * v * (v * (v * 6 - 15) + 10); };
+function rnd(i) { const s = Math.sin(i * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
+const tm = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(Math.floor(m % 60)).padStart(2, '0');
+
+// ── kamera ve izdüşüm (ortografik; bakış yönü + sabit hafif eğim) ──
+function setCam(k, cu, cv_, psi) {
+  const a = psi * Math.PI / 180, E = ELEV * Math.PI / 180;
+  C = { k, cu, cv: cv_, psi, fx: Math.sin(a), fy: -Math.cos(a), rx: Math.cos(a), ry: Math.sin(a), sE: Math.sin(E), cE: Math.cos(E), sx: SW / 2, sy: H / 2 - 10 };
+}
+const S = (u, v, z) => [C.sx + C.k * ((u - C.cu) * C.rx + (v - C.cv) * C.ry),
+                        C.sy - C.k * C.sE * ((u - C.cu) * C.fx + (v - C.cv) * C.fy) - C.k * C.cE * (z || 0) / mpp];
+const depth = (u, v) => (u - C.cu) * C.fx + (v - C.cv) * C.fy;   // büyük = uzak
+function layerT(zm, s) {   // katman pikseli (s kaynak pikseli) → ekran
+  const o = S(G.crop[0], G.crop[1], zm);
+  x.setTransform(C.k * C.rx * s, -C.k * C.sE * C.fx * s, C.k * C.ry * s, -C.k * C.sE * C.fy * s, o[0], o[1]);
+}
+
+// ── yardımcılar ──
+function poly(pts, f, s, w) { x.beginPath(); pts.forEach((p, i) => i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1])); x.closePath(); if (f) { x.fillStyle = f; x.fill(); } if (s) { x.strokeStyle = s; x.lineWidth = w || 1.5; x.stroke(); } }
+function shade(rgb, k) { return `rgb(${clamp(rgb[0] * k, 0, 255) | 0},${clamp(rgb[1] * k, 0, 255) | 0},${clamp(rgb[2] * k, 0, 255) | 0})`; }
+const aqi = v => v <= 12 ? '#3FB950' : v <= 35.4 ? '#E3B341' : v <= 55.4 ? '#F0883E' : '#F85149';
+const fnt = (n, b) => x.font = (b ? '700 ' : '400 ') + n + 'px ' + FONT;
+const rr = (l, t, w, h, r, f) => { x.fillStyle = f; x.beginPath(); x.roundRect(l, t, w, h, r); x.fill(); };
+const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const inter = (a, b) => a && b && a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
+function wrap(t, w) { const out = []; let cur = ''; for (const wd of t.split(' ')) { const tr = cur ? cur + ' ' + wd : wd; if (x.measureText(tr).width > w && cur) { out.push(cur); cur = wd; } else cur = tr; } out.push(cur); return out; }
+
+// Yol: merkezcil Catmull-Rom ile yumuşatılır, yay uzunluğuna göre örneklenir (sabit hızlı hareket için)
+function smoothPath(pts, n) {
+  if (pts.length < 3) return pts.map(p => p.slice());
+  const out = [], Pp = [pts[0], ...pts, pts.at(-1)];
+  for (let i = 1; i < Pp.length - 2; i++) {
+    const p0 = Pp[i - 1], p1 = Pp[i], p2 = Pp[i + 1], p3 = Pp[i + 2];
+    const tj = (a, b) => Math.pow(Math.hypot(b[0] - a[0], b[1] - a[1]) || 1e-4, .5);
+    const t0 = 0, t1 = t0 + tj(p0, p1), t2 = t1 + tj(p1, p2), t3 = t2 + tj(p2, p3);
+    for (let j = 0; j < n; j++) {
+      const t = lerp(t1, t2, j / n), L = (a, b, ta, tb) => [0, 1].map(k => (tb - t) / (tb - ta) * a[k] + (t - ta) / (tb - ta) * b[k]);
+      const A1 = L(p0, p1, t0, t1), A2 = L(p1, p2, t1, t2), A3 = L(p2, p3, t2, t3), B1 = L(A1, A2, t0, t2), B2 = L(A2, A3, t1, t3);
+      out.push(L(B1, B2, t1, t2));
+    }
+  }
+  out.push(pts.at(-1).slice()); return out;
+}
+function arcTab(p) { const c = [0]; for (let i = 1; i < p.length; i++) c.push(c[i - 1] + Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1])); return { p, c, L: c.at(-1) }; }
+function atLen(T, s) {   // yay uzunluğu s'deki nokta ve yön
+  s = clamp(s, 0, T.L); let lo = 0, hi = T.c.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (T.c[m] <= s) lo = m; else hi = m; }
+  const a = T.p[lo], b = T.p[hi], d = T.c[hi] - T.c[lo] || 1, f = (s - T.c[lo]) / d;
+  return { p: [lerp(a[0], b[0], f), lerp(a[1], b[1], f)], dir: [(b[0] - a[0]) / d, (b[1] - a[1]) / d], i: lo };
+}
+const trap = (u, a) => u < a ? u * u / (2 * a * (1 - a)) : u > 1 - a ? 1 - (1 - u) * (1 - u) / (2 * a * (1 - a)) : (u - a / 2) / (1 - a);   // yamuk hız profili
+
+// Güneş konumu (20 Ekim, 40,8° K, 29,36° D, UTC+3): yükseklik ve azimut (kuzeyden saat yönünde)
+function sun(clockMin) {
+  const doy = 293, dec = -23.44 * Math.cos(2 * Math.PI / 365 * (doy + 10)) * Math.PI / 180, B = 2 * Math.PI * (doy - 81) / 364;
+  const eot = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B), solar = clockMin - 180 + 4 * 29.36 + eot;
+  const ha = (solar / 4 - 180) * Math.PI / 180, la = 40.806 * Math.PI / 180;
+  const el = Math.asin(Math.sin(la) * Math.sin(dec) + Math.cos(la) * Math.cos(dec) * Math.cos(ha));
+  const az = Math.atan2(Math.sin(ha), Math.cos(ha) * Math.sin(la) - Math.tan(dec) * Math.cos(la)) + Math.PI;
+  return { el: el * 180 / Math.PI, az };
+}
+const phAt = clk => { const h = clk / 60, i = Math.floor(h) % 24, f = h - Math.floor(h); return lerp(PH[i], PH[(i + 1) % 24], f); };   // saatler arası yumuşak
+
+// ── kurulum ──
+window.init = async function (data) {
+  D = data; KEY = data.key; SC = data.sahneler[KEY]; RT = data.rotalar[KEY]; DG = RT.dogal; G = data.georef; mpp = G.m_per_px;
+  await document.fonts.load('700 24px Inter'); await document.fonts.load('400 24px Inter');
+  TEX = new Image(); TEX.src = data.doku; await TEX.decode();
+  if (data.ikon) { ICON = new Image(); ICON.src = data.ikon; await ICON.decode(); }
+  // sakin, doğal renk: dokuyu bir kez hafifçe soldur
+  TEXM = document.createElement('canvas'); TEXM.width = TEX.width; TEXM.height = TEX.height;
+  { const g = TEXM.getContext('2d'); g.filter = 'saturate(0.8) contrast(0.97) brightness(1.02)'; g.drawImage(TEX, 0, 0); }
+  // binalar (yalnız vurgulananlar çizilir; yükseklik gerçek ×1)
+  const H_ = data.rotalar.yukseklik_m;
+  data.geo.features.forEach((f, i) => {
+    const p = f.properties; if (p.cat !== 'bina') return; const name = (p.name || '').trim(); if (!DG.vurgu.includes(name)) return;
+    const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates[0]] : f.geometry.coordinates.map(q => q[0]);
+    for (const ring of polys) {
+      let pts = ring.map(P); if (Math.hypot(pts[0][0] - pts.at(-1)[0], pts[0][1] - pts.at(-1)[1]) < 1e-6) pts = pts.slice(0, -1);
+      const c = pts.reduce((m, q) => [m[0] + q[0] / pts.length, m[1] + q[1] / pts.length], [0, 0]);
+      BLD.push({ name, pts, h: name in H_ ? H_[name] : H_._varsayilan, c });
+    }
+  });
+  const bh = name => (BLD.filter(b => b.name === name).sort((a, b) => b.h - a.h)[0] || { h: 0 }).h;
+  // zaman çizelgesi; yürüyüş yolları önceki/sonraki durağa bağlanır (sıçrama olmasın)
+  G0 = RT.giris || 0;
+  segs = SC.segs.map((s, i) => ({ ...s, dur: RT.sure ? RT.sure[i] : s.dur, label: (RT.etiket && RT.etiket[i]) || s.label,
+    raw: RT.paths[i] ? RT.paths[i].map(P) : null, at: RT.at[i] ? P(RT.at[i]) : null }));
+  segs.forEach((s, i) => {
+    s.z = s.inside ? bh(RT.ic[s.in]) : 0;
+    if (!s.raw) return; const r = s.raw.slice(), pv = segs[i - 1], nx = segs[i + 1];
+    if (pv && pv.at && Math.hypot(pv.at[0] - r[0][0], pv.at[1] - r[0][1]) > .5) r.unshift(pv.at);
+    if (nx && nx.at && Math.hypot(nx.at[0] - r.at(-1)[0], nx.at[1] - r.at(-1)[1]) > .5) r.push(nx.at);
+    s.T = arcTab(smoothPath(r, 14));
+  });
+  tot = G0; segs.forEach(s => { s.t0 = tot; tot += s.dur; }); TOTAL = tot + (RT.bekle != null ? RT.bekle : SC.hold);
+  segs.forEach((s, i) => { const pv = segs[i - 1]; s.tele = !!(pv && !s.T && !pv.T && pv.at && s.at && Math.hypot(pv.at[0] - s.at[0], pv.at[1] - s.at[1]) > 2); });
+  ROAD = arcTab(smoothPath(data.rotalar.ana_yol.map(P), 12)); CAFE = P(data.rotalar.kafe);
+  buildHaze(); buildMotes(); buildCars();
+  buildCamera(); buildLabels(); buildCaptions();
+  return { total: TOTAL, tot, still: TOTAL, bld: BLD.length, k: [CAM.k0, CAM.k1, CAM.k2] };
+};
+
+// ── zaman çizelgesi ──
+function state(el) {
+  let si = segs.findIndex(s => el < s.t0 + s.dur); const done = si < 0; if (done) si = segs.length - 1;
+  const s = segs[si], q = done ? 1 : clamp((el - s.t0) / s.dur, 0, 1);
+  let pos, z = s.z;
+  if (s.T) { const a = Math.min(.18, .6 / s.dur); pos = atLen(s.T, trap(q, a) * s.T.L).p; z = 0;
+    const pv = segs[si - 1], nx = segs[si + 1], u = (el - s.t0);     // binadan çıkış / binaya giriş: yükseklik yumuşak değişir
+    if (pv && pv.z) z = Math.max(z, pv.z * (1 - sm(u / .5)));
+    if (nx && nx.z) z = Math.max(z, nx.z * sm((u - s.dur + .5) / .5)); }
+  else pos = s.at;
+  let al = 1;                                                        // iç mekândan iç mekâna geçiş: işaret söner, yenisi yanar
+  if (s.tele && !done) al = sm((el - s.t0 - .25) / .35);
+  const nx = segs[si + 1]; if (nx && nx.tele) al = Math.min(al, sm((nx.t0 - el - .05) / .35));
+  return { si, s, q, done, pos, z, al, clock: s.m0 + (s.m1 - s.m0) * q };
+}
+const tAtClock = m => { const g = segs.find(s => m >= s.m0 && m < s.m1) || segs[0]; return g.t0 + (m - g.m0) / (g.m1 - g.m0) * g.dur; };
+
+// ── kamera: açılış (geniş) → yumuşak izleme → kapanış (geniş, telefonun sağında); önceden hesaplanır ──
+function frame(pts, reg, kmax) {   // noktaları ekran bölgesine sığdıran ölçek ve merkez
+  setCam(1, 0, 0, RT.bakis); const sp = pts.map(p => S(p[0], p[1], 0)), xs = sp.map(q => q[0]), ys = sp.map(q => q[1]);
+  const k = Math.min(kmax || 99, (reg[2] - reg[0]) / (Math.max(...xs) - Math.min(...xs) + 1), (reg[3] - reg[1]) / (Math.max(...ys) - Math.min(...ys) + 1));
+  const mx = (Math.max(...xs) + Math.min(...xs)) / 2, my = (Math.max(...ys) + Math.min(...ys)) / 2;
+  // ekran ofsetini kaynak koordinatına çevir (S doğrusal): (u,v) → ekran yönleri
+  const sx0 = S(0, 0, 0), su = S(1, 0, 0), svv = S(0, 1, 0), a = su[0] - sx0[0], b = svv[0] - sx0[0], c = su[1] - sx0[1], d = svv[1] - sx0[1], det = a * d - b * c;
+  const inv = (X, Y) => [(d * X - b * Y) / det, (-c * X + a * Y) / det];
+  const pc = inv(mx - sx0[0], my - sx0[1]);                         // nokta bulutunun ekran merkezine karşılık gelen kaynak noktası
+  const off = inv(((reg[0] + reg[2]) / 2 - C.sx) / k, ((reg[1] + reg[3]) / 2 - C.sy) / k);
+  return { k, cu: pc[0] - off[0], cv: pc[1] - off[1] };
+}
+function clampCam(k, cu, cvv) {   // doku sınırının dışını göstermesin
+  setCam(k, cu, cvv, RT.bakis); const us = [], vs = [];
+  for (const [X, Y] of [[0, 0], [SW, 0], [0, H], [SW, H]]) { const a = (X - C.sx) / k, b = (C.sy - Y) / (k * C.sE); us.push(cu + a * C.rx + b * C.fx); vs.push(cvv + a * C.ry + b * C.fy); }
+  const lo = [G.crop[0] + 10, G.crop[1] + 10], hi = [G.crop[0] + TEX.width / U3 - 10, G.crop[1] + TEX.height / U3 - 10];
+  const fix = (mn, mx, l, h) => mx - mn > h - l ? (l + h) / 2 - (mn + mx) / 2 : mn < l ? l - mn : mx > h ? h - mx : 0;
+  return [cu + fix(Math.min(...us), Math.max(...us), lo[0], hi[0]), cvv + fix(Math.min(...vs), Math.max(...vs), lo[1], hi[1])];
+}
+function buildCamera() {
+  const pts = segs.flatMap(s => s.T ? s.T.p.filter((_, i) => i % 6 === 0) : [s.at]);
+  const W0 = frame(pts, [70, 110, SW - 70, H - 150], DG.genis_max), W1 = frame(pts, [24 + 380 + 80, 110, SW - 60, H - 210], DG.genis_max);
+  const k1 = DG.yakin, HZ = 60, N = Math.ceil(TOTAL * HZ) + 2, om = DG.yay || 1.4, dt = 1 / HZ;
+  const T = [], tgt = t => state(Math.min(t, tot)).pos;
+  let p = tgt(0).slice(), v = [0, 0];
+  for (let j = 0; j < N; j++) {
+    const t = j * dt, g = tgt(t);
+    for (let s = 0; s < 4; s++) { for (const i of [0, 1]) { const a = om * om * (g[i] - p[i]) - 2 * om * v[i]; v[i] += a * dt / 4; p[i] += v[i] * dt / 4; } }   // kritik sönümlü yay
+    const eIn = smm((t - (G0 - .7)) / 3.2), eOut = smm((t - (tot - .9)) / 3.3);
+    let lk = lerp(lerp(Math.log(W0.k), Math.log(k1), eIn), Math.log(W1.k), eOut);
+    let cu = lerp(lerp(W0.cu, p[0], eIn), W1.cu, eOut), cvv = lerp(lerp(W0.cv, p[1], eIn), W1.cv, eOut);
+    [cu, cvv] = clampCam(Math.exp(lk), cu, cvv); T.push([lk, cu, cvv]);
+  }
+  // ek yumuşatma (Gauss, σ = 0,25 sn): ivmede kırılma kalmasın
+  const sg = .25 * HZ, R = Math.ceil(3 * sg), wts = []; for (let i = -R; i <= R; i++) wts.push(Math.exp(-i * i / (2 * sg * sg)));
+  const Ts = T.map((_, j) => { const o = [0, 0, 0]; let ws = 0; for (let i = -R; i <= R; i++) { const q = T[clamp(j + i, 0, N - 1)]; o[0] += q[0] * wts[i + R]; o[1] += q[1] * wts[i + R]; o[2] += q[2] * wts[i + R]; ws += wts[i + R]; } return o.map(u => u / ws); });
+  CAM = { T: Ts, HZ, k0: W0.k, k1, k2: W1.k };
+}
+function camAt(t) { const f = clamp(t, 0, TOTAL) * CAM.HZ, j = Math.floor(f), a = CAM.T[Math.min(j, CAM.T.length - 1)], b = CAM.T[Math.min(j + 1, CAM.T.length - 1)], u = f - j;
+  return [Math.exp(lerp(a[0], b[0], u)), lerp(a[1], b[1], u), lerp(a[2], b[2], u)]; }
+
+// ── kirlilik: yol ve kafe çevresinde yumuşak, yarı saydam turuncu pus (temsilî); bir kez çizilir ──
+function buildHaze() {
+  const w = TEX.width / U3, h = TEX.height / U3; HAZE = document.createElement('canvas'); HAZE.width = w; HAZE.height = h; const g = HAZE.getContext('2d');
+  const tr = p => [p[0] - G.crop[0], p[1] - G.crop[1]];
+  const road = (lw, col, blur) => { g.filter = `blur(${blur}px)`; g.strokeStyle = col; g.lineWidth = lw; g.lineCap = g.lineJoin = 'round'; g.beginPath(); ROAD.p.forEach((p, i) => { const q = tr(p); i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); }); g.stroke(); };
+  road(36, 'rgba(238,132,58,0.50)', 14); road(14, 'rgba(232,96,60,0.40)', 6);
+  const c = tr(CAFE); g.filter = 'blur(5px)'; const rg = g.createRadialGradient(c[0], c[1], 2, c[0], c[1], 34);
+  rg.addColorStop(0, 'rgba(240,128,56,0.78)'); rg.addColorStop(.55, 'rgba(240,140,60,0.42)'); rg.addColorStop(1, 'rgba(238,132,58,0)'); g.fillStyle = rg; g.beginPath(); g.arc(c[0], c[1], 34, 0, 6.29); g.fill(); g.filter = 'none';
+}
+function buildMotes() {   // pus içinde sabit dünya noktalarında yavaşça süzülen tozlar (kamera ile yeniden örneklenmez)
+  MOTES = [];
+  for (let i = 0; i < 140; i++) { const a = atLen(ROAD, rnd(i) * ROAD.L), n = [-a.dir[1], a.dir[0]], o = (rnd(i + 300) - .5) * 30; MOTES.push({ u: a.p[0] + n[0] * o, v: a.p[1] + n[1] * o, ph: rnd(i + 600) * 6.28, s: .6 + rnd(i + 900) * .8 }); }
+  for (let i = 0; i < 26; i++) { const r = Math.sqrt(rnd(i + 1200)) * 22, a = rnd(i + 1500) * 6.28; MOTES.push({ u: CAFE[0] + Math.cos(a) * r, v: CAFE[1] + Math.sin(a) * r, ph: rnd(i + 1800) * 6.28, s: .6 + rnd(i + 2100) * .6 }); }
+}
+function buildCars() {   // ana yolda sabit hızlı araçlar (13–17 m/sn), iki şerit
+  CARS = []; for (let i = 0; i < 14; i++) CARS.push({ dir: i % 2, v: (13 + 4 * rnd(i)) / mpp, s0: rnd(i + 50) * ROAD.L, col: [[233, 229, 220], [70, 98, 160], [168, 64, 60], [52, 56, 64], [214, 196, 150], [170, 174, 180], [236, 236, 236]][i % 7] });
+}
+
+// ── etiketler: dünyadaki sabit noktaya bağlı, sabit ekran ofseti, ince bağlantı çizgisi, 0,4 sn'de belirir/kaybolur ──
+function tok(s) {
+  if (typeof s === 'number') return s; if (s === '0') return -9; if (s === 'giris') return G0; if (s === 'son') return tot; if (s === 'bitis') return TOTAL + 9;
+  if (s[0] === '@') return tAtClock(+s.slice(1)); const n = +s.slice(1); if (s[0] === 's') return segs[n].t0; if (s[0] === 'e') return segs[n].t0 + segs[n].dur;
+  const m = s.match(/^(.+)([+-]\d+(\.\d+)?)$/); if (m) return tok(m[1]) + +m[2]; throw new Error('pencere: ' + s);
+}
+const PA = { cati: [29.361, 40.8062, 'SUMER'], ic: [29.362827, 40.80597, 'Kimya ve Çevre Mühendisliği Bölümü'] };   // veritabanındaki cihaz konumları
+function anchorOf(l) {
+  if (l.bina) { const b = BLD.filter(q => q.name === l.bina).sort((a, b) => b.h - a.h)[0]; return { p: b.c, z: b.h }; }
+  if (l.nokta) return { p: P(l.nokta), z: 0 };
+  if (l.sensor) { const s = PA[l.sensor], b = BLD.find(q => q.name === s[2]); return { p: P(s), z: (b ? b.h : 0) + 9 }; }
+  if (l.atmotube) { const b = BLD.filter(q => q.name === l.atmotube).sort((a, b) => b.h - a.h)[0]; return { p: atmPos(b), z: b.h + 11 }; }
+}
+function buildLabels() {
+  LBL = (DG.etiketler || []).map(l => ({ ...l, metin: l.metin === '@kiyas' ? RT.kiyas.metin2 : l.metin, A: anchorOf(l), W: l.pencere.map(w => [tok(w[0]), tok(w[1])]) }));
+  // içerideyken: aynı bina adının "· visitor inside" sürümü (vurgu renginde), aynı yerde, çapraz geçişle
+  segs.forEach((s, i) => { if (!s.inside) return; const nm = RT.ic[s.in], base = LBL.find(l => l.bina === nm && !l.tur); if (!base) return;
+    const end = i === segs.length - 1 ? TOTAL + 9 : s.t0 + s.dur, start = s.tele ? s.t0 + .3 : s.t0;
+    LBL.push({ ...base, metin: base.metin + ' · visitor inside', tur: 'ic', W: [[start, end]], ana: base }); });
+}
+function winA(W, t) { let a = 0; for (const [t0, t1] of W) a = Math.max(a, (t0 < 0 ? 1 : sm((t - t0) / FADE)) * (t1 > TOTAL ? 1 : sm((t1 - t) / FADE))); return a; }
+const STY = { pa: ['rgba(106,63,181,.94)', '#F4F1EA'], atm: ['rgba(20,26,36,.92)', '#F4F1EA'], kiyas: ['rgba(14,22,38,.95)', '#F5A623'], ic: [null, '#F4F1EA'] };
+function labelRect(l) {
+  fnt(24, 1); const L = l.metin.split('\n'), tw = Math.max(...L.map(s => x.measureText(s).width)), hh = 14 + L.length * 30;
+  const a = S(l.A.p[0], l.A.p[1], l.A.z), cx = a[0] + l.ofset[0], cy = a[1] + l.ofset[1];
+  return { a, L, r: [cx - tw / 2 - 13, cy - hh / 2, cx + tw / 2 + 13, cy + hh / 2] };
+}
+function drawLabels(t, ov, vis) {
+  const out = [];
+  for (const l of LBL) {
+    let al = winA(l.W, t); if (l.ana === undefined && !l.tur) { const ins = LBL.filter(m => m.ana === l).reduce((u, m) => Math.max(u, winA(m.W, t)), 0); al *= 1 - ins; }
+    if (al <= .01) continue;
+    const g = labelRect(l), r = g.r, m = Math.min(r[0] - 8, SW - 8 - r[2], r[1] - 8, H - 8 - r[3]); al *= sm((m + 12) / 30);   // kenara yaklaşınca söner
+    for (const o of ov) if (o.r) { const d = Math.max(o.r[0] - r[2], r[0] - o.r[2], o.r[1] - r[3], r[1] - o.r[3], 0);    // telefon, altyazı, kart üstte:
+      al *= 1 - Math.min(1, 2 * o.a) * (1 - sm(d / 36)); }                                                                 // yaklaştıkça yumuşakça söner
+    if (vis) { const dx = Math.max(r[0] - vis[0], 0, vis[0] - r[2]), dy = Math.max(r[1] - vis[1], 0, vis[1] - r[3]); al *= .3 + .7 * sm(Math.hypot(dx, dy) / 46); }
+    if (al <= .01) continue; out.push({ l, g, al });
+  }
+  for (const { l, g, al } of out) {   // önce bağlantı çizgileri, sonra kutular
+    const r = g.r, cx = clamp(g.a[0], r[0] + 10, r[2] - 10), cy = clamp(g.a[1], r[1], r[3]);
+    if (Math.hypot(cx - g.a[0], cy - g.a[1]) > 14) { x.globalAlpha = al * .9; x.strokeStyle = 'rgba(250,248,240,.9)'; x.lineWidth = 2; x.beginPath(); x.moveTo(g.a[0], g.a[1]); x.lineTo(cx, cy); x.stroke();
+      x.fillStyle = '#FAF8F0'; x.beginPath(); x.arc(g.a[0], g.a[1], 3.2, 0, 6.29); x.fill(); }
+  }
+  for (const { l, g, al } of out) {
+    const r = g.r, st = STY[l.tur] || ['rgba(14,22,38,.86)', '#F4F1EA']; x.globalAlpha = al;
+    rr(r[0], r[1], r[2] - r[0], r[3] - r[1], 10, st[0] || SC.col); fnt(24, 1); x.fillStyle = st[1]; g.L.forEach((s, i) => x.fillText(s, r[0] + 13, r[1] + 33 + i * 30));
+  }
+  x.globalAlpha = 1; return out;
+}
+
+// ── çizim parçaları ──
+function atmPos(b) {   // Atmotube işareti: binanın ziyaretçi duraklarından en uzak köşesinde (ziyaretçide taşınıyormuş gibi görünmesin)
+  if (!b.atmP) { const ref = segs.flatMap(g => g.raw ? [g.raw[0], g.raw.at(-1)] : [g.at]);
+    b.atmP = b.pts.map(q => [lerp(q[0], b.c[0], .2), lerp(q[1], b.c[1], .2)]).map(q => [Math.min(...ref.map(r => Math.hypot(q[0] - r[0], q[1] - r[1]))), q]).sort((u, v) => v[0] - u[0])[0][1]; }
+  return b.atmP;
+}
+function building(b, inside, sn, el) {
+  const n = b.pts.length, zr = b.h;
+  // yumuşak gölge
+  const L = Math.min(3, 1 / Math.tan(Math.max(sn.el, 8) * Math.PI / 180)) * b.h / mpp, off = [-sn.dx * L, -sn.dy * L];
+  x.save(); x.filter = 'blur(3px)'; x.fillStyle = `rgba(10,14,20,${.30 * sn.str})`; x.beginPath();
+  const gq = q => S(q[0], q[1], 0), oq = q => S(q[0] + off[0], q[1] + off[1], 0), add = pts => { pts.forEach((p, i) => i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1])); x.closePath(); };
+  add(b.pts.map(gq)); add(b.pts.map(oq)); for (let j = 0; j < n; j++) { const a = b.pts[j], c = b.pts[(j + 1) % n]; add([gq(a), gq(c), oq(c), oq(a)]); }
+  x.fill('nonzero'); x.restore();
+  // duvarlar (kameraya bakan; açık, ışığa göre gölgeli)
+  const walls = [];
+  for (let j = 0; j < n; j++) { const a = b.pts[j], c = b.pts[(j + 1) % n], ex = c[0] - a[0], ey = c[1] - a[1], Ln = Math.hypot(ex, ey) || 1;
+    let nx = ey / Ln, ny = -ex / Ln; const mx = (a[0] + c[0]) / 2, my = (a[1] + c[1]) / 2;
+    if ((mx + nx - b.c[0]) ** 2 + (my + ny - b.c[1]) ** 2 < (mx - nx - b.c[0]) ** 2 + (my - ny - b.c[1]) ** 2) { nx = -nx; ny = -ny; }
+    if (nx * C.fx + ny * C.fy < 0) walls.push({ a, c, nx, ny, d: depth(mx, my) }); }
+  walls.sort((p, q) => q.d - p.d);
+  for (const w of walls) { const lit = .62 + .38 * sn.str * Math.max(0, w.nx * sn.dx + w.ny * sn.dy);
+    poly([S(w.a[0], w.a[1], 0), S(w.c[0], w.c[1], 0), S(w.c[0], w.c[1], zr), S(w.a[0], w.a[1], zr)], shade([214, 208, 196], lit * sn.amb)); }
+  // çatı: uydu dokusu yükseltilir, hafif açık ton (iç mekânda ziyaretçi rengi)
+  const roof = b.pts.map(q => S(q[0], q[1], zr));
+  x.save(); x.beginPath(); roof.forEach((p, i) => i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1])); x.closePath(); x.clip();
+  layerT(zr, 1 / U3); x.drawImage(TEXM, 0, 0); x.setTransform(1, 0, 0, 1, 0, 0);
+  x.fillStyle = `rgba(255,248,234,${.30 * (1 - inside)})`; x.fillRect(0, 0, SW, H);
+  if (inside > 0) { x.fillStyle = `rgba(${hex(SC.col).join(',')},${.40 * inside})`; x.fillRect(0, 0, SW, H); }
+  x.restore();
+  x.save(); x.shadowColor = 'rgba(255,246,225,.8)'; x.shadowBlur = 10;
+  poly(roof, null, inside > .5 ? SC.col : 'rgba(255,251,242,.95)', 2.6); x.restore();
+}
+function pin(p, t, ph, indoor) {   // PurpleAir: küçük cihaz simgesi, yavaş nabız halkası
+  const k = ((t + ph) / 2) % 1; x.strokeStyle = '#C9B3FF'; x.globalAlpha = .7 * (1 - k); x.lineWidth = 2.5; x.beginPath(); x.arc(p[0], p[1] - 14, 10 + k * 22, 0, 6.29); x.stroke(); x.globalAlpha = 1;
+  x.save(); x.shadowColor = 'rgba(0,0,0,.45)'; x.shadowBlur = 6; rr(p[0] - 10, p[1] - 28, 20, 27, 5, '#F4F1EA'); x.restore();
+  rr(p[0] - 12, p[1] - 34, 24, 10, 5, '#6A3FB5'); x.fillStyle = '#8C93A0'; x.fillRect(p[0] - 6, p[1] - 18, 12, 2); x.fillRect(p[0] - 6, p[1] - 12, 12, 2);
+  if (indoor) { x.strokeStyle = '#6A3FB5'; x.lineWidth = 2; x.beginPath(); x.moveTo(p[0] - 15, p[1] - 22); x.lineTo(p[0], p[1] - 40); x.lineTo(p[0] + 15, p[1] - 22); x.stroke(); }
+}
+function dev(px, py, k, led) { rr(px - k, py - k * 1.4, k * 2, k * 2.8, k * .5, '#1C2028'); x.strokeStyle = led; x.lineWidth = k * .35; x.beginPath(); x.arc(px, py - k * .5, k * .5, 0, 6.29); x.stroke(); }
+function atmMark(p) { x.fillStyle = 'rgba(140,147,160,.9)'; x.fillRect(p[0] - 1.5, p[1] - 16, 3, 16); x.save(); x.shadowColor = 'rgba(0,0,0,.4)'; x.shadowBlur = 5;
+  x.beginPath(); x.arc(p[0], p[1] - 26, 12, 0, 6.29); x.fillStyle = '#EEF2F7'; x.fill(); x.restore(); x.strokeStyle = '#1C2028'; x.lineWidth = 2; x.stroke(); dev(p[0], p[1] - 22, 5.2, '#3FB950'); }
+function marker(g, al, t) {   // ziyaretçi: temiz yuvarlak işaret, yumuşak hale, sade insan simgesi
+  if (al <= 0) return; x.globalAlpha = al; const c = hex(SC.col);
+  const hr = x.createRadialGradient(g[0], g[1], 6, g[0], g[1], 40); hr.addColorStop(0, `rgba(${c},.42)`); hr.addColorStop(1, `rgba(${c},0)`);
+  x.fillStyle = hr; x.beginPath(); x.arc(g[0], g[1], 40, 0, 6.29); x.fill();
+  x.save(); x.shadowColor = 'rgba(0,0,0,.45)'; x.shadowBlur = 8; x.shadowOffsetY = 2; x.beginPath(); x.arc(g[0], g[1], 15, 0, 6.29); x.fillStyle = SC.col; x.fill(); x.restore();
+  x.strokeStyle = '#FFFFFF'; x.lineWidth = 3; x.beginPath(); x.arc(g[0], g[1], 15, 0, 6.29); x.stroke();
+  x.fillStyle = '#FFFFFF'; x.beginPath(); x.arc(g[0], g[1] - 5, 3.6, 0, 6.29); x.fill();
+  x.beginPath(); x.moveTo(g[0] - 7, g[1] + 8); x.quadraticCurveTo(g[0] - 6.5, g[1] - 1, g[0], g[1] - .5); x.quadraticCurveTo(g[0] + 6.5, g[1] - 1, g[0] + 7, g[1] + 8); x.closePath(); x.fill();
+  x.globalAlpha = 1;
+}
+
+// ── kare ──
+window.render = function (t) {
+  const el = Math.min(t, TOTAL); x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 1; x.globalCompositeOperation = 'source-over'; x.filter = 'none';
+  const st = state(el), { s, q, done, si } = st, clock = st.clock;
+  const base = phAt(clock) / 16, dose = done ? segs.reduce((u, v) => u + v.dose, 0) : segs.slice(0, si).reduce((u, v) => u + v.dose, 0) + s.dose * q, col = aqi(s.c);
+  const sp = sun(clock), sn = { el: sp.el, str: sm((sp.el + 1) / 9), amb: lerp(.82, 1, sm((sp.el + 2) / 14)), dx: Math.sin(sp.az), dy: -Math.cos(sp.az) };
+  const [k, cu, cvv] = camAt(el); setCam(k, cu, cvv, RT.bakis);
+  x.fillStyle = '#1A2230'; x.fillRect(0, 0, W, H);
+  x.save(); x.beginPath(); x.rect(0, 0, SW, H); x.clip();
+  // zemin + pus
+  layerT(0, 1 / U3); x.imageSmoothingQuality = 'high'; x.drawImage(TEXM, 0, 0);
+  layerT(0, 1); x.globalAlpha = clamp(.55 + .9 * (base - .8), .45, 1); x.drawImage(HAZE, 0, 0); x.globalAlpha = 1; x.setTransform(1, 0, 0, 1, 0, 0);
+  for (const m of MOTES) { const g = S(m.u + Math.sin(el * .35 + m.ph) * 2.2, m.v + Math.cos(el * .28 + m.ph) * 1.6, 3 + 4 * m.s);
+    if (g[0] < -10 || g[0] > SW + 10 || g[1] < -10 || g[1] > H + 10) continue;
+    x.fillStyle = `rgba(236,226,208,${(.20 + .10 * Math.sin(el * .6 + m.ph)) * clamp(base, .6, 1.1)})`; x.beginPath(); x.arc(g[0], g[1], 1.6 + 1.6 * m.s * Math.sqrt(k / 2.5), 0, 6.29); x.fill(); }
+  // güzergâh: kalan kısım ince ve soluk; yürünen kısım derişim renginde (kendini çizer)
+  x.lineCap = x.lineJoin = 'round';
+  const line = (T, s0, s1, w, c, dash) => { if (s1 <= s0) return; x.setLineDash(dash || []); x.strokeStyle = c; x.lineWidth = w; x.beginPath();
+    const a = atLen(T, s0), b = atLen(T, s1); let z = S(a.p[0], a.p[1], 0); x.moveTo(z[0], z[1]);
+    for (let i = a.i + 1; i <= b.i; i++) { z = S(T.p[i][0], T.p[i][1], 0); x.lineTo(z[0], z[1]); } z = S(b.p[0], b.p[1], 0); x.lineTo(z[0], z[1]); x.stroke(); x.setLineDash([]); };
+  segs.forEach((g, i) => { if (!g.T) return; const sd = i < si || done ? g.T.L : i > si ? 0 : atLen(g.T, 0) && trap(q, Math.min(.18, .6 / g.dur)) * g.T.L;
+    if (sd < g.T.L) line(g.T, sd, g.T.L, 3, 'rgba(250,248,240,.55)', [2, 9]);
+    if (sd > 0) { line(g.T, 0, sd, 10, 'rgba(10,14,20,.45)'); line(g.T, 0, sd, 5.5, aqi(g.c)); } });
+  // araçlar
+  for (const cr of CARS) { const sd = cr.s0 + (cr.dir ? -1 : 1) * cr.v * el, s1 = ((sd % ROAD.L) + ROAD.L) % ROAD.L, a = atLen(ROAD, s1), side = cr.dir ? 2.3 : -2.3;
+    const u = a.p[0] - a.dir[1] * side, v = a.p[1] + a.dir[0] * side, fe = sm(Math.min(s1, ROAD.L - s1) / 25); if (fe <= 0) continue;
+    const hx = a.dir[0] * 2.2, hy = a.dir[1] * 2.2, wx = -a.dir[1] * 1, wy = a.dir[0] * 1;
+    const pts = [[u - hx - wx, v - hy - wy], [u + hx - wx, v + hy - wy], [u + hx + wx, v + hy + wy], [u - hx + wx, v - hy + wy]].map(q2 => S(q2[0], q2[1], .8));
+    x.globalAlpha = fe; poly(pts.map(p => [p[0] + 1.5, p[1] + 2]), 'rgba(0,0,0,.35)'); poly(pts, shade(cr.col, sn.amb), 'rgba(0,0,0,.35)', 1); x.globalAlpha = 1; }
+  // vurgulanan binalar (uzaktan yakına) ve üzerlerindeki sensörler
+  const inName = s.inside && !done ? RT.ic[s.in] : (done && s.inside ? RT.ic[s.in] : null);
+  const insideA = nm => { let a = 0; segs.forEach(g => { if (g.inside && RT.ic[g.in] === nm) a = Math.max(a, sm((el - g.t0 - (g.tele ? .25 : 0)) / .5) * (g === segs.at(-1) ? 1 : sm((g.t0 + g.dur - el) / .5))); }); return a; };
+  [...BLD].sort((a, b) => depth(b.c[0], b.c[1]) - depth(a.c[0], a.c[1])).forEach(b => building(b, insideA(b.name), sn, el));
+  for (const nm of RT.atmotube || []) { const b = BLD.filter(q2 => q2.name === nm).sort((a, b2) => b2.h - a.h)[0]; if (b) { const p = atmPos(b); atmMark(S(p[0], p[1], b.h)); } }
+  for (const [key, sv] of Object.entries(PA)) { const b = BLD.find(q2 => q2.name === sv[2]); const p = P(sv); pin(S(p[0], p[1], b ? b.h : 0), el, key === 'ic' ? .9 : 0, key === 'ic'); }
+  // iç mekândan iç mekâna geçiş: ince kesikli yay (kısa sürer)
+  if (s.tele && el - s.t0 < 1.8) { const pv = segs[si - 1], a = S(pv.at[0], pv.at[1], pv.z), b = S(s.at[0], s.at[1], s.z), m = [(a[0] + b[0]) / 2, Math.min(a[1], b[1]) - 70];
+    const f = sm((el - s.t0) / .7), al = 1 - sm((el - s.t0 - 1.1) / .6); x.globalAlpha = al; x.setLineDash([10, 9]); x.strokeStyle = SC.col; x.lineWidth = 4; x.beginPath(); x.moveTo(a[0], a[1]);
+    for (let i = 1; i <= 24; i++) { const u = i / 24 * f; x.lineTo((1 - u) ** 2 * a[0] + 2 * u * (1 - u) * m[0] + u * u * b[0], (1 - u) ** 2 * a[1] + 2 * u * (1 - u) * m[1] + u * u * b[1]); } x.stroke(); x.setLineDash([]); x.globalAlpha = 1; }
+  // ziyaretçi ve soluduğu parçacıklar (doz hızına bağlı, sürekli hareket)
+  const g = S(st.pos[0], st.pos[1], st.z);
+  if (st.al > 0 && el >= G0 - .5) { const rate = t2 => { const z = state(clamp(t2, 0, tot - 1e-3)).s; return z.dose / ((z.m1 - z.m0) / 60); };
+    let n = 0; for (let j = -4; j <= 4; j++) n += rate(el + j * .1); n = done ? 0 : clamp(n / 9 / 2.6, .3, 12);
+    for (let i = 0; i < 12; i++) { const w = clamp(n - i, 0, 1); if (w <= 0) continue; const f = (el * .55 + rnd(i + 40)) % 1, ang = rnd(i + 70) * 6.28 + i, R = 70 * (1 - f) + 16;
+      x.fillStyle = `rgba(120,108,96,${.85 * w * Math.sin(Math.PI * f) * st.al})`; x.beginPath(); x.arc(g[0] + Math.cos(ang) * R, g[1] + Math.sin(ang) * R * .8, 3.6, 0, 6.29); x.fill(); } }
+  marker(g, st.al * sm((el - G0 + .8) / .5 + 1), el);
+  // gün ışığı tonu ve kenar karartması
+  x.globalCompositeOperation = 'multiply'; const tw = sm((sp.el + 3) / 10), gold = sm((sp.el - 2) / 14);
+  x.fillStyle = `rgb(${lerp(206, 255, tw) | 0},${lerp(212, lerp(240, 255, gold), tw) | 0},${lerp(228, lerp(222, 255, gold), tw) | 0})`; x.fillRect(0, 0, SW, H);
+  x.globalCompositeOperation = 'source-over';
+  const vg = x.createRadialGradient(SW / 2, H / 2, 260, SW / 2, H / 2, 760); vg.addColorStop(0, 'rgba(8,12,20,0)'); vg.addColorStop(1, 'rgba(8,12,20,.42)'); x.fillStyle = vg; x.fillRect(0, 0, SW, H);
+  x.restore();
+  // ── üst katmanlar: açılış ipucu, altyazı, etiketler, telefon, sonuç kartı, panel ──
+  const ov = [];
+  const openA = Math.min(1, (G0 - .1 - el) * 2.5); if (openA > 0) ov.push({ r: card(['Follow the visitor  ·  orange haze = more PM₂.₅ (illustrative)'], openA), a: openA });
+  const ph = phoneState(el, clock); if (ph) { ph.top = lerp(H + 20, H - 14 - PHH, ph.k); ov.push({ r: [10, ph.top - 64, 24 + PHW + 14, H], a: ph.k }); }
+  const endK = done ? sm((el - tot - RT.son_gec) / .6) : 0; let cardR = null;
+  const capR = caption(el, ph, true); if (capR) ov.push(capR);
+  if (endK > 0) { cardR = cardRect(RT.son, 24 + PHW + 22); ov.push({ r: cardR, a: endK }); }
+  window._LB = drawLabels(el, ov, st.al > .5 ? g : null);
+  caption(el, ph, false);
+  if (endK > 0) card(RT.son, endK, 24 + PHW + 22);
+  if (ph) phone(ph);
+  panel(clock, s, col, dose, done);
+  window._ST = { g, ph, capR, cardR };
+};
+window.DIAG = () => ({ bg: (() => { const p = P([29.361, 40.8062]); return S(p[0], p[1], 0); })(), vis: window._ST.g, k: C.k,
+  labels: window._LB.map(o => [o.l.metin, (o.g.r[0] + o.g.r[2]) / 2, (o.g.r[1] + o.g.r[3]) / 2, o.al, o.g.r]),
+  ov: [window._ST.ph ? [10, window._ST.ph.top - 64, 24 + PHW + 14, H] : null, window._ST.capR ? window._ST.capR.r : null, window._ST.cardR] });
+
+// ── adım altyazısı: büyük, tek satır, saate bağlı; konumu (alt/üst) her altyazı için bir kez seçilir ──
+function buildCaptions() {
+  CAPS = (RT.altyazi || []).map(c => { const t0 = c.son ? tot + .3 : tAtClock(c.saat); return { t0, t1: t0 + (c.sn || 3.5), metin: c.metin }; });
+  for (const c of CAPS) {   // ziyaretçi alt banda inecekse altyazı en baştan üstte durur (yer değiştirmez)
+    let low = false; for (let t = c.t0; t <= c.t1; t += .1) { const [k, cu, cvv] = camAt(t); setCam(k, cu, cvv, RT.bakis); const st = state(Math.min(t, TOTAL)), g = S(st.pos[0], st.pos[1], st.z); if (g[1] > 440) low = true; }
+    c.top = low ? 16 : 516; c.ph = !!phoneState((c.t0 + c.t1) / 2, 0);
+  }
+}
+function caption(el, ph, onlyRect) {
+  const c = CAPS.find(c => el >= c.t0 && el < c.t1); if (!c) return null;
+  const a = sm((el - c.t0) / .45) * (1 - sm((el - c.t1 + .45) / .45)); if (a <= 0) return null;
+  const fit = (l0, r0) => { const maxw = r0 - l0 - 40; let fs = 34, wt = 1;
+    for (;;) { fnt(fs, wt); if (x.measureText(c.metin).width <= maxw) return { l0, r0, maxw, fs, wt }; if (fs > 30) fs -= 2; else if (wt) wt = 0; else return null; } };
+  let F = fit(c.ph ? 24 + PHW + 20 : 24, SW - 24), top = c.top; if (!F) { F = fit(24, SW - 24); top = 16; }
+  fnt(F.fs, F.wt); const { l0, r0, maxw, fs } = F, tw = x.measureText(c.metin).width, cx = (l0 + r0) / 2, h = fs + 26, r = [cx - tw / 2 - 20, top, cx + tw / 2 + 20, top + h];
+  if (onlyRect) return { r, a };
+  x.globalAlpha = a; x.save(); x.shadowColor = 'rgba(0,0,0,.3)'; x.shadowBlur = 12; rr(r[0], top, tw + 40, h, 14, 'rgba(255,255,255,.95)'); x.restore();
+  x.fillStyle = '#0E1626'; x.fillText(c.metin, cx - tw / 2, top + fs + 6, maxw); x.globalAlpha = 1; return { r, a };
+}
+// ── telefon: 08:00 bildirimi (A) ve sonda maruziyet asistanı sonucu (A, B) ──
+const PHW = 380, PHH = 530;
+function phoneState(el, clock) {
+  const N = RT.bildirim;
+  if (N) { const t0 = tAtClock(N.saat), u = el - t0;
+    if (u >= 0 && u < N.sn) return { kind: 'push', clock, u, k: sm(u / .55) * (1 - sm((u - N.sn + .5) / .5)), tag: 'GTU AirLab app · push notification' }; }
+  if (RT.asistan && el - tot >= RT.son_gec) { const u = el - tot - RT.son_gec; return { kind: 'asst', u, k: sm(u / .6), tag: 'GTU AirLab app · exposure assistant' }; }
+  return null;
+}
+function phone(ph) {
+  const x0 = 24, top = ph.top;
+  const shake = ph.kind === 'push' && ph.u > .7 && ph.u < 1.25 ? Math.sin((ph.u - .7) * 70) * 6 * (1 - (ph.u - .7) / .55) : 0, X = x0 + shake;
+  x.save(); x.shadowColor = 'rgba(0,0,0,.5)'; x.shadowBlur = 30; rr(X, top, PHW, PHH, 50, '#0A0D13'); x.restore();
+  x.strokeStyle = '#3A4252'; x.lineWidth = 3; x.beginPath(); x.roundRect(X + 1.5, top + 1.5, PHW - 3, PHH - 3, 49); x.stroke();
+  const sx0 = X + 12, sy0 = top + 12, sw = PHW - 24, shh = PHH - 24;
+  const g = x.createLinearGradient(0, sy0, 0, sy0 + shh); g.addColorStop(0, '#1C2A4A'); g.addColorStop(1, '#3B2F5E');
+  x.save(); x.beginPath(); x.roundRect(sx0, sy0, sw, shh, 40); x.clip(); x.fillStyle = g; x.fillRect(sx0, sy0, sw, shh);
+  rr(X + PHW / 2 - 50, sy0 + 10, 100, 28, 14, '#05070B');                                   // çentik
+  if (ph.kind === 'push') {
+    const N = RT.bildirim; x.fillStyle = '#F4F1EA'; x.textAlign = 'center'; fnt(24); x.fillText('Tuesday, 20 October', X + PHW / 2, sy0 + 80); fnt(64, 1); x.fillText(tm(ph.clock), X + PHW / 2, sy0 + 146); x.textAlign = 'left';
+    const pk = sm((ph.u - .55) / .3); if (pk > 0) {
+      const cl = sx0 + 12, cw = sw - 24, ty = sy0 + 172; fnt(24, 1); const T = wrap(N.baslik, cw - 32); fnt(24); const B = wrap(N.metin, cw - 32);
+      const ch = 70 + T.length * 29 + B.length * 29 + 14; x.globalAlpha = pk; const sc = .92 + .08 * pk;
+      x.translate(cl + cw / 2, ty + ch / 2); x.scale(sc, sc); x.translate(-(cl + cw / 2), -(ty + ch / 2));
+      rr(cl, ty, cw, ch, 22, 'rgba(246,246,248,.97)');
+      if (ICON) { x.save(); x.beginPath(); x.roundRect(cl + 16, ty + 14, 36, 36, 9); x.clip(); x.drawImage(ICON, cl + 16, ty + 14, 36, 36); x.restore(); }
+      fnt(24); x.fillStyle = '#5F6672'; x.fillText(N.ust, cl + 64, ty + 41);
+      fnt(24, 1); x.fillStyle = '#11151C'; T.forEach((t, i) => x.fillText(t, cl + 16, ty + 84 + i * 29));
+      fnt(24); x.fillStyle = '#2A303A'; B.forEach((t, i) => x.fillText(t, cl + 16, ty + 84 + T.length * 29 + 4 + i * 29));
+    }
+  } else {
+    const A = RT.asistan, cl = sx0 + 16, cw = sw - 32; let y = sy0 + 74;
+    if (ICON) { x.save(); x.beginPath(); x.roundRect(cl, y - 26, 40, 40, 10); x.clip(); x.drawImage(ICON, cl, y - 26, 40, 40); x.restore(); }
+    fnt(24, 1); x.fillStyle = '#F4F1EA'; wrap(A.baslik, cw - 52).forEach((t, i) => x.fillText(t, cl + 52, y + i * 28)); y += 74;
+    rr(cl - 4, y - 8, cw + 8, shh - (y - sy0) - 8, 22, 'rgba(246,246,248,.97)'); y += 30;
+    fnt(24); x.fillStyle = '#5F6672'; x.fillText(A.gun, cl + 14, y); y += 58;
+    fnt(52, 1); x.fillStyle = SC.col; x.fillText(A.doz, cl + 14, y); y += 34;
+    fnt(24); x.fillStyle = '#11151C'; x.fillText(A.birim, cl + 14, y); y += 34; x.fillText(A.sure, cl + 14, y); y += 44;
+    x.fillStyle = '#5F6672'; x.fillText(A.pay_ad, cl + 14, y); y += 30; fnt(24, 1); x.fillStyle = '#11151C'; wrap(A.pay, cw - 28).forEach((t, i) => x.fillText(t, cl + 14, y + i * 29));
+  }
+  x.restore();
+  if (ph.k > .9) { x.globalAlpha = sm((ph.k - .9) / .1); fnt(24, 1); const tw = x.measureText(ph.tag).width; rr(24, top - 56, tw + 26, 40, 10, 'rgba(14,22,38,.94)');
+    x.fillStyle = '#F4F1EA'; x.fillText(ph.tag, 37, top - 28); x.globalAlpha = 1; }
+}
+function cardRect(lines, l0) { fnt(34, 1); const w = SW - 20 - l0, L1 = lines[0].split('\n').flatMap(t => wrap(t, w - 52)), h = 30 + L1.length * 42 + (lines[1] ? 40 : 0) + 6; return [l0, H - h - 20, SW - 20, H - 20]; }
+function card(lines, al, l0) {
+  if (al <= 0) return null; l0 = l0 || 20; const w = SW - 20 - l0; fnt(34, 1); const L1 = lines[0].split('\n').flatMap(t => wrap(t, w - 52));
+  const h = 30 + L1.length * 42 + (lines[1] ? 40 : 0) + 6, top = H - h - 20; x.globalAlpha = al;
+  rr(l0, top, w, h, 20, 'rgba(14,22,38,.96)');
+  x.fillStyle = '#F5A623'; L1.forEach((t, i) => x.fillText(t, l0 + 26, top + 52 + i * 42));
+  if (lines[1]) { x.fillStyle = '#F4F1EA'; fnt(26, 0); x.fillText(lines[1], l0 + 26, top + 52 + L1.length * 42); }
+  x.globalAlpha = 1; return [l0, top, SW - 20, H - 20];
+}
+function panel(clock, s, col, dose, done) {
+  const L = SW + 14, PW = W - L - 14, X0 = L + 26, hrs = (segs.at(-1).m1 - segs[0].m0) / 60, el = (clock - segs[0].m0) / 60;
+  rr(L, 14, PW, 566, 20, 'rgba(14,22,38,.96)');
+  fnt(30, 1); x.fillStyle = SC.col; x.fillText(SC.tag, X0, 58);
+  fnt(24); x.fillStyle = '#AEB9CF'; x.fillText(`Elapsed: ${el.toFixed(1)} h of ${hrs} h`, X0, 94);
+  fnt(54, 1); x.fillStyle = '#F4F1EA'; x.fillText(tm(clock), X0, 158);
+  fnt(24); x.fillStyle = '#AEB9CF'; x.fillText(s.label, X0, 194);
+  x.fillStyle = col; x.beginPath(); x.arc(X0 + 11, 230, 11, 0, 6.29); x.fill(); x.fillStyle = '#F4F1EA'; fnt(28, 1); x.fillText(s.c.toFixed(1) + ' µg/m³ here', X0 + 32, 240);
+  fnt(24); x.fillStyle = '#AEB9CF'; x.fillText(done ? 'Inhaled PM₂.₅, total' : 'Inhaled PM₂.₅ so far', X0, 284);
+  const bw = PW - 52; rr(X0, 298, bw, 42, 10, '#22304B'); rr(X0, 298, Math.max(4, bw * dose / 40), 42, 10, SC.col);
+  x.fillStyle = '#F4F1EA'; fnt(28, 1); x.fillText(dose.toFixed(1) + ' µg', X0 + 12, 329);
+  x.fillStyle = 'rgba(255,255,255,.12)'; x.fillRect(X0, 360, bw, 2);
+  fnt(24, 1); x.fillStyle = '#F4F1EA'; x.fillText('Sensors in this scene', X0, 394);
+  fnt(24); x.fillStyle = '#B79BFF'; x.fillText('■ PurpleAir: rooftop + lecture hall', X0, 428); x.fillStyle = '#F4F1EA'; x.fillText('● Atmotube: wearable (field sessions)', X0, 460);
+  x.fillStyle = 'rgba(255,255,255,.12)'; x.fillRect(X0, 480, bw, 2);
+  fnt(24); x.fillStyle = '#F4F1EA'; x.fillText('Path & haze color = PM₂.₅', X0, 508);
+  x.fillStyle = '#AEB9CF'; x.fillText('orange haze: illustrative', X0, 538);
+  const lg = x.createLinearGradient(X0 + 58, 0, X0 + 298, 0); lg.addColorStop(0, '#3FB950'); lg.addColorStop(.5, '#E3B341'); lg.addColorStop(1, '#F85149');
+  x.fillStyle = lg; x.fillRect(X0 + 58, 552, 240, 18); x.fillStyle = '#AEB9CF'; x.fillText('low', X0, 570); x.fillText('high', X0 + 310, 570);
+  // sürekli uyarı satırı (panelin altında)
+  rr(L, 590, PW, 98, 16, 'rgba(14,22,38,.96)'); fnt(24, 1); x.fillStyle = '#F5A623'; x.fillText('Illustrative scenario · modeled dose,', X0, 619);
+  x.fillText('not a measured person', X0, 648); fnt(24); x.fillStyle = '#8C97AD'; x.fillText('Imagery © Esri, Maxar', X0, 677);
+}
+</script></body></html>

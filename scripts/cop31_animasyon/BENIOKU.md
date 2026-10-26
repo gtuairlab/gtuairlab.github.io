@@ -40,3 +40,9 @@ Döngü geçişi yok: son kare ve durağan PNG sonuç kartıdır (≥ 5 sn bekle
 3. tur (23 Ekim): videolar yavaşlatıldı (~34 sn; `giris` 3 sn açılış, `sure`, `bekle` 8,5 sn), saate bağlı büyük adım altyazıları
 (`altyazi`), 08:00 bildirimi artık telefon kilit ekranında (sarsıntılı), sonda telefonda maruziyet asistanı sonucu (`asistan`) +
 sonuç kartı birlikte. Kayıt yaklaşık 12 dakika sürer (iki video).
+
+## Doğal görünüm ve akıcılık (26 Ekim 2026): `harita_dogal.html`
+Yeni varsayılan motor (eski 3B: `MOTOR=harita3b.html`). Uydu zemini, hafif sabit eğim, yalnızca 3–4 önemli bina hafif vurgulu (×1),
+yumuşak turuncu pus (temsilî), temiz ziyaretçi işareti. Kamera yolu önceden hesaplanır (kritik sönümlü yay + Gauss); ziyaretçi
+Catmull-Rom yolda sabit hızla yürür; etiketler dünyaya sabit çapalı (`dogal.etiketler`), 0,4 sn belirir/kaybolur.
+Kodlama: H.264 High, CRF 22, -g 30, -bf 2, yuv420p, faststart.
