@@ -3,7 +3,7 @@
 <!-- COP31 Stant 11 döngü filmi (1920×1080, 30 fps, sessiz). Çizim deterministik: film.js → FILM.render(t). Kayıt: kayit.js -->
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <style>
-:root{--navy:#0E1626;--navy2:#17233A;--card:#1B2943;--cream:#F4F1EA;--paper:#FBFAF6;--ink:#0E1626;--mutD:#AEB7C8;--mutL:#4A5468;
+:root{--navy:#0B2E33;--navy2:#12424A;--card:#12424A;--cream:#F4F1EA;--paper:#FBFAF6;--ink:#0B2E33;--mutD:#B5CACB;--mutL:#4A5468;
   --acc:#F5A623;--accInk:#8F5600;--hair:rgba(244,241,234,.16);--good:#00cc00;--mod:#ffcc00;--pa:#6380f0;--ind:#d4566b;--atm:#2fa79a;
   --serif:'Source Serif 4',Georgia,serif;--sans:Inter,Arial,sans-serif}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -26,11 +26,11 @@ sub{font-size:.62em;vertical-align:baseline;position:relative;top:.26em;line-hei
 .num{font-variant-numeric:tabular-nums}
 .chip{display:inline-flex;align-items:center;gap:12px;border-radius:999px;padding:8px 22px;font:500 28px/1.2 var(--sans)}
 .dot{display:inline-block;width:22px;height:22px;border-radius:50%;flex:none;box-shadow:0 0 0 3px var(--navy)}
-.card{position:absolute;background:rgba(14,22,38,.92);border-radius:14px;padding:12px 20px 14px 22px;border-left:6px solid}
+.card{position:absolute;background:rgba(11,46,51,.92);border-radius:14px;padding:12px 20px 14px 22px;border-left:6px solid}
 .card b{display:block;font:600 30px/1.25 var(--sans)}
 .card span{display:block;font:400 28px/1.3 var(--sans);color:var(--mutD)}
 .phone{position:absolute;border-radius:56px;background:#05080F;box-shadow:0 0 0 2px rgba(244,241,234,.28),0 30px 80px rgba(0,0,0,.45)}
-.phone .scr{position:absolute;left:12px;top:12px;right:12px;bottom:12px;border-radius:44px;overflow:hidden;background:#0B1220}
+.phone .scr{position:absolute;left:12px;top:12px;right:12px;bottom:12px;border-radius:44px;overflow:hidden;background:#082428}
 .phone .scr img{position:absolute;left:0;top:0;width:100%}
 .phone .notch{position:absolute;left:50%;top:22px;width:110px;height:30px;margin-left:-55px;border-radius:16px;background:#05080F;z-index:5}
 /* QR rozeti */
@@ -49,10 +49,9 @@ sub{font-size:.62em;vertical-align:baseline;position:relative;top:.26em;line-hei
     <span style="font:700 52px/1 var(--sans);letter-spacing:.01em">GTU <span style="color:var(--acc)">Air</span>Lab</span></div>
   <div class="a" id="o_title" style="left:0;width:1920px;top:390px;text-align:center;font:600 132px/1.08 var(--serif);letter-spacing:-.01em">
     <span class="bl"></span>Breathing smarter<br><span class="bl"></span>on campus</div>
-  <div class="a" id="o_sub" style="left:0;width:1920px;top:720px;text-align:center;font:400 40px/1.3 var(--sans);color:var(--mutD)">
-    Gebze Technical University <span style="color:var(--acc)">·</span> COP31 Antalya</div>
-  <div class="a" id="o_sub2" style="left:0;width:1920px;top:800px;text-align:center;font:400 32px/1.3 var(--sans);color:var(--mutD)">
-    Campus air quality, measured where people breathe</div>
+  <div class="a" id="o_sub" style="left:0;width:1920px;top:716px;text-align:center;font:600 46px/1.25 var(--sans)">Asst. Prof. Dr. İlker Akmırza</div>
+  <div class="a" id="o_sub2" style="left:0;width:1920px;top:784px;text-align:center;font:400 34px/1.3 var(--sans);color:var(--mutD)">Department of Environmental Engineering · Gebze Technical University</div>
+  <div class="a" id="o_sub3" style="left:0;width:1920px;top:850px;text-align:center;font:600 30px/1.3 var(--sans);color:var(--acc);letter-spacing:.06em">COP31 ANTALYA · STAND 11</div>
 </div>
 
 <!-- ═════════ 2 · BOŞLUK ═════════ -->
@@ -76,7 +75,7 @@ sub{font-size:.62em;vertical-align:baseline;position:relative;top:.26em;line-hei
     <div style="font:600 96px/1 var(--sans);margin-top:22px">~<span id="g_n3" class="num">90</span>%</div>
     <div style="font:400 30px/1.3 var(--sans);color:var(--mutL);margin-top:12px">of our time is spent indoors (US data), out of sight of outdoor monitors</div></div>
   <div class="a" id="g_rule" style="left:128px;top:722px;width:1664px;height:2px;background:#D5D2CA"></div>
-  <div class="a" id="g_st" style="left:128px;top:762px;width:1664px;font:500 54px/1.25 var(--serif)">One rooftop monitor cannot see <span class="u">the lecture hall</span>, <span class="u">the café</span> or <span class="u">the walk in between</span>.</div>
+  <div class="a" id="g_st" style="left:128px;top:762px;width:1664px;font:500 54px/1.25 var(--serif)">One fixed monitor cannot see <span class="u">the lecture hall</span>, <span class="u">the café</span> or <span class="u">the walk in between</span>.</div>
   <div class="a src" id="g_src" style="left:128px;top:990px">Sources: WHO, Ambient air pollution fact sheet (2024); US EPA, Indoor Air Quality.</div>
 </div>
 
@@ -84,34 +83,34 @@ sub{font-size:.62em;vertical-align:baseline;position:relative;top:.26em;line-hei
 <div class="scene" id="s_built"><div class="bg" style="background:var(--navy)"></div>
   <div class="a" id="b_mapwrap" style="left:0;top:0;width:1920px;height:1080px;overflow:hidden">
     <img id="b_map" src="assets/campus_sat.jpg" style="position:absolute;left:0;top:0;width:2900px;height:1630px;transform-origin:0 0">
-    <div style="position:absolute;inset:0;background:rgba(14,22,38,.30)"></div>
+    <div style="position:absolute;inset:0;background:rgba(11,46,51,.30)"></div>
     <svg id="b_svg" width="1920" height="1080" style="position:absolute;left:0;top:0"></svg>
   </div>
-  <div class="a" id="b_panel" style="left:0;top:0;width:790px;height:1080px;background:rgba(14,22,38,.90);border-right:1px solid var(--hair)"></div>
+  <div class="a" id="b_panel" style="left:0;top:0;width:790px;height:1080px;background:rgba(11,46,51,.90);border-right:1px solid var(--hair)"></div>
   <div class="a kick" id="b_k"><img src="assets/logo.png">What we built</div>
   <div class="a hl" id="b_h" style="max-width:640px;font-size:60px">GTU AirLab: campus air, live and open</div>
   <div class="a" id="b_l1" style="left:128px;top:420px;width:620px;display:flex;gap:22px">
-    <svg width="40" height="40" style="flex:none;margin-top:2px"><circle cx="20" cy="20" r="14" fill="#6380f0" stroke="#0E1626" stroke-width="3"/></svg>
-    <div><div style="font:600 32px/1.25 var(--sans)">Rooftop sensor</div><div style="font:400 28px/1.3 var(--sans);color:var(--mutD)">PurpleAir PA-II on SUMER, every 2 min, US&nbsp;EPA-corrected</div></div></div>
+    <svg width="40" height="40" style="flex:none;margin-top:2px"><circle cx="20" cy="20" r="14" fill="#6380f0" stroke="#0B2E33" stroke-width="3"/></svg>
+    <div><div style="font:600 32px/1.25 var(--sans)">Outdoor sensor</div><div style="font:400 28px/1.3 var(--sans);color:var(--mutD)">PurpleAir PA-II, every 2 min, US&nbsp;EPA-corrected</div></div></div>
   <div class="a" id="b_l2" style="left:128px;top:560px;width:620px;display:flex;gap:22px">
-    <svg width="40" height="40" style="flex:none;margin-top:2px"><rect x="7" y="7" width="26" height="26" rx="5" fill="#d4566b" stroke="#0E1626" stroke-width="3"/></svg>
+    <svg width="40" height="40" style="flex:none;margin-top:2px"><rect x="7" y="7" width="26" height="26" rx="5" fill="#d4566b" stroke="#0B2E33" stroke-width="3"/></svg>
     <div><div style="font:600 32px/1.25 var(--sans)">Indoor sensor</div><div style="font:400 28px/1.3 var(--sans);color:var(--mutD)">PurpleAir in a lecture hall (Chem.&nbsp;&amp;&nbsp;Env.&nbsp;Eng. building)</div></div></div>
   <div class="a" id="b_l3" style="left:128px;top:700px;width:620px;display:flex;gap:22px">
     <svg width="40" height="40" style="flex:none;margin-top:2px"><circle cx="20" cy="20" r="13" fill="#2fa79a" stroke="#F4F1EA" stroke-width="4"/></svg>
-    <div><div style="font:600 32px/1.25 var(--sans)">Wearables</div><div style="font:400 28px/1.3 var(--sans);color:var(--mutD)">Atmotube field sessions on foot, between buildings</div></div></div>
+    <div><div style="font:600 32px/1.25 var(--sans)">Wearable sensors (Atmotube)</div><div style="font:400 28px/1.3 var(--sans);color:var(--mutD)">5 devices (ATP-1…5), field sessions across campus</div></div></div>
   <div class="a" id="b_l4" style="left:128px;top:840px;width:620px;display:flex;gap:22px">
     <span class="ic" data-i="smartphone" style="width:40px;height:40px;color:var(--acc);margin-top:2px"></span>
     <div><div style="font:600 32px/1.25 var(--sans)">One open app</div><div style="font:400 28px/1.3 var(--sans);color:var(--mutD)">corrected data, AQI, advice and alerts</div></div></div>
-  <div class="a src" id="b_src" style="left:128px;top:990px;width:640px;font-size:28px">Imagery © Esri, Maxar · route illustrative</div>
-  <div class="card a" id="b_c1" style="border-color:var(--pa)"><b>Rooftop · PurpleAir PA-II</b><span>every 2 min · US&nbsp;EPA-corrected</span></div>
-  <div class="card a" id="b_c2" style="border-color:var(--ind)"><b>Indoor · lecture hall</b><span>Chem. &amp; Env. Eng. building</span></div>
-  <div class="card a" id="b_c3" style="border-color:var(--atm)"><b>Wearable · Atmotube</b><span>field sessions on foot</span></div>
+  <div class="a src" id="b_src" style="left:128px;top:990px;width:640px;font-size:28px">Imagery © Esri, Maxar · wearable positions illustrative</div>
+  <div class="card a" id="b_c1" style="border-color:var(--pa)"><b>Outdoor sensor · PurpleAir PA-II</b><span>every 2 min · US&nbsp;EPA-corrected</span></div>
+  <div class="card a" id="b_c2" style="border-color:var(--ind)"><b>Indoor sensor · lecture hall</b><span>Chem. &amp; Env. Eng. building</span></div>
+  <div class="card a" id="b_c3" style="border-color:var(--atm);max-width:680px"><b>Wearable sensors (Atmotube) · field sessions across campus</b><span>5 devices (ATP-1…5) · positions illustrative</span></div>
   <div class="phone a" id="b_phone" style="left:1532px;top:300px;width:340px;height:736px"><div class="scr"><img src="assets/app_summary.jpg"></div><div class="notch"></div></div>
 </div>
 
 <!-- ═════════ 4 · KANIT ═════════ -->
 <div class="scene" id="s_evid"><div class="bg" style="background:var(--navy)"></div>
-  <div class="a kick" id="e_k"><img src="assets/logo.png">Evidence · rooftop sensor</div>
+  <div class="a kick" id="e_k"><img src="assets/logo.png">Evidence · outdoor sensor</div>
   <div class="a hl" id="e_h">Campus air peaks at 6 am, cleanest at 6 pm</div>
   <svg class="a" id="e_svg" width="1240" height="700" style="left:60px;top:268px"></svg>
   <div class="a" id="e_lab" style="left:0;top:0"></div>
@@ -123,7 +122,7 @@ sub{font-size:.62em;vertical-align:baseline;position:relative;top:.26em;line-hei
     <div style="font:600 84px/1 var(--sans)"><span id="e_n2">42</span> <span style="font-size:40px;font-weight:500;color:var(--mutD)">days</span></div>
     <div style="font:400 28px/1.3 var(--sans);color:var(--mutD);margin-top:10px">above the WHO 24-hour guideline (15 µg/m³), out of 154 complete days</div>
     <svg id="e_waf" width="540" height="140" style="margin-top:16px"></svg></div>
-  <div class="a src" id="e_src" style="left:128px;top:982px;width:1664px">Rooftop PurpleAir PA-II, US EPA-corrected. Curve: mean of 3,751 valid hours by hour of day; mean and exceedance days: 154 complete days (at least 18 h), 1 May – 12 Oct 2026.</div>
+  <div class="a src" id="e_src" style="left:128px;top:982px;width:1664px">Outdoor PurpleAir PA-II, US EPA-corrected. Curve: mean of 3,751 valid hours by hour of day; mean and exceedance days: 154 complete days (at least 18 h), 1 May – 12 Oct 2026.</div>
 </div>
 
 <!-- ═════════ 5 · ZAMANLAMA ═════════ -->
@@ -148,7 +147,7 @@ sub{font-size:.62em;vertical-align:baseline;position:relative;top:.26em;line-hei
     <span style="display:flex;align-items:center;gap:12px"><span class="dot" style="background:var(--mod)"></span>Moderate</span>
     <span style="display:flex;align-items:center;gap:12px"><span class="dot" style="background:var(--good)"></span>Good</span>
     <span>national AQI class of the window’s mean PM<sub>2.5</sub> · dots: relative particle load · bar: inhaled dose</span></div>
-  <div class="a src" id="t_src" style="left:128px;top:930px;width:1664px">One 1-hour brisk walk (moderate intensity, 1.56 m³/h; US EPA 2011) at the median of daily window means; rooftop PurpleAir PA-II, US EPA-corrected; 107 complete weekdays, 1 May – 12 Oct 2026, Türkiye time. Model estimate, not a personal measurement.</div>
+  <div class="a src" id="t_src" style="left:128px;top:930px;width:1664px">One 1-hour brisk walk (moderate intensity, 1.56 m³/h; US EPA 2011) at the median of daily window means; outdoor PurpleAir PA-II, US EPA-corrected; 107 complete weekdays, 1 May – 12 Oct 2026, Türkiye time. Model estimate, not a personal measurement.</div>
 </div>
 
 <!-- ═════════ 6 · İKİ ZİYARETÇİ ═════════ -->
@@ -164,7 +163,7 @@ sub{font-size:.62em;vertical-align:baseline;position:relative;top:.26em;line-hei
   <div id="v_colA"></div><div id="v_colB"></div>
   <svg class="a" id="v_svg" width="1920" height="1080" style="left:0;top:0"></svg>
   <div class="a" id="v_punch" style="left:0;width:1920px;top:876px;text-align:center;font:600 54px/1.15 var(--serif)">2 hours in the wrong places <span style="color:var(--acc)">&gt;</span> 8 hours in the right places</div>
-  <div class="a src" id="v_src" style="left:128px;top:968px;width:1664px">Dose = campus hourly PM<sub>2.5</sub> (rooftop, May–Oct 2026) × building factor (Atmotube field data) × indoor factor (windows closed 0.5) × breathing rate (US EPA 2011: sitting 0.25, brisk walking 1.56 m³/h).</div>
+  <div class="a src" id="v_src" style="left:128px;top:968px;width:1664px">Dose = campus hourly PM<sub>2.5</sub> (outdoor sensor, May–Oct 2026) × building factor (Atmotube field data) × indoor factor (windows closed 0.5) × breathing rate (US EPA 2011: sitting 0.25, brisk walking 1.56 m³/h).</div>
 </div>
 
 <!-- ═════════ 7 · UYGULAMA ═════════ -->
@@ -172,7 +171,7 @@ sub{font-size:.62em;vertical-align:baseline;position:relative;top:.26em;line-hei
   <div class="a kick" id="p_k"><img src="assets/logo.png">Decision support today</div>
   <div class="a hl" id="p_h">An open app the whole campus can use</div>
   <div class="phone a" id="p_phone" style="left:236px;top:290px;width:384px;height:770px"><div class="scr">
-      <div id="p_lock" style="position:absolute;inset:0;background:#0B1220;z-index:3">
+      <div id="p_lock" style="position:absolute;inset:0;background:#082428;z-index:3">
         <img src="assets/logo.png" style="position:absolute;left:50%;top:420px;width:120px;margin-left:-60px;opacity:.18;border-radius:26px">
         <div style="position:absolute;left:0;right:0;top:84px;text-align:center;font:300 110px/1 var(--sans);color:var(--cream)" class="num">08:00</div></div>
       <img id="p_img1" src="assets/app_summary.jpg"><img id="p_img2" src="assets/app_exposure.jpg"></div><div class="notch"></div></div>

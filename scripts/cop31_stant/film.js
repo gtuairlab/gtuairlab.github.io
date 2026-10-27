@@ -13,7 +13,7 @@ const E = {
   i: u => u * u * u,
   s: u => -(Math.cos(Math.PI * u) - 1) / 2,
 };
-const C = { navy: '#0E1626', cream: '#F4F1EA', ink: '#0E1626', mutD: '#AEB7C8', mutL: '#4A5468', acc: '#F5A623', accInk: '#8F5600',
+const C = { navy: '#0B2E33', cream: '#F4F1EA', ink: '#0B2E33', mutD: '#B5CACB', mutL: '#4A5468', acc: '#F5A623', accInk: '#8F5600',
   good: '#00cc00', mod: '#ffcc00', pa: '#6380f0', ind: '#d4566b', atm: '#2fa79a' };
 const NS = 'http://www.w3.org/2000/svg';
 function sv(tag, at, parent) { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); if (parent) parent.appendChild(e); return e; }
@@ -104,7 +104,7 @@ D.open = lt => {
   const t = lt;   // açılış t0 = 0
   drawParticles(pc1, t, 1, lt);
   vis($('o_title'), E.o(pr(lt, 4.3, 1.0)) * (1 - E.i(pr(lt, 9.55, .5))));
-  fx($('o_brand'), lt, 4.9, 9.5); fx($('o_sub'), lt, 5.5, 9.6); fx($('o_sub2'), lt, 6.1, 9.65);
+  fx($('o_brand'), lt, 4.9, 9.5); fx($('o_sub'), lt, 5.4, 9.6); fx($('o_sub2'), lt, 5.9, 9.65); fx($('o_sub3'), lt, 6.4, 9.7);
 };
 
 // ── 2 · Boşluk ──
@@ -147,7 +147,17 @@ D.gap = lt => {
 
 // ── 3 · Ne kurduk (uydu haritası) ──
 const TEX = { SUMER: [1652, 1113], CHEM: [1815, 1169], LIB: [1438, 1067] };
-const TRAIL = [[1438, 1067], [1446, 1120], [1470, 1180], [1520, 1228], [1590, 1254], [1660, 1258], [1712, 1246]]; // temsilî güzergâh
+// giyilebilir Atmotube'lar: kampüsün farklı bölgelerinde aynı anda dolaşan 5 temsilî cihaz (kapalı döngü, doku koordinatı)
+const LOOPS = [[[1380, 1000], [1470, 990], [1500, 1060], [1440, 1120], [1370, 1090]],
+  [[1560, 950], [1700, 960], [1740, 1020], [1640, 1040], [1560, 1010]],
+  [[1790, 1080], [1890, 1100], [1910, 1220], [1810, 1250], [1770, 1160]],
+  [[1380, 1250], [1500, 1230], [1540, 1330], [1430, 1400], [1360, 1330]],
+  [[1600, 1330], [1720, 1310], [1760, 1420], [1640, 1460], [1570, 1400]]];
+const CAMPUS = [[1340, 960], [1900, 960], [2000, 1060], [2000, 1300], [1800, 1480], [1400, 1470], [1330, 1300]];   // geçmiş saha noktaları bu çokgen içinde
+function loopFn(L) { const P = L.concat([L[0]]), seg = []; let T0 = 0;
+  for (let i = 1; i < P.length; i++) { const l = Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); seg.push(l); T0 += l; }
+  return u => { u = ((u % 1) + 1) % 1; let d = u * T0; for (let i = 0; i < seg.length; i++) { if (d <= seg[i] || i === seg.length - 1) { const f = cl(d / seg[i]); return [lerp(P[i][0], P[i + 1][0], f), lerp(P[i][1], P[i + 1][1], f)]; } d -= seg[i]; } }; }
+function inPoly(x, y, P) { let c = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) if ((P[i][1] > y) !== (P[j][1] > y) && x < (P[j][0] - P[i][0]) * (y - P[i][1]) / (P[j][1] - P[i][1]) + P[i][0]) c = !c; return c; }
 const FOC = [1120, 560];
 let bS = {};
 function mapS(lt) { return lerp(1.02, 1.10, E.s(cl(lt / SC.built.d))); }
@@ -157,18 +167,16 @@ function setupBuilt() {
   const s = $('b_svg');
   bS.streams = [0, 1, 2].map(i => sv('path', { fill: 'none', stroke: [C.pa, C.ind, C.atm][i], 'stroke-width': 3, 'stroke-opacity': .55, 'stroke-linecap': 'round' }, s));
   bS.packets = [0, 1, 2].map(i => [0, 1, 2, 3].map(() => sv('circle', { r: 8, fill: [C.pa, C.ind, C.atm][i], stroke: C.navy, 'stroke-width': 3 }, s)));
-  bS.trail = sv('g', {}, s); bS.trailDots = [];
-  // güzergâh boyunca eşit aralıklı noktalar (doku koordinatı)
-  let L = 0; const seg = [];
-  for (let i = 1; i < TRAIL.length; i++) { const l = Math.hypot(TRAIL[i][0] - TRAIL[i - 1][0], TRAIL[i][1] - TRAIL[i - 1][1]); seg.push(l); L += l; }
-  bS.trailPt = u => { let d = u * L; for (let i = 0; i < seg.length; i++) { if (d <= seg[i] || i === seg.length - 1) { const f = cl(d / seg[i]); return [lerp(TRAIL[i][0], TRAIL[i + 1][0], f), lerp(TRAIL[i][1], TRAIL[i + 1][1], f)]; } d -= seg[i]; } };
-  const nD = Math.round(L / 17);
-  for (let i = 0; i <= nD; i++) bS.trailDots.push({ u: i / nD, el: sv('circle', { r: 5.5, fill: C.atm, stroke: C.navy, 'stroke-width': 2 }, bS.trail) });
+  const rr = rng(7); bS.past = [];
+  while (bS.past.length < 240) { const x = 1330 + rr() * 680, y = 950 + rr() * 530; if (inPoly(x, y, CAMPUS)) bS.past.push({ p: [x, y], d: rr(), el: sv('circle', { r: 3.5, fill: C.atm }, s) }); }
+  bS.dev = LOOPS.map((L, i) => ({ f: loopFn(L), sp: 1 / (8 + i * 1.3), off: i * .21,
+    trail: [...Array(12).keys()].map(() => sv('circle', { r: 5, fill: C.atm }, s)) }));
+  bS.dev.forEach((d, i) => { d.el = sv('circle', { r: 11, fill: C.atm, stroke: C.cream, 'stroke-width': 4 }, s);
+    d.lab = sv('text', { fill: C.cream, 'font-family': 'Inter', 'font-size': 28, 'font-weight': 600, stroke: C.navy, 'stroke-width': 5, 'paint-order': 'stroke' }, s); d.lab.textContent = 'ATP-' + (i + 1); });
   bS.pulses = [0, 1, 2].map(() => sv('circle', { fill: 'none', stroke: C.pa, 'stroke-width': 3 }, s));
   bS.pa = sv('circle', { r: 15, fill: C.pa, stroke: C.navy, 'stroke-width': 4 }, s);
   bS.ind = sv('rect', { width: 30, height: 30, rx: 6, fill: C.ind, stroke: C.navy, 'stroke-width': 4 }, s);
   bS.indRing = sv('rect', { width: 30, height: 30, rx: 8, fill: 'none', stroke: C.ind, 'stroke-width': 3 }, s);
-  bS.atm = sv('circle', { r: 13, fill: C.atm, stroke: C.cream, 'stroke-width': 4 }, s);
 }
 D.built = lt => {
   const d = SC.built.d, O = d - .85, s = mapS(lt);
@@ -178,7 +186,7 @@ D.built = lt => {
   vis($('b_mapwrap'), 1);
   fx($('b_panel'), lt, .7, O + .2, { dx: -80, dy: 0, d: .9 });
   fx($('b_k'), lt, 1.0, O); fx($('b_h'), lt, 1.2, O + .05, { dy: 34 });
-  fx($('b_l1'), lt, 3.2, O + .1); fx($('b_l2'), lt, 6.2, O + .15); fx($('b_l3'), lt, 9.2, O + .2); fx($('b_l4'), lt, 13.6, O + .25);
+  fx($('b_l1'), lt, 3.2, O + .1); fx($('b_l2'), lt, 6.2, O + .15); fx($('b_l3'), lt, 10.2, O + .2); fx($('b_l4'), lt, 13.6, O + .25);
   fx($('b_src'), lt, 3.0, O + .3, { dy: 10 });
   const pa = P(TEX.SUMER, s), ch = P(TEX.CHEM, s);
   // 1 · çatı PurpleAir: yayılan halkalar (simgesel; ölçüm 2 dakikada bir)
@@ -193,17 +201,21 @@ D.built = lt => {
   const ph2 = (((lt - 6) / 2.4) % 1 + 1) % 1, g = 6 + 30 * ph2;
   bS.indRing.setAttribute('x', ch[0] - 15 - g); bS.indRing.setAttribute('y', ch[1] - 15 - g); bS.indRing.setAttribute('width', 30 + 2 * g); bS.indRing.setAttribute('height', 30 + 2 * g);
   bS.indRing.style.opacity = lt > 6 ? (1 - ph2) * .6 * u2 : 0;
-  // 3 · Atmotube güzergâhı (temsilî)
-  const tu = E.io(pr(lt, 9.0, 3.2)), fade3 = 1 - pr(lt, O + .3, .5);
-  bS.trailDots.forEach(o => { const q = P(bS.trailPt(o.u), s); o.el.setAttribute('cx', q[0]); o.el.setAttribute('cy', q[1]); o.el.style.opacity = (o.u <= tu && lt > 9) ? .95 * fade3 : 0; });
-  const head = P(bS.trailPt(tu), s), u3 = E.o(pr(lt, 9.0, .5)) * fade3;
-  bS.atm.setAttribute('cx', head[0]); bS.atm.setAttribute('cy', head[1]); bS.atm.style.opacity = u3;
+  // 3 · giyilebilir Atmotube'lar: 5 cihaz aynı anda + soluk geçmiş saha noktaları (temsilî konumlar, kampüs içi)
+  const fade3 = 1 - pr(lt, O + .3, .5), u3 = E.o(pr(lt, 10.0, .8)) * fade3;
+  bS.past.forEach(o => { const q = P(o.p, s); o.el.setAttribute('cx', q[0]); o.el.setAttribute('cy', q[1]); o.el.style.opacity = .3 * E.o(pr(lt, 10.0 + o.d * 2.5, .6)) * fade3; });
+  const heads = bS.dev.map((d, i) => { const u = (lt - 10) * d.sp + d.off, q = P(d.f(u), s);
+    d.el.setAttribute('cx', q[0]); d.el.setAttribute('cy', q[1]); d.el.style.opacity = u3;
+    d.lab.setAttribute('x', q[0] + 18); d.lab.setAttribute('y', q[1] - 14); d.lab.style.opacity = u3;
+    d.trail.forEach((c, k) => { const t = P(d.f(u - (k + 1) * .012), s); c.setAttribute('cx', t[0]); c.setAttribute('cy', t[1]); c.style.opacity = u3 * .8 * (1 - k / 12); });
+    return q; });
+  const head = heads[2];
   // kartlar (geçici çağrı etiketleri; kimlik sol paneldeki lejantta kalır)
   const c1 = $('b_c1'), c2 = $('b_c2'), c3 = $('b_c3');
   c1.style.left = (pa[0] - 40) + 'px'; c1.style.top = (pa[1] - 132) + 'px';
   c2.style.left = (ch[0] + 34) + 'px'; c2.style.top = (ch[1] - 30) + 'px';
-  c3.style.left = (head[0] - 200) + 'px'; c3.style.top = (head[1] + 40) + 'px';
-  fx(c1, lt, 3.3, 9.0, { dy: 16 }); fx(c2, lt, 6.3, 11.2, { dy: 16 }); fx(c3, lt, 10.2, 15.0, { dy: 16 });
+  c3.style.left = '830px'; c3.style.top = '900px';
+  fx(c1, lt, 3.3, 9.0, { dy: 16 }); fx(c2, lt, 6.3, 10.2, { dy: 16 }); fx(c3, lt, 10.4, O, { dy: 16 });
   // telefon ve veri akışı
   fx($('b_phone'), lt, 11.4, O + .2, { dx: 120, dy: 0, d: 1.0 });
   const ends = [[1546, 470], [1546, 590], [1546, 710]], srcs = [pa, ch, head];
@@ -451,7 +463,7 @@ function setupApp() {
       <span class="ic" style="width:56px;height:56px;color:${C.acc};margin-top:2px">${ico(f[0])}</span>
       <div><div style="font:600 34px/1.22 Inter">${f[1]}</div><div style="font:400 28px/1.3 Inter;color:${C.mutD}">${f[2]}</div></div></div>`).join('');
   pF = [...$('p_feats').children];
-  const tag = $('p_ntag'); tag.style.top = '660px'; tag.style.background = 'rgba(14,22,38,.92)'; tag.style.padding = '6px 16px'; tag.style.borderRadius = '10px';
+  const tag = $('p_ntag'); tag.style.top = '660px'; tag.style.background = 'rgba(11,46,51,.92)'; tag.style.padding = '6px 16px'; tag.style.borderRadius = '10px';
 }
 D.app = lt => {
   const d = SC.app.d, O = d - .85;
