@@ -1,5 +1,7 @@
 # GTÜ AirLab (kampüs hava kalitesi) — Claude çalışma kuralları
 
+> **Hesap devri (2 Kasım 2026):** proje akademik Claude hesabına taşınıyor; kurulum adımları, bağlantılar, ortam değişkeni adları ve bekleyen işler `DEVIR.md`'de.
+
 Bu proje hem Claude masaüstü uygulamasında hem de Claude Code web (bulut) oturumlarında geliştiriliyor.
 Tek bir güncel sürüm olması için **tek kaynak `main` branch'idir**.
 
@@ -97,7 +99,7 @@ Tek bir güncel sürüm olması için **tek kaynak `main` branch'idir**.
      hangi oturumun hangi ATP ile ölçüldüğünü kullanıcıya sor (adları koda ve belgeye yazma).
 
 ## Ajanlar (12 Ekim 2026, kullanıcının isteği; 5. ajan 13 Ekim, 6. ajan 22 Ekim 2026)
-Kullanıcı yalnızca ana ajanla (bu oturum) konuşur. Büyük işlerde beş uzman ajan kullanılır; kimlik kartları `.claude/agents/`,
+Kullanıcı yalnızca ana ajanla (bu oturum) konuşur. Büyük işlerde altı uzman ajan kullanılır; kimlik kartları `.claude/agents/`,
 hafıza ve çalışma klasörleri `ajanlar/<ad>/` (`HAFIZA.md`), özet `ajanlar/BENIOKU.md`.
 - **1 · veri-kontrol** (salt okur): uygunluk, literatür, beklenen sayılar. **2 · isleme-yontem**: geri alınabilir plan, belge, kod, test
   (commit/veritabanı yok). **4 · arayuz-kalitesi** (salt okur): işlev, grafikler, anlaşılırlık; ekran görüntüsüyle. **3 · son-kontrol**
@@ -226,7 +228,7 @@ Renkli (zengin) duyuru — `renk` ya da `bolumler` varsa renkli başlık alanıy
   yalnızca bir süreç başlatır (`app.py` → `SCHEDULER_OWNER`), PurpleAir yoklama durumu süreçler arasında dosyayla paylaşılır.
   Önceden birden çok işçi her işi iki kez yapıyordu (Atmotube 429, olası çift bildirim) ve zaman aşımı olmayan bir veritabanı
   bağlantısı bir süreçteki yoklamayı 26 Ekim'den beri dondurmuştu; `db.get_conn`/`archive._connect` artık zaman aşımı ve canlılık denetimli.
-- **Veritabanı (Supabase):** 4 tabloda RLS açık (7 Ekim 2026); sunucu `postgres` rolüyle bağlanır (RLS'yi atlar), anon/authenticated erişemez.
+- **Veritabanı (Supabase):** tüm tablolarda RLS açık (7 Ekim 2026; 2 Kasım 2026: 13 tablo); sunucu `postgres` rolüyle bağlanır (RLS'yi atlar), anon/authenticated erişemez.
   `purpleair_readings.recorded_at` tekil (kopya kayıt yazılmaz).
 - `scripts/` — `tanitim_video/` (tanıtım videosu kaydı ve fon müziği), `ekip_kasasi.js` (ekip görünümü ad kasası), `tuzla_gecmis.py` (İBB'den Tuzla PM₁₀ geçmişi, her yerden çalışır), `csb_gecmis.py` (ÇŞB'den Tuzla PM₂.₅ geçmişi, yalnızca Türkiye'den)
 - `frontend/` — önceki harita arayüzü; **emekliye ayrıldı** (4 Ekim 2026): `map.html` ve kök `index.html` yeni arayüze (`frontend_v2/`) yönlendirir. Eski arayüz gerçek adları gösteriyor, CDN kullanıyor ve korumasız yükleme formu içeriyordu; geri getirme.
