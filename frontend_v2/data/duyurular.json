@@ -30,6 +30,16 @@
             "metin": "Ölçümlerin WHO kılavuz değerlerine göre günlük ve aylık değerlendirmesi"
           },
           {
+            "ikon": "📈",
+            "baslik": "Trend",
+            "metin": "Günlük ve saatlik desenler: kampüs havasının hangi gün ve saatlerde yükseldiğini görün"
+          },
+          {
+            "ikon": "🔔",
+            "baslik": "Bildirimler",
+            "metin": "İsterseniz kampüs havası kötüleşince telefonunuza uyarı, her sabah 08.00'de kısa özet gelir"
+          },
+          {
             "ikon": "💬",
             "baslik": "AirLab asistanı",
             "metin": "Kampüste geçirdiğiniz zamana göre ne kadar PM₂.₅ soluduğunuzu tahmin edin"

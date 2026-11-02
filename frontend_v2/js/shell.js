@@ -343,7 +343,7 @@ const Shell = (() => {
         if (mode === "prompt") {
             text.textContent = "Ana ekrana eklenir, kendi ikonuyla tam ekran açılır. Güncellemeler otomatik gelir.";
         } else if (mode === "ios") {
-            text.innerHTML = "Safari'de alttaki <b>Paylaş</b> düğmesine (⬆️) dokunun, ardından <b>Ana Ekrana Ekle</b>'yi seçin.";
+            text.innerHTML = `Safari'de alttaki <b>Paylaş</b> düğmesine (${ico("share")}) dokunun, ardından <b>Ana Ekrana Ekle</b>'yi seçin.`;
         }
         $("install-banner").hidden = !(mode && MOBILE.matches && !lsGet(BANNER_KEY, false));
     }

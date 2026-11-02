@@ -78,14 +78,14 @@ const Ic = (() => {
         const t = new Date(latest.recorded_at), ageMin = (Date.now() - t) / 60000, fresh = ageMin <= 30;
         const v = latest.pm2_5, col = v == null ? "#8a93a6" : pm25Color(v);
         if (badge) { badge.hidden = false; badge.classList.toggle("off", !fresh); badge.innerHTML = fresh ? `<span class="live-dot"></span>CANLI` : "Çevrimdışı"; }
-        el.innerHTML = `<div class="pa-hero"><span class="val" style="color:${col}">${v == null ? "--" : f1(v)}</span><span class="unit">PM₂.₅ µg/m³ · iç ortam</span></div>
+        el.innerHTML = `<div class="pa-hero"><span class="val" style="color:${col}${fresh ? "" : ";opacity:.55"}">${v == null ? "--" : f1(v)}</span><span class="unit">PM₂.₅ µg/m³ · iç ortam</span></div>
             <div class="pa-raw">US EPA düzeltmeli (iç ortamda doğrulanmadı)${cf1(latest) != null ? ` · ham sensör değeri ${f1(cf1(latest))} µg/m³ (CF=1)` : ""}${latest.qa_ab === false ? " · A/B kanalları uyuşmuyor" : ""}</div>
             <div class="pa-grid">
               <div class="pa-cell" title="Ham değerlerin (CF=1) oranı: iç ÷ dış"><div class="k">İç / dış</div><div class="v" id="ic-io">…</div></div>
               <div class="pa-cell"><div class="k">Sıcaklık*</div><div class="v">${latest.temperature_c != null ? f1(+latest.temperature_c) + "°" : "--"}</div></div>
-              <div class="pa-cell"><div class="k">Nem*</div><div class="v">${latest.humidity_pct != null ? Math.round(latest.humidity_pct) + "%" : "--"}</div></div>
+              <div class="pa-cell"><div class="k">Nem*</div><div class="v">${latest.humidity_pct != null ? "%" + Math.round(latest.humidity_pct) : "--"}</div></div>
             </div>
-            <div class="pa-foot"><span>${typeof trClock === "function" ? trClock(latest.recorded_at) : t.toLocaleString("tr-TR")}</span><span>${esc(name)}</span></div>
+            <div class="pa-foot"><span>${typeof trClock === "function" ? trClock(latest.recorded_at) : t.toLocaleString("tr-TR")}${!fresh && typeof timeAgo === "function" ? ` · son veri ${timeAgo(latest.recorded_at)}` : ""}</span><span>${esc(name)}</span></div>
             ${tsBox("ic-panel-ts", panelHours, panelMetric)}
             <button type="button" class="ic-btn oz-more" id="ic-open">${ico("chart-column")} Ayrıntılı analiz</button>`;
         bindTs(el, "ic-panel-ts");

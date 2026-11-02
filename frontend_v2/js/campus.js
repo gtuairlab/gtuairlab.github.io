@@ -258,7 +258,7 @@ const Campus = (() => {
                 const a = L.DomUtil.create("a", "", div);
                 a.href = "#"; a.title = "Kampüsün tamamı"; a.setAttribute("role", "button");
                 a.setAttribute("aria-label", "Kampüsün tamamını göster");
-                a.textContent = "🏫";
+                a.innerHTML = ico("graduation-cap");
                 L.DomEvent.disableClickPropagation(div);
                 L.DomEvent.on(a, "click", ev => { L.DomEvent.preventDefault(ev); map.closePopup(); fitCampus(); });
                 return div;
@@ -480,7 +480,7 @@ const Campus = (() => {
                 <small class="${m.n < FEW ? "few" : ""}">${m.n.toLocaleString("tr-TR")}</small></div>`;
         }).join("");
         const foot = worst
-            ? `<div class="bpm-foot">⚠️ En sorunlu ay: <b>${monthLabel(worst.ym)}</b> — genel ortalamanın ${f1tr((worst.avg - e.stats.avg))} µg/m³ üstünde`
+            ? `<div class="bpm-foot">${ico("triangle-alert")} En sorunlu ay: <b>${monthLabel(worst.ym)}</b> — genel ortalamanın ${f1tr((worst.avg - e.stats.avg))} µg/m³ üstünde`
               + (worst.n < FEW ? `<div class="bpm-warn">Yalnızca ${worst.n} ölçüme dayanıyor; dikkatli yorumlayın.</div>` : "") + `</div>`
             : `<div class="bpm-foot">Ölçümler tek ayda (${monthLabel(ms[0].ym)})</div>`;
         return `<div class="bp-months"><div class="bpm-head"><span>Aylık ortalama</span><span>µg/m³ · genelden fark · ölçüm</span></div>${rows}${foot}</div>`;
@@ -500,7 +500,7 @@ const Campus = (() => {
     // Saha ölçümleri kısa süreli olduğundan WHO'nun 24 saatlik değeriyle değil, kendi içinde karşılaştırılır.
     function contextHtml(e, s, pts) {
         const lines = [];
-        if (e.dur) lines.push(`⏱ Binada toplam ${fmtDur(e.dur.min)} ölçüm · ${e.dur.days} farklı gün`);
+        if (e.dur) lines.push(`${ico("timer")} Binada toplam ${fmtDur(e.dur.min)} ölçüm · ${e.dur.days} farklı gün`);
         const all = pts.filter(p => p.pm2_5 != null).map(p => p.pm2_5);
         if (all.length >= 30) {
             const ref = all.reduce((a, b) => a + b, 0) / all.length, pct = (s.avg - ref) / ref * 100;
@@ -510,7 +510,7 @@ const Campus = (() => {
         if (e.visit) {
             const v = e.visit, pct = (v.avg - v.prevAvg) / v.prevAvg * 100;
             const dl = new Date(v.day + "T12:00:00").toLocaleDateString("tr-TR", { day: "numeric", month: "long" });
-            lines.push(`📅 Son ölçüm (${dl}): ${f1tr(v.avg)} — binanın önceki ${v.prevDays} gündeki ortalamasından (${f1tr(v.prevAvg)}) `
+            lines.push(`${ico("calendar")} Son ölçüm (${dl}): ${f1tr(v.avg)} — binanın önceki ${v.prevDays} gündeki ortalamasından (${f1tr(v.prevAvg)}) `
                 + (Math.abs(pct) < 5 ? "farksız" : `%${Math.abs(pct).toFixed(0)} ${pct > 0 ? "yüksek" : "düşük"}`));
         }
         return lines.length ? `<div class="bp-ctx">${lines.map(l => `<div>${l}</div>`).join("")}</div>` : "";

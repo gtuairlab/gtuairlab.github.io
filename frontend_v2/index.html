@@ -545,7 +545,7 @@ body {
 .bpm-row { display: grid; grid-template-columns: 82px 1fr 34px 36px 46px; align-items: center; gap: 6px;
   padding: 2px 4px; border-radius: 4px; font-size: 11px; }
 .bpm-row.sel { background: rgba(108,140,255,0.14); }
-.bpm-row.worst .bpm-m::after { content: " ⚠️"; }
+.bpm-row.worst .bpm-m { color: var(--amber); font-weight: 700; }
 .bpm-bar { height: 7px; border-radius: 4px; background: rgba(255,255,255,0.06); overflow: hidden; }
 .bpm-bar i { display: block; height: 100%; border-radius: 4px; }
 .bpm-row b { font: 700 11px var(--num); font-variant-numeric: tabular-nums; text-align: right; }
@@ -1527,7 +1527,18 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
     bottom: calc(var(--tab-h) + 40px); z-index: 1160; }
   body[data-tab="map"] .exp-fab { bottom: calc(var(--tab-h) + 44px); }
   body[data-tab="map"] .leaflet-bottom.leaflet-right { bottom: calc(var(--tab-h) + 60px); }
+  /* Dokunma hedefleri ve okunurluk (denetim, 2 Kasım 2026): kutucuklar ≥ 24 px, düğmeler ≥ 34 px, yazılar ≥ 11 px */
+  .s-cb, .person-cb { width: 24px; height: 24px; }
+  .s-cb:checked::after, .person-cb:checked::after { font-size: 15px; }
+  .pd-chip, .mx-jhead .pd-chip, .ic-ts-chips .pd-chip { min-height: 34px; padding-top: 6px; padding-bottom: 6px; }
+  .oz-link { display: inline-block; padding: 9px 4px; margin: -9px -4px; font-size: 12px; }
+  .mx-remember { min-height: 36px; }
+  .mx-remember input { width: 20px; height: 20px; }
+  .pa-cell .k, .oz-scale-lab, .oz-scale-tick span { font-size: 11px; }
+  .chart-handle { padding: 0 12px; gap: 8px; }
+  .chart-handle .ch-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
+.adv-badge:empty { display: none; }
 .hki-strip { display: none; }
 /* Masaüstü: sağ panel açıkken harita düğmeleri panelin solunda kalsın (arkasında kalmasın) */
 @media (min-width: 761px) {
@@ -1538,7 +1549,7 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
 </style>
 </head>
 <body data-tab="map">
-<script src="js/icons.js?v=5"></script>
+<script src="js/icons.js?v=6"></script>
 
 <div class="boot" id="boot">
   <div class="boot-inner">
@@ -1720,7 +1731,7 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
   <div class="panel panel-scroll" style="height:100%">
     <div class="panel-head">
       <span class="ico"><svg class="i"><use href="#i-footprints"></use></svg></span> Saha ölçümleri
-      <span class="right" style="font-size:10px; font-weight:600; text-transform:none; letter-spacing:0; color:var(--text-2)">▶ = günü oynat</span>
+      <span class="right" style="font-size:10px; font-weight:600; text-transform:none; letter-spacing:0; color:var(--text-2)"><svg class="i" aria-hidden="true"><use href="#i-play"></use></svg> = günü oynat</span>
     </div>
     <div class="view-bar">
       <div class="view-seg" role="tablist" aria-label="Harita görünümü">
@@ -1842,7 +1853,7 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
       <p><b>GTÜ AirLab</b>, Gebze Teknik Üniversitesi kampüsünde partikül madde (PM₂.₅, PM₁₀) düzeylerini
         ölçmek, haritalamak ve yorumlamak amacıyla yürütülen araştırmanın veri platformudur. Sabit sensörler, taşınabilir
         sensörlerle yapılan saha ölçümleri ve resmî bölge istasyonu verileri tek bir arayüzde birleştirilir.</p>
-      <p>Varsayılan görünüm kampüsteki herkes için sadeleştirilmiştir (Özet, Harita, Sağlık, Duyurular). Sensörlerin ham
+      <p>Varsayılan görünüm kampüsteki herkes için sadeleştirilmiştir (Özet, Harita, Trend, Sağlık, Duyurular). Sensörlerin ham
         panelleri, saha ölçümleri ve karşılaştırma grafikleri <b>Araştırma</b> bölümündedir.</p>
 
       <h4 id="inf-ag">Ölçüm ağı</h4>
@@ -1892,6 +1903,10 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
           %40 düşerdi.)</li>
         <li><b>Veri denetimi:</b> Sabit hava kalitesi sensörü yeni ölçüm göndermediğinde son ölçüm tekrar kaydedilmez (yinelenen kayıt ortalamaları
           etkilemesin). Saha ölçümlerinde kampüs merkezine 2 km'den uzak noktalar kampüs değerlendirmesine alınmaz.</li>
+        <li><b>Telefon bildirimleri:</b> İsteğe bağlıdır (Duyurular › Bildirimler). Kampüs dış sensörünün son 30 dakikalık
+          ortalaması HKİ 100'ü aştığında (Hassas ve üstü) uyarı, 60 dakikalık ortalama yeniden 100'ün altına inince "düzeldi"
+          bildirimi gönderilir; 23.00–07.00 arası sessizdir. Her sabah 08.00'de günün kısa özeti gelir. Ayrıntı:
+          hesaplama ve kaynaklar belgesi §10a.</li>
       </ul>
 
       <h4 id="inf-sinir">Sınır değerler ve HKİ</h4>
@@ -1984,9 +1999,9 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
 
 <!-- Telefon: kurulum önerisi (bir kez, kapatılabilir) -->
 <div class="install-banner" id="install-banner" hidden>
-  <span>📲 Platformu telefonuna uygulama olarak kur</span>
+  <span><svg class="i" aria-hidden="true"><use href="#i-smartphone"></use></svg> Platformu telefonuna uygulama olarak kur</span>
   <button type="button" id="install-banner-how">Nasıl?</button>
-  <button type="button" id="install-banner-close" aria-label="Kapat">✕</button>
+  <button type="button" id="install-banner-close" aria-label="Kapat"><svg class="i" aria-hidden="true"><use href="#i-x"></use></svg></button>
 </div>
 
 <!-- Maruziyet asistanı kısayolu (haritanın sol alt köşesi) -->
@@ -2052,7 +2067,7 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
 <div class="chart-drawer collapsed" id="chart-drawer">
   <div class="chart-handle" id="chart-handle">
     <span class="arrow">▼</span>
-    <svg class="i"><use href="#i-chart-column"></use></svg> Sensör karşılaştırması: Atmotube Pro ve PurpleAir PA-II
+    <svg class="i"><use href="#i-chart-column"></use></svg> <span class="ch-t">Sensör karşılaştırması: Atmotube Pro ve PurpleAir PA-II</span>
     <span class="adv-badge" id="adv-badge"></span>
   </div>
   <div class="chart-body"><canvas id="cmp-chart"></canvas></div>
@@ -2064,15 +2079,15 @@ body.research .exp-fab, body.exp-open .exp-fab { display: none; }
 
 <script src="js/colorscale.js?v=59"></script>
 <script src="js/api.js?v=45"></script>
-<script src="js/campus.js?v=61"></script>
-<script src="js/app.js?v=71"></script>
+<script src="js/campus.js?v=62"></script>
+<script src="js/app.js?v=72"></script>
 <script src="js/who.js?v=51"></script>
 <script src="js/kiyas.js?v=45"></script>
 <script src="js/trend.js?v=3"></script>
-<script src="js/ic.js?v=10"></script>
+<script src="js/ic.js?v=11"></script>
 <script src="js/ozet.js?v=60"></script>
 <script src="js/maruziyet.js?v=10"></script>
-<script src="js/shell.js?v=55"></script>
+<script src="js/shell.js?v=56"></script>
 <script src="js/bildirim.js?v=4"></script>
 </body>
 </html>

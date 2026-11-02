@@ -502,6 +502,19 @@ async function loadCSB() {
         const when = trTime(d.recorded_at);
 
         const pmEl = document.getElementById("csb-pm25");
+        // Bir haftadan eski değer (ör. Haziran'dan kalan arşiv kaydı) güncel sanılmasın: sayı ve harita işareti gösterilmez
+        if (d.stale && d.ageMin > 7 * 1440) {
+            pmEl.innerHTML = `--<small> PM₂.₅ µg/m³</small>`;
+            pmEl.style.color = ""; pmEl.style.opacity = "0.55";
+            set("csb-name", "Tuzla istasyonu · bölge referansı");
+            set("csb-dist", d.distance_km != null ? f1tr(d.distance_km) + " km" : "--");
+            const badge = document.getElementById("csb-badge");
+            badge.textContent = "Veri alınamıyor";
+            badge.style.color = "#f4615e"; badge.style.borderColor = "#f4615e55"; badge.style.background = "#f4615e1f";
+            set("csb-time", "Kaynağa (İBB/ÇŞB) şu an erişilemiyor; istasyon ölçüme devam ediyor olabilir.");
+            if (csbMarker) { map.removeLayer(csbMarker); csbMarker = null; }
+            return;
+        }
         pmEl.innerHTML = `${f1tr(d.pm2_5)}<small> PM₂.₅ µg/m³</small>`;
         pmEl.style.color = pm25Color(d.pm2_5);
 
@@ -525,7 +538,7 @@ async function loadCSB() {
             const c = pm25Color(d.pm2_5);
             const html = `<b>Tuzla istasyonu</b> · ${d.station_name.replace(/ \((eski|canlı)\)$/, "")}<br>${TUZLA_SOURCE[d.source] || "Resmî istasyon"} · HKİ ${hki(d.pm2_5)?.i ?? "—"} (${pm25Label(d.pm2_5)})<br>PM₂.₅: <b style="color:${c}">${f1tr(d.pm2_5)}</b> µg/m³<br><small>${f1tr(d.distance_km) ?? "—"} km · ${d.recorded_at ? d.recorded_at.replace("T"," ") : ""}</small>`;
             const icon = L.divIcon({ className: "",
-                html: `<div class="ibb-marker" style="--marker-color:${c}">🏛️</div>`,
+                html: `<div class="ibb-marker" style="--marker-color:${c}">${ico("landmark")}</div>`,
                 iconSize: [30, 30], iconAnchor: [15, 15] });
             const pos = [d.lat + 0.0008, d.lon + 0.0008];
             if (!csbMarker) {
@@ -660,7 +673,7 @@ function updateAtmotubeMarkers(devices) {
         const recent = ageMin < ATP_ONLINE_MIN;     // canlı mı
         const c = pm25Color(r.pm2_5);
         const durum = recent ? "canlı" : "son bilinen konum";
-        const html = `<b>📡 ${d.device}</b> — ${durum}<br>PM₂.₅: <b style="color:${c}">${f1tr(r.pm2_5) ?? "--"}</b> µg/m³<br><small>${timeAgo(r.recorded_at)}</small>`;
+        const html = `<b>${ico("radio-tower")} ${d.device}</b> — ${durum}<br>PM₂.₅: <b style="color:${c}">${f1tr(r.pm2_5) ?? "--"}</b> µg/m³<br><small>${timeAgo(r.recorded_at)}</small>`;
         // Canlı: yanıp sönen kare (kendi PM₂.₅ renginde); eski: soluk sabit kare. Altında cihaz adı etiketi.
         const dot = recent
             ? `<div class="atp-live" style="--marker-color:${c}"></div>`
@@ -713,7 +726,7 @@ function renderCO2Devices(devices) {
             if (online) onlineCount++;
             const c = r ? co2Color(r.co2_ppm) : "#3a4254";
             const loc = d.anchored_to
-                ? `📍 ${d.anchored_to} ile${d.anchor_live === false ? " (son konum)" : ""}`
+                ? `${ico("map-pin")} ${d.anchored_to} ile${d.anchor_live === false ? " (son konum)" : ""}`
                 : (d.location || "kampüs");
             const info = r && r.co2_ppm != null
                 ? timeAgo(r.recorded_at) + " · " + loc
@@ -777,10 +790,10 @@ function updateCO2Markers(devices) {
             ? `${d.anchored_to} ile birlikte${d.anchor_live === false ? " (son bilinen konum)" : ""}`
             : (d.location || "kampüs");
         const ppm = Math.round(r.co2_ppm);
-        const html = `<b>🔺 ${d.device}</b> — ${where}<br>` +
+        const html = `<b>${d.device}</b> — ${where}<br>` +
             `CO₂: <b style="color:${c}">${ppm}</b> ppm · ${co2Label(r.co2_ppm)}<br>` +
-            `<small>🌡️ ${t} · 💧 ${h} · ${timeAgo(r.recorded_at)}</small><br>` +
-            `<small style="opacity:.7">🕐 ${trClock(r.recorded_at)} (TR)</small>`;
+            `<small>${ico("thermometer")} ${t} · ${ico("droplet")} ${h} · ${timeAgo(r.recorded_at)}</small><br>` +
+            `<small style="opacity:.7">${ico("clock")} ${trClock(r.recorded_at)} (TR)</small>`;
         // Üçgen işaretçi — CO₂'yi PM dairelerinden/ATP noktalarından ayırır. İçinde ppm değeri.
         const svg = `<svg width="40" height="34" viewBox="0 0 40 34">
             <polygon points="20,2 38,32 2,32" fill="${c}" stroke="#fff" stroke-width="2.5"
@@ -859,7 +872,7 @@ function renderSessionGroups() {
           <div class="person-avatar" style="background:${person.color}">${person.initial}</div>
           <span class="person-name">${person.name}</span>
           <span class="person-count">${sessions.length} gün · ${sessions.reduce((a,s)=>a+(s.reading_count||0),0)} ölçüm</span>
-          <span class="person-arrow">▶</span>
+          <span class="person-arrow">${ico("chevron-right")}</span>
         </div>
         <div class="person-sessions">
           ${sessions.map(s => `
@@ -867,7 +880,7 @@ function renderSessionGroups() {
               <input type="checkbox" class="s-cb" value="${s.id}">
               <span class="session-date">${dateLabelOf(s)}</span>
               <span class="session-n">${s.reading_count ?? 0}</span>
-              <button class="session-play" data-sid="${s.id}" title="Bu günü oynat">▶</button>
+              <button class="session-play" data-sid="${s.id}" title="Bu günü oynat" aria-label="Bu günü oynat">${ico("play")}</button>
             </div>`).join("")}
         </div>
       </div>`).join("");
