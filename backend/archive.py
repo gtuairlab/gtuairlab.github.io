@@ -37,7 +37,8 @@ def is_enabled():
 
 def _connect():
     # Supabase bağlantıları SSL ister
-    return psycopg2.connect(DATABASE_URL, sslmode="require", connect_timeout=15)
+    return psycopg2.connect(DATABASE_URL, sslmode="require", connect_timeout=15, keepalives=1,
+                            keepalives_idle=30, keepalives_interval=10, keepalives_count=3)
 
 
 SCHEMA = """

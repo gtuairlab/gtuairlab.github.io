@@ -222,6 +222,10 @@ Renkli (zengin) duyuru — `renk` ya da `bolumler` varsa renkli başlık alanıy
 - **Sunucuyu uyanık tutma:** Asıl yöntem Supabase `pg_cron` işi `render-uyanik-tut` (5 dakikada bir `net.http_get` ile `/health`, 7 Ekim 2026).
   Yedek: `.github/workflows/sunucu-uyanik.yml` (GitHub zamanlaması 3–8 saatte bir çalışabiliyor). Render uyursa veri toplama durur.
   Render ücretsiz planı ayda 750 saat; tek servis 7/24 açık kalabilir.
+- **Sunucu süreci (2 Kasım 2026):** `gunicorn.conf.py` (kök) tek süreç + 8 iş parçacığı (gthread) kurar; zamanlayıcıyı dosya kilidiyle
+  yalnızca bir süreç başlatır (`app.py` → `SCHEDULER_OWNER`), PurpleAir yoklama durumu süreçler arasında dosyayla paylaşılır.
+  Önceden birden çok işçi her işi iki kez yapıyordu (Atmotube 429, olası çift bildirim) ve zaman aşımı olmayan bir veritabanı
+  bağlantısı bir süreçteki yoklamayı 26 Ekim'den beri dondurmuştu; `db.get_conn`/`archive._connect` artık zaman aşımı ve canlılık denetimli.
 - **Veritabanı (Supabase):** 4 tabloda RLS açık (7 Ekim 2026); sunucu `postgres` rolüyle bağlanır (RLS'yi atlar), anon/authenticated erişemez.
   `purpleair_readings.recorded_at` tekil (kopya kayıt yazılmaz).
 - `scripts/` — `tanitim_video/` (tanıtım videosu kaydı ve fon müziği), `ekip_kasasi.js` (ekip görünümü ad kasası), `tuzla_gecmis.py` (İBB'den Tuzla PM₁₀ geçmişi, her yerden çalışır), `csb_gecmis.py` (ÇŞB'den Tuzla PM₂.₅ geçmişi, yalnızca Türkiye'den)

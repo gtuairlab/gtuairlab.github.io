@@ -6,6 +6,8 @@ Stores readings to the database via db.save_purpleair_reading().
 import urllib.request
 import json
 import datetime
+import os
+import tempfile
 from config import (PURPLEAIR_API_KEY, PURPLEAIR_SENSOR_ID, PURPLEAIR_LAT, PURPLEAIR_LON,
                     PURPLEAIR_INDOOR_SENSOR_ID, PURPLEAIR_INDOOR_READ_KEY)
 import db
@@ -24,7 +26,7 @@ def _fahrenheit_to_celsius(f):
     return round((f - 32) * 5 / 9, 1)
 
 
-def poll():
+def _poll():
     global _last_poll_status, _last_saved_at
     if not PURPLEAIR_API_KEY:
         _last_poll_status = {"success": False, "error": "PURPLEAIR_API_KEY not set", "at": _now()}
@@ -101,7 +103,7 @@ _indoor_status = {"success": None, "error": None, "at": None, "sensor_index": PU
 _indoor_last_at = None
 
 
-def poll_indoor():
+def _poll_indoor():
     global _indoor_status, _indoor_last_at
     if not PURPLEAIR_INDOOR_SENSOR_ID or not PURPLEAIR_API_KEY:
         _indoor_status = {"success": False, "error": "iç sensör tanımlı değil", "at": _now(), "sensor_index": None}
@@ -195,12 +197,50 @@ def backfill_indoor(lat=None, lon=None):
         return 0
 
 
+# Durum süreçler arasında paylaşılır: zamanlayıcı tek süreçte çalışır (app.py), istekleri başka bir süreç
+# karşılayabilir; o süreç kendi boş durumunu değil, yoklayan sürecin yazdığı son durumu döndürür.
+_STATUS_FILE = os.path.join(tempfile.gettempdir(), "gtu-airlab-purpleair-status.json")
+
+
+def _share():
+    try:
+        with open(_STATUS_FILE + ".tmp", "w") as f:
+            json.dump({"out": _last_poll_status, "in": _indoor_status}, f)
+        os.replace(_STATUS_FILE + ".tmp", _STATUS_FILE)
+    except Exception:
+        pass
+
+
+def _shared(key, local):
+    if local.get("at"):
+        return local
+    try:
+        with open(_STATUS_FILE) as f:
+            return json.load(f).get(key) or local
+    except Exception:
+        return local
+
+
+def poll():
+    try:
+        _poll()
+    finally:
+        _share()
+
+
+def poll_indoor():
+    try:
+        _poll_indoor()
+    finally:
+        _share()
+
+
 def get_indoor_status():
-    return _indoor_status
+    return _shared("in", _indoor_status)
 
 
 def get_poll_status():
-    return _last_poll_status
+    return _shared("out", _last_poll_status)
 
 
 def _now():

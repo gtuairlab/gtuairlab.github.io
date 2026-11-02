@@ -23,7 +23,10 @@ if _USE_POSTGRES:
 @contextmanager
 def get_conn():
     if _USE_POSTGRES:
-        conn = psycopg2.connect(DATABASE_URL)
+        # Zaman aşımı ve canlılık denetimi: kopan bir bağlantı zamanlayıcının iş parçacığını sonsuza dek
+        # bekletmesin (2 Kasım 2026: PurpleAir yoklaması 26 Ekim'den beri bir süreçte takılı kalmıştı).
+        conn = psycopg2.connect(DATABASE_URL, connect_timeout=10, keepalives=1,
+                                keepalives_idle=30, keepalives_interval=10, keepalives_count=3)
         try:
             yield conn
             conn.commit()

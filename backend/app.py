@@ -7,6 +7,7 @@ Production:   gunicorn app:app (Procfile)
 import datetime
 from flask import Flask, request, jsonify, abort, Response
 from flask_cors import CORS
+import os
 from apscheduler.schedulers.background import BackgroundScheduler
 
 import config
@@ -58,7 +59,7 @@ import archive
 import collector
 archive.init()
 
-scheduler = BackgroundScheduler()
+scheduler = BackgroundScheduler(job_defaults={"coalesce": True, "max_instances": 1})
 scheduler.add_job(purpleair.poll, "interval", minutes=config.POLL_INTERVAL_MINUTES, id="pa_poll")
 scheduler.add_job(purpleair.poll_indoor, "interval", minutes=config.POLL_INTERVAL_MINUTES, id="pa_indoor_poll")
 # Üç kaynağı kalıcı arşive yaz: hızlı (PurpleAir+Atmotube) + saatlik (İBB)
@@ -73,15 +74,27 @@ scheduler.add_job(bildirim.check_alarm, "interval", minutes=10, id="push_alarm",
                   next_run_time=datetime.datetime.now() + datetime.timedelta(minutes=2))
 scheduler.add_job(bildirim.morning, "cron", hour=8, minute=0, timezone="Europe/Istanbul", id="push_sabah",
                   misfire_grace_time=1800)
-scheduler.start()
+# Zamanlayıcıyı yalnızca bir süreç çalıştırır. Sunucu birden çok işçiyle başlarsa her biri ayrı zamanlayıcı
+# kurup her işi (PurpleAir, Atmotube, bildirimler) iki kez yapıyordu; Atmotube bulutu istek sınırına takılıyordu
+# (2 Kasım 2026). Kilidi ilk alan süreç başlatır; kilit süreç kapanınca kendiliğinden bırakılır.
+import fcntl, tempfile, threading
+_sched_lock = open(os.path.join(tempfile.gettempdir(), "gtu-airlab-scheduler.lock"), "w")
+try:
+    fcntl.flock(_sched_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    SCHEDULER_OWNER = True
+except OSError:
+    SCHEDULER_OWNER = False
 
-# Run first poll + collection immediately on startup (background thread)
-import threading
 def _startup_jobs():
     purpleair.poll()
     collector.collect_fast()
     collector.collect_hourly()
-threading.Thread(target=_startup_jobs, daemon=True).start()
+
+if SCHEDULER_OWNER:
+    scheduler.start()
+    threading.Thread(target=_startup_jobs, daemon=True).start()
+else:
+    print("[scheduler] zamanlayıcı başka bir süreçte çalışıyor; bu süreç yalnızca istekleri karşılar")
 
 
 # ---------------------------------------------------------------------------
