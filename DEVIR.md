@@ -13,15 +13,17 @@ Anahtar ve parolaların **değerleri bu belgede yok** (repo herkese açık); yal
 
 ### A1. Eski hesaptan çıkmadan önce (eski hesapta)
 1. **Sohbette gönderilen dosyaları indir.** Bulut çalışma ortamı geçicidir; bu dosyaların kopyası yalnızca sohbette duruyor:
-   - COP31 stant filmi `GTU-AirLab-Stand11-loop.mp4` — **27 Ekim'de gönderilen son sürüm** (2 dk 50 sn, sessiz, petrol yeşili zemin, açılışta ad)
-   - El ilanı `GTU-AirLab-COP31-handout.pdf` (22 Ekim)
-   - Konuşma kartı `GTU-AirLab-Stand11-konusma-karti.pdf` (A5, iki yüz) ve masa karekod kartı `GTU-AirLab-Stand11-karekod-kart.pdf`
-     (A4, ortadan katlanır) — 23 Ekim
-   - Aynı adla daha önce gönderilmiş eski stant videoları (23 ve 26 Ekim) gerekmiyor; en sondakini al.
-   - Not: filmin girdileri (logo, karekod, uydu dokusu, ekran görüntüleri) bulut ortamı sıfırlanınca silindi; repoda yalnızca kayıt betikleri var.
-     Film yeniden kaydedilecekse uygulamanın uydu katmanından yeni ekran görüntüsü alınması gerekir. Bu yüzden MP4'ü mutlaka indir.
+   - COP31 stant filmi `GTU-AirLab-Stand11-loop.mp4` — **2 Kasım'da gönderilen son sürüm** (2 dk 50 sn, sessiz, petrol yeşili zemin, açılışta ad;
+     Atmotube PRO 2 / CO₂ cümlesi çıkarıldı)
+   - Konuşma kartı `GTU-AirLab-Stand11-konusma-karti.pdf` (A5, iki yüz) — **2 Kasım'da gönderilen son sürüm** ("What comes next?" yanıtında
+     Atmotube PRO 2 / CO₂ çıkarıldı)
+   - El ilanı `GTU-AirLab-COP31-handout.pdf` (22 Ekim) ve masa karekod kartı `GTU-AirLab-Stand11-karekod-kart.pdf` (A4, ortadan katlanır; 23 Ekim)
+   - Aynı adla daha önce gönderilmiş eski sürümler (stant videosu 23, 26, 27 Ekim; konuşma kartı 23 Ekim) gerekmiyor; en sondakini al.
+   - Not: filmin girdileri (logo, karekod, ekran görüntüleri) COP31 sunumunun içinde duruyor; uydu dokusu onlardan yeniden kurulur
+     (`scripts/cop31_stant/hazirla.sh` başındaki not). Sunum silinirse film yeniden kaydedilemez; MP4'ü mutlaka indir.
 2. **COP31 sunumu "GTU AirLab · COP31":** https://claude.ai/artifact/34tYuKM4XNMxG6st6egjWH
    - **Paylaş** menüsünden akademik e-postana **düzenleme** izni ver; yeni hesaptaki Claude aynı bağlantıyı güncelleyebilsin.
+   - Son sürüm 25 (2 Kasım: "Next 12 months" slaydı ve konuşmacı notundan Atmotube PRO 2 / CO₂ çıkarıldı; eski sürümler sürüm geçmişinde).
    - Yedek olarak **PPTX ve PDF** indir. İki ziyaretçi videosu ve zamanlama animasyonu sunumun içinde gömülü; bağlantıdan açınca oynar,
      PPTX/PDF'de durağan kare olarak kalır. Bu videoların ayrı kopyası yok; standda sunumu bağlantıdan (internetle) aç.
 3. **Projeye ait diğer yayımlanmış sayfalar** (aynı yolla paylaş ya da indir):
@@ -32,6 +34,10 @@ Anahtar ve parolaların **değerleri bu belgede yok** (repo herkese açık); yal
    - Kampüs Hava Kalitesi Raporu (demo) — https://claude.ai/artifact/V6SgTe8KymsYSitM57wbZX
 4. **Zamanlanmış görev:** Projeye ait zamanlanmış Claude görevi **yok**. Sunucuyu uyanık tutan iş Supabase'de çalışıyor (B4), Claude'a bağlı değil.
 5. Eski hesapta bağlı **GitHub ve Supabase bağlayıcılarını** istersen sonra kaldırabilirsin; yeni hesap kendi bağlantısını kurar (A2).
+   Diğer bağlayıcılar (Google Drive, Canva, Figma vb.) bu projede kullanılmıyor.
+6. **Sohbet geçmişi hesaplar arasında taşınmaz.** Projenin bütün bilgisi repoda: `CLAUDE.md` (kurallar, bekleyen işler), bu belge,
+   `docs/` (yöntem ve kaynaklar), `ajanlar/*/HAFIZA.md` (ajan hafızaları). Eski hesapta claude.ai'de bu projeye ait bir Proje talimatı
+   ya da hafıza notu tuttuysan metnini kopyalayıp yeni hesapta Claude'a yapıştır.
 
 ### A2. Yeni (akademik) hesapta kurulum
 0. Akademik hesap kurumsal bir plandaysa (Education/Enterprise) Claude Code, bağlayıcılar ve kurum dışından gelen paylaşımlar
@@ -134,8 +140,9 @@ Sunucu `gunicorn.conf.py` ile tek süreç + 8 iş parçacığı çalışır; zam
 ### B6. Bekleyen işler (öncelik sırasıyla; ayrıntı `CLAUDE.md` → Bekleyen işler)
 1. **COP31 (12 Kasım 2026, Stant 11, 11:00–11:30):** sunum (A1-2), stant filmi USB'de ve telefonda, el ilanı baskısı, konuşma kartı,
    masa karekod kartı, masada Atmotube/PurpleAir cihazı. Organizasyondan ekran çözünürlüğü ve USB/HDMI bilgisi alınacak.
-   **Açık karar:** stant filminin "Next" sahnesinde "wearable Atmotube PRO 2: PM₂.₅, CO₂ and VOCs" geçiyor (`scripts/cop31_stant/film.js`);
-   `CLAUDE.md` "Tanıtımlarda/duyurularda şimdilik Atmotube Pro 2'den ya da eklenecek CO₂'den söz edilmez" diyor — kullanıcıya sor.
+   Atmotube PRO 2 / CO₂ ifadesi kullanıcının isteğiyle stant filminden, sunumdan (sürüm 25) ve konuşma kartından çıkarıldı (2 Kasım 2026;
+   kural `CLAUDE.md`: tanıtımlarda Atmotube Pro 2'den ya da eklenecek CO₂'den söz edilmez). Karekod kartında geçmiyor. **El ilanının kaynağı
+   kayıtlarda yok, denetlenemedi:** basmadan önce PDF'te "Atmotube PRO 2" ya da "CO₂" geçiyor mu bak; geçiyorsa yeniden üretilmeli.
    Filmdeki ziyaretçi konum işaretleri temsilîdir.
 2. **Tuzla bölge istasyonu verisi yok (22 Ekim 2026 09:00'dan beri):** İBB ve ÇŞB yurt dışından gelen bağlantıyı engelliyor, sunucu yurt dışında.
    Uygulama "Veri alınamıyor" gösteriyor. Seçenekler: Türkiye'de sürekli açık bir bilgisayar ya da GTÜ sunucusunda küçük bir toplayıcı (gerçek zamanlı);

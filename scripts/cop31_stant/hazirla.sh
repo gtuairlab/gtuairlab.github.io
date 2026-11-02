@@ -2,6 +2,9 @@
 # COP31 Stant 11 döngü filmi · varlıkları hazırlar (görseller repoya girmez; yalnızca bu betik ve film kodu).
 # Kullanım: bash hazirla.sh <cikti_klasoru> <cop31_gecici_klasoru>
 #   <cop31_gecici_klasoru>: flyer/fonts, render/assets (logo, karekod, uygulama ekranları), harita/doku.png (uydu, © Esri, Maxar)
+# Girdiler kaybolursa (2 Kasım 2026'da yeniden kuruldu): render/assets dosyaları sunum "GTU AirLab · COP31" varlıklarıdır (dosya adı =
+#   varlık kimliği, claude.ai/artifact/34tYuKM4XNMxG6st6egjWH); flyer/fonts = frontend_v2/vendor/fonts; harita/doku.png =
+#   ekran_birlestir.py → ../cop31_animasyon/harita_hazirla.py. Python için PIL gerekir.
 set -e
 OUT=$(mkdir -p "$1" && cd "$1" && pwd); SRC=$(cd "$2" && pwd); HERE=$(cd "$(dirname "$0")" && pwd)
 NM=${NM:-$SRC/../node_modules}

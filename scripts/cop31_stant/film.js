@@ -158,7 +158,7 @@ function loopFn(L) { const P = L.concat([L[0]]), seg = []; let T0 = 0;
   for (let i = 1; i < P.length; i++) { const l = Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); seg.push(l); T0 += l; }
   return u => { u = ((u % 1) + 1) % 1; let d = u * T0; for (let i = 0; i < seg.length; i++) { if (d <= seg[i] || i === seg.length - 1) { const f = cl(d / seg[i]); return [lerp(P[i][0], P[i + 1][0], f), lerp(P[i][1], P[i + 1][1], f)]; } d -= seg[i]; } }; }
 function inPoly(x, y, P) { let c = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) if ((P[i][1] > y) !== (P[j][1] > y) && x < (P[j][0] - P[i][0]) * (y - P[i][1]) / (P[j][1] - P[i][1]) + P[i][0]) c = !c; return c; }
-const FOC = [1120, 560];
+const FOC = [1120, 590];   // harita odağı (SUMER); 590: uydu dokusunun en alt şeridi kadrajda görünmez (2 Kasım 2026)
 let bS = {};
 function mapS(lt) { return lerp(1.02, 1.10, E.s(cl(lt / SC.built.d))); }
 const P = (p, s) => [(p[0] - TEX.SUMER[0]) * s + FOC[0], (p[1] - TEX.SUMER[1]) * s + FOC[1]];
@@ -481,7 +481,7 @@ D.app = lt => {
 
 // ── 8 · Sonraki 12 ay ──
 const NEXT = [
-  ['Multi-site indoor monitoring', 'Classrooms, labs, library and sports hall with wearable Atmotube PRO 2: PM<sub>2.5</sub>, CO<sub>2</sub> and VOCs'],
+  ['Multi-site indoor monitoring', 'Classrooms, labs, library and sports hall, measured with wearable sensors'],
   ['Dynamic source characterization', 'Indoor/outdoor ratios and clustering of pollutant patterns with occupancy and activity logs'],
   ['Machine-learning forecasts', 'Explainable models trained on our field data and cross-validated before use'],
   ['Early warning and planning', 'Forecast-based alerts and scenarios for timing, routes and ventilation'],

@@ -19,3 +19,7 @@
 - 21 Ekim 2026, telefon bildirimleri: ONAY (tablolar yalnızca CREATE IF NOT EXISTS + RLS; geri alma DROP TABLE). Yeni renk yerine `var(--red)`;
   Python `round()` yerine `int(x + 0.5)` (JS Math.round ile aynı HKİ). Korumasız POST uçlarında alan adı beyaz listesi, kayıt üst sınırı
   ve IP başına sınır aranır. Zamanlanmış işler tek gunicorn işçisi varsayar (Render start komutunda `-w` olmamalı).
+- 2 Kasım 2026, hesap devri belgesi (`DEVIR.md`): commit 4 düzeltmeyle ONAY (hepsi yapıldı). Ortam değişkenleri `backend/` içindeki
+  `os.getenv`/`os.environ.get` taramasıyla karşılaştırılır (ilk taslakta `TUYA_CO2_*` atlanmıştı). Herkese açık belgeye kullanıcının projeyle
+  ilgisiz hesap içeriği yazılmaz. Supabase'de 13 tablonun hepsinde RLS açık. Claude Code ağ izni: Network access → Limited (eski
+  uygulamada Custom) → Allowed domains, paket yöneticileri kutusu işaretli.
