@@ -13,6 +13,7 @@ Anahtar ve parolaların **değerleri bu belgede yok** (repo herkese açık); yal
 
 ### A0. `claude-gmail-proje` klasörü (3 Kasım 2026)
 Eski hesabın sohbetinde tek zip olarak gönderildi; indirip masaüstüne aç. Claude hesabına bağlı her şeyin yedeği içinde:
+
 | Alt klasör | İçerik |
 |---|---|
 | `DEVIR.md`, `DEVIR.pdf` | Bu belge (PDF okunması kolay kopya) |
@@ -83,6 +84,7 @@ mesajından indir. Veritabanı klasörde yok, gerekmiyor: Supabase'de duruyor ve
    > sunucunun ve verinin canlı durumunu kontrol et ve bekleyen işleri kısaca listele."
 
 ### A3. Claude'dan bağımsız, sende kalan hesaplar (değişmez; şifreleri Claude'a verme)
+
 | Hizmet | Ne için | Nereden yönetilir |
 |---|---|---|
 | GitHub · `gtuairlab` organizasyonu | Kod ve site (GitHub Pages) | https://github.com/gtuairlab/gtuairlab.github.io |
@@ -131,6 +133,7 @@ Değerleri kullanıcı Render → Environment'ta tutar; **değer isteme, repoya 
 Sunucu `gunicorn.conf.py` ile tek süreç + 8 iş parçacığı çalışır; zamanlayıcıyı tek süreç yürütür (2 Kasım 2026 düzeltmesi).
 
 ### B4. Veritabanı (Supabase, `gtu-hava-kalitesi`)
+
 | Tablo | İçerik (2 Kasım 2026, yaklaşık satır) |
 |---|---|
 | `purpleair_readings` | Dış PurpleAir, 2 dakikalık (≈126 bin) |
