@@ -11,13 +11,30 @@ Anahtar ve parolaların **değerleri bu belgede yok** (repo herkese açık); yal
 
 ## A. Senin yapacakların (sırayla)
 
+### A0. `claude-gmail-proje` klasörü (3 Kasım 2026)
+Eski hesabın sohbetinde tek zip olarak gönderildi; indirip masaüstüne aç. Claude hesabına bağlı her şeyin yedeği içinde:
+| Alt klasör | İçerik |
+|---|---|
+| `DEVIR.md`, `DEVIR.pdf` | Bu belge (PDF okunması kolay kopya) |
+| `1_COP31_stant/` | Stant filmi (MP4, 2 Kasım), konuşma kartı (2 Kasım), masa karekod kartı (PDF) |
+| `2_COP31_sunum_yedegi/` | "GTU AirLab · COP31" sunumunun slayt dosyaları, görselleri ve iki ziyaretçi videosu + zamanlama animasyonu (MP4) |
+| `3_tanitim_sunumu_yedegi/` | "GTÜ AirLab Tanıtım" sunumunun slayt dosyaları ve görselleri |
+| `4_sayfalar/` | "AirLab Ajan Yapısı" ve "Bir Ölçümün Yolculuğu" sayfaları (tarayıcıda açılır) |
+| `5_repo/` | Reponun tam kopyası (git bundle, bütün geçmişiyle) |
+
+Sunum yedekleri, paylaşım yeni hesapta açılmazsa yeni Claude'un sunumu yeniden kurması içindir (slayt dosyaları + görseller).
+**Klasörde olmayanlar:** "Yönetici Özeti" (Docs) ve "Kampüs Hava Kalitesi Raporu (demo)" (Dashboard) dosya olarak çıkarılamıyor;
+sayfalarından indir ya da paylaş (A1-3). El ilanının (`GTU-AirLab-COP31-handout.pdf`) kaynağı kayıtlarda yok; 22 Ekim'deki sohbet
+mesajından indir. Veritabanı klasörde yok, gerekmiyor: Supabase'de duruyor ve Claude hesabından bağımsız (B4).
+
 ### A1. Eski hesaptan çıkmadan önce (eski hesapta)
 1. **Sohbette gönderilen dosyaları indir.** Bulut çalışma ortamı geçicidir; bu dosyaların kopyası yalnızca sohbette duruyor:
    - COP31 stant filmi `GTU-AirLab-Stand11-loop.mp4` — **2 Kasım'da gönderilen son sürüm** (2 dk 50 sn, sessiz, petrol yeşili zemin, açılışta ad;
      Atmotube PRO 2 / CO₂ cümlesi çıkarıldı)
    - Konuşma kartı `GTU-AirLab-Stand11-konusma-karti.pdf` (A5, iki yüz) — **2 Kasım'da gönderilen son sürüm** ("What comes next?" yanıtında
      Atmotube PRO 2 / CO₂ çıkarıldı)
-   - El ilanı `GTU-AirLab-COP31-handout.pdf` (22 Ekim) ve masa karekod kartı `GTU-AirLab-Stand11-karekod-kart.pdf` (A4, ortadan katlanır; 23 Ekim)
+   - El ilanı `GTU-AirLab-COP31-handout.pdf` (22 Ekim; zip'te yok, bu mesajdan indir) ve masa karekod kartı `GTU-AirLab-Stand11-karekod-kart.pdf`
+     (A4, ortadan katlanır; zip'te 3 Kasım kopyası var)
    - Aynı adla daha önce gönderilmiş eski sürümler (stant videosu 23, 26, 27 Ekim; konuşma kartı 23 Ekim) gerekmiyor; en sondakini al.
    - Not: filmin girdileri (logo, karekod, ekran görüntüleri) COP31 sunumunun içinde duruyor; uydu dokusu onlardan yeniden kurulur
      (`scripts/cop31_stant/hazirla.sh` başındaki not). Sunum silinirse film yeniden kaydedilemez; MP4'ü mutlaka indir.
