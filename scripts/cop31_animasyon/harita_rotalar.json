@@ -15,7 +15,7 @@
             null,
             [[29.359642,40.806698],[29.35946,40.806721],[29.35946,40.807088],[29.359642,40.807685],[29.361402,40.807456],[29.363708,40.807134],[29.36389,40.807456],[29.364072,40.807731],[29.364194,40.807961],[29.364618,40.80865],[29.364831,40.809017],[29.365286,40.810028],[29.365407,40.811061],[29.363526,40.811635],[29.362009,40.81198],[29.361099,40.812554],[29.360644,40.813243],[29.360583,40.813472]]],
   "at": [null, [29.359642,40.806698], null],
-  "etiketler": [["Güzide Café", "Güzide Kafe"], ["Congress & Culture Centre", "Kongre ve Kültür Merkezi"], ["Road traffic", "@yol"]],
+  "etiketler": [["Campus café", "Güzide Kafe"], ["Congress & Culture Centre", "Kongre ve Kültür Merkezi"], ["Road traffic", "@yol"]],
   "son": ["Visitor A: 36.5 µg in just 2 hours"],
   "_sure": "Videoya özgü sahne süreleri (sn); kafe uzatıldı ki 08:00 bildirimi ve karşılaştırma kafedeyken görünsün. Doz ve saatler değişmez.",
   "giris": 3, "sure": [7, 12, 7], "bekle": 8.5, "son_gec": 3.0,
@@ -38,7 +38,7 @@
    "yakin": 2.5, "genis_max": 2.2, "yay": 1.4,
    "vurgu": ["Güzide Kafe", "Kongre ve Kültür Merkezi", "SUMER", "Kimya ve Çevre Mühendisliği Bölümü"],
    "etiketler": [
-    {"metin": "Güzide Café", "bina": "Güzide Kafe", "ofset": [-110, -60], "pencere": [["0", "bitis"]]},
+    {"metin": "Campus café", "bina": "Güzide Kafe", "ofset": [-110, -60], "pencere": [["0", "bitis"]]},
     {"metin": "Congress & Culture Centre", "bina": "Kongre ve Kültür Merkezi", "ofset": [0, -70], "pencere": [["0", "giris"], ["s2", "bitis"]]},
     {"metin": "Road traffic", "nokta": [29.367926, 40.805389], "ofset": [0, 56], "pencere": [["0", "e0"], ["son", "bitis"]]},
     {"metin": "PurpleAir · rooftop\nmeasures every 2 min", "sensor": "cati", "tur": "pa", "ofset": [-150, 40], "pencere": [["0", "giris"], ["s1", "e1"]]},

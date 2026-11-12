@@ -463,7 +463,10 @@ function panel(clock, s, col, dose, done) {
   const lg = x.createLinearGradient(X0 + 58, 0, X0 + 298, 0); lg.addColorStop(0, '#3FB950'); lg.addColorStop(.5, '#E3B341'); lg.addColorStop(1, '#F85149');
   x.fillStyle = lg; x.fillRect(X0 + 58, 552, 240, 18); x.fillStyle = '#AEB9CF'; x.fillText('low', X0, 570); x.fillText('high', X0 + 310, 570);
   // sürekli uyarı satırı (panelin altında)
-  rr(L, 590, PW, 98, 16, 'rgba(14,22,38,.96)'); fnt(24, 1); x.fillStyle = '#F5A623'; x.fillText('Illustrative scenario · modelled dose,', X0, 619);
-  x.fillText('not a measured person', X0, 648); fnt(24); x.fillStyle = '#8C97AD'; x.fillText('Imagery © Esri, Maxar', X0, 677);
+  rr(L, 590, PW, 74, 16, 'rgba(14,22,38,.96)'); fnt(24, 1); x.fillStyle = '#F5A623'; x.fillText('Illustrative scenario · modelled dose,', X0, 619);
+  x.fillText('not a measured person', X0, 648);
+  // uydu künyesi (Esri World Imagery'nin güncel metni, 12 Kasım 2026): haritanın sağ üst köşesinde
+  fnt(18); const ct = 'Imagery: Esri, Vantor, Earthstar Geographics, GIS User Community', cw = x.measureText(ct).width;
+  rr(SW - cw - 34, 10, cw + 20, 30, 8, 'rgba(14,22,38,.78)'); x.fillStyle = '#C9D1E0'; x.fillText(ct, SW - cw - 24, 31);
 }
 </script></body></html>

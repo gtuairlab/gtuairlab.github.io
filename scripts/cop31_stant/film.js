@@ -243,7 +243,7 @@ function setupEvid() {
   sv('rect', { x: EV.x0, y: yv(20), width: EV.x1 - EV.x0, height: yv(12) - yv(20), fill: C.mod, 'fill-opacity': .075 }, eS.bands);
   sv('rect', { x: EV.x0, y: yv(12), width: EV.x1 - EV.x0, height: yv(0) - yv(12), fill: C.good, 'fill-opacity': .07 }, eS.bands);
   const tx = (x, y, t, at = {}) => { const e = sv('text', Object.assign({ x, y, fill: C.mutD, 'font-family': 'Inter', 'font-size': 28 }, at), s); e.textContent = t; return e; };
-  eS.bandLab = [tx(EV.x0 + 14, yv(20) + 36, 'Türkiye national AQI: Moderate'), tx(EV.x0 + 14, yv(0) - 16, 'Türkiye national AQI: Good')];
+  eS.bandLab = [tx(EV.x0 + 14, yv(20) + 36, 'AQI (HKİ scale, indicative): Moderate'), tx(EV.x0 + 14, yv(0) - 16, 'AQI (HKİ scale, indicative): Good')];
   eS.grid = sv('g', {}, s);
   for (const v of [0, 5, 10, 15, 20]) { sv('line', { x1: EV.x0, x2: EV.x1, y1: yv(v), y2: yv(v), stroke: 'rgba(244,241,234,.16)', 'stroke-width': 1.5 }, eS.grid);
     const t = sv('text', { x: EV.x0 - 18, y: yv(v) + 10, fill: C.mutD, 'font-family': 'Inter', 'font-size': 28, 'text-anchor': 'end' }, eS.grid); t.textContent = v; }
@@ -455,7 +455,7 @@ D.visit = lt => {
 
 // ── 7 · Uygulama ──
 const FEATS = [
-  ['gauge', 'Live national AQI', 'from corrected PM<sub>2.5</sub>; source and time always shown'],
+  ['gauge', 'Live AQI (HKİ scale, indicative)', 'from corrected PM<sub>2.5</sub>; source and time always shown'],
   ['bell-ring', 'Phone alerts', 'when campus AQI exceeds 100; daily summary at 08:00'],
   ['school', 'Lecture-hall indoor/outdoor ratio', 'matched to the class timetable'],
   ['message-circle', 'Personal exposure assistant', 'your day in, your dose out'],

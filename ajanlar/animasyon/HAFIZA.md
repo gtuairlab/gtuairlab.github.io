@@ -101,3 +101,11 @@
   poster · slides · contact" (rozet 284 px), kapanış kartı aynı. Karekod içeriği değişmedi (kök adres). Kök `index.html` + `cop31/`
   (poster/sunum PDF, vCard, logo) hazırlandı; yayına alma (main) kullanıcının KVKK/Esri onayını bekliyor. Film 2:23, karekod 16. sn'den
   sonuna kadar her karede çözülüyor, %35 küçültmede de okunuyor.
+- 13 Kasım 2026, son denetim (yabancı akademisyen, yerli akademisyen, sektör temsilcileri; üçü de "değişikliklerle hazır"):
+  "2.3×" yalnızca uygulama modelinin sonucu (iç ortam payı iki kez düşülüyor: R × 0,5); ölçülen kişisel/çatı oranlarıyla A/B ≈ 1,2–1,5.
+  Her üründe başlık "2 h in the wrong places can exceed 8 h in the right places", aralık kaynak satırında. Kafe katsayısı R = 2,0 model
+  üst sınırı (G = 1,89'dan), kafe/çatı oranı değil (0,96). Özel işletme adı (Güzide) COP malzemelerinden çıkarıldı → "campus café"
+  (animasyon etiketi dahil; iç anahtar "Güzide Kafe" campus.geojson için kaldı). "Türkiye national AQI" → "AQI (HKİ scale, indicative)"
+  (resmî HKİ 24 sa ortalama ve çok kirleticili; PM₂.₅ kesimleri İBB/US EPA 2012 uyarlaması). Unvan her yerde "Asst. Prof. Dr.";
+  destek "TÜBİTAK 1002-A (Rapid Support) and GTU Scientific Research Projects (BAP, GTU-105)" (kaynak: kullanıcının COP31 başvurusu).
+  Konuşmacı notlarında "reference" kalmadı. Esri künyesi ziyaretçi videolarında harita sağ üst köşesinde.

@@ -51,6 +51,8 @@ ul.plain li{margin:4px 0}
 footer{padding:20px 0 40px;font-size:13px;color:var(--mut)}
 footer p{margin:8px 0}
 .tr{font-size:15px}
+.gloss{margin:-2px 2px 2px;font-size:13px;color:#C9D3E6}
+.gloss b{color:#fff;font-weight:600}
 @media (max-width:560px){.grid,.two{grid-template-columns:1fr}}
 </style>
 </head>
@@ -65,13 +67,14 @@ footer p{margin:8px 0}
       <a class="btn primary" href="frontend_v2/">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
         <span>Open the live app<small>Campus air now · interface in Turkish</small></span></a>
+      <p class="gloss">Turkish labels: <b>HKİ</b> = AQI · <b>İyi</b> = Good · <b>Orta</b> = Moderate · <b>Hassas</b> = Unhealthy for sensitive groups · <b>Sağlıksız</b> = Unhealthy</p>
       <div class="grid">
         <a class="btn ghost" href="cop31/GTU_AirLab_COP31_Poster.pdf">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h6"/><path d="M8 13h8M8 17h5"/></svg>
           <span>Poster<small>PDF · 0.4 MB</small></span></a>
         <a class="btn ghost" href="cop31/GTU_AirLab_COP31_Slides.pdf">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-          <span>Slides<small>PDF · 2.3 MB</small></span></a>
+          <span>Slides<small>PDF · 2.1 MB</small></span></a>
       </div>
       <a class="btn ghost" href="#contact">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>
@@ -86,9 +89,9 @@ footer p{margin:8px 0}
     <h2>One open platform, from sensor to phone</h2>
     <ul class="plain">
       <li><b>Outdoor sensor:</b> rooftop PurpleAir PA-II, every 2 min, US EPA-corrected.</li>
-      <li><b>Indoor sensor:</b> PurpleAir in a lecture hall (Chemical and Environmental Engineering building).</li>
+      <li><b>Indoor sensor:</b> PurpleAir in a lecture hall (Chemical and Environmental Engineering building), since 20 Oct 2026; not yet in the results below.</li>
       <li><b>Wearable sensors (Atmotube):</b> 5 devices, field sessions across campus.</li>
-      <li><b>One open app:</b> corrected data, Türkiye national AQI, health advice, alerts when campus AQI exceeds 100, a daily summary at 08:00 and a personal exposure assistant.</li>
+      <li><b>One open app:</b> corrected data, an indicative AQI on Türkiye’s HKİ scale, health advice, alerts when campus AQI exceeds 100, a daily summary at 08:00 and a personal exposure assistant.</li>
     </ul>
   </section>
 
@@ -109,8 +112,8 @@ footer p{margin:8px 0}
     </div>
     <div class="card">
       <span class="lab modelled">Modelled · illustrative scenario, not a measured person</span>
-      <p class="big">2.3× <span>the dose</span></p>
-      <p style="margin:0">Two hours in the wrong places (36.5 µg) versus eight hours in the right places (16.2 µg).</p>
+      <p class="big">2 h &gt; 8 h <span>inhaled dose</span></p>
+      <p style="margin:0">Two hours in the wrong places (36.5 µg) exceeded eight hours in the right places (16.2 µg) in the app’s exposure model (2.3×). With the measured personal/rooftop ratios the gap is smaller (about 1.2–1.5×) but remains.</p>
       <p class="src">Hourly PM<sub>2.5</sub> (May–Oct 2026) × building factor (wearables, 27–30 Apr) × indoor factor 0.5 × breathing rate.</p>
     </div>
     <div class="card">
@@ -122,13 +125,20 @@ footer p{margin:8px 0}
 
   <section id="contact">
     <p class="kick">Join us</p>
-    <h2>Replicate it on your campus</h2>
+    <h2>Replicate it on your campus, site or city</h2>
     <div class="two">
       <div class="card"><b>What we offer</b>
-        <ul class="plain"><li>Open app and methods</li><li>Corrected-data pipeline</li><li>Exposure model</li><li>Field protocol</li></ul></div>
+        <ul class="plain"><li>Public app and documented methods</li><li>Corrected-data pipeline</li><li>Exposure model</li><li>Field protocol</li></ul></div>
       <div class="card"><b>What we seek</b>
         <ul class="plain"><li>Partner campuses and cities</li><li>Co-location with a reference monitor</li><li>Support for a multi-city pilot</li></ul></div>
     </div>
+    <div class="card"><b>Who could use it</b>
+      <ul class="plain">
+        <li><b>Industrial sites and organized industrial zones:</b> indoor–outdoor and shift-time PM<sub>2.5</sub> exposure of staff.</li>
+        <li><b>Municipalities:</b> time-of-day advice for schools and walking routes; morning summaries and alerts.</li>
+        <li><b>Sensor and smart-city companies:</b> a documented correction pipeline and a campus test bed.</li>
+      </ul>
+      <p class="src">Our campus set-up, as a pilot template: one rooftop and one indoor low-cost sensor, five wearables, four field days and the public app.</p></div>
     <div class="card contact">
       <div style="font-size:14px;color:#DCE3F0">Contact</div>
       <div style="font-weight:700;font-size:19px;margin-top:2px">Asst. Prof. Dr. İlker Akmırza</div>
@@ -150,8 +160,9 @@ footer p{margin:8px 0}
 </main>
 
 <footer class="wrap">
-  <p>This page uses no cookies, analytics or trackers. Satellite imagery in the slides: Esri and its data partners. Last updated 12 November 2026.</p>
+  <p>This page uses no cookies, analytics or trackers. Imagery (film, slides): Esri, Vantor, Earthstar Geographics, GIS User Community. Last updated 13 November 2026.</p>
   <p>Gebze Technical University is solely responsible for the views, information and statements expressed on this page and in the linked materials, as well as for their preparation and content. They do not necessarily reflect the views of the Council of Higher Education of Türkiye (YÖK), nor do they imply any responsibility or liability on its part.</p>
+  <p lang="tr">Bu sayfada ve bağlantılı materyallerde yer alan görüş, bilgi ve ifadelerden, bunların hazırlanmasından ve içeriğinden yalnızca Gebze Teknik Üniversitesi sorumlu olup, bunlar Yükseköğretim Kurulu’nun (YÖK) görüşlerini yansıtmaz ve Kurula herhangi bir sorumluluk yüklemez.</p>
 </footer>
 </body>
 </html>
