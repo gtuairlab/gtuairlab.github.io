@@ -1,7 +1,7 @@
 """COP31 stant filmi · tüm varlıkları tek komutla hazırlar (Windows masaüstü ve bulut; 12 Kasım 2026).
 Kullanım:  python scripts/cop31_stant/varlik_hazirla.py <cikti_klasoru>
 Çıktı: <cikti>/film.html, film.js, assets/ (fonts, logo, qr, cop31, yok, gtu, icons.js, app_summary.jpg, app_exposure.jpg,
-campus_sat.jpg) ve <cikti>/harita/ (doku.png + georef.json, ziyaretçi videoları için de kullanılır).
+campus_sat.jpg: harita_yakala.py ile uygulamanın uydu + kampüs katmanı görünümü) ve <cikti>/harita/ (doku.png + georef.json, ziyaretçi videoları için de kullanılır).
 Lisanslı uydu görüntüsü (© Esri, Maxar) ve uygulama ekranları her seferinde canlı uygulamadan üretilir; REPOYA GİRMEZ.
 Gerekenler: pip install playwright segno pillow numpy scipy (Windows'ta Edge; bulutta Playwright Chromium + ffmpeg).
 Bulut ortamının ağ izni: gtuairlab.github.io, server.arcgisonline.com, services.arcgisonline.com, gtu-air-quality.onrender.com.
@@ -13,7 +13,9 @@ REPO = os.path.dirname(os.path.dirname(HERE))
 ANIM = os.path.join(REPO, "scripts", "cop31_animasyon")
 OUT = os.path.abspath(sys.argv[1]); A = os.path.join(OUT, "assets"); HK = os.path.join(OUT, "harita")
 APP = "https://gtuairlab.github.io/frontend_v2/"
-QR_URL = "https://gtuairlab.github.io/"   # kısa adres (uygulamaya yönlenir): daha az ve daha iri modül, stantta daha uzaktan okunur
+QR_URL = "HTTPS://GTUAIRLAB.GITHUB.IO/"   # kısa adres (uygulamaya yönlenir); BÜYÜK harf → alfanümerik kip, sürüm 2 (25×25): daha iri modül, stantta daha uzaktan okunur
+MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+TODAY = f"{time.localtime().tm_mday} {MONTHS[time.localtime().tm_mon - 1]} {time.localtime().tm_year}"   # uygulama ekranlarının yakalandığı gün (film alt yazısı)
 for d in (A, os.path.join(A, "fonts"), HK):
     os.makedirs(d, exist_ok=True)
 env = dict(os.environ, PYTHONUTF8="1")
@@ -29,18 +31,22 @@ for f in os.listdir(os.path.join(REPO, "frontend_v2", "vendor", "fonts")):
 shutil.copy(os.path.join(REPO, "docs", "gorseller", "airlab_logo_simge.png"), os.path.join(A, "logo.png"))
 for src, dst in (("cop31.png", "cop31.png"), ("yok.png", "yok.png"), ("gtu_en.png", "gtu.png"), ("icons.js", "icons.js")):
     shutil.copy(os.path.join(HERE, "sabit", src), os.path.join(A, dst))
-for f in ("film.html", "film.js"):
-    shutil.copy(os.path.join(HERE, f), os.path.join(OUT, f))
+shutil.copy(os.path.join(HERE, "film.js"), os.path.join(OUT, "film.js"))
+with open(os.path.join(HERE, "film.html"), encoding="utf-8") as f:   # {{EKRAN_TARIHI}} → bugünün tarihi (ekranlar aşağıda canlı yakalanır)
+    html = f.read().replace("{{EKRAN_TARIHI}}", TODAY)
+with open(os.path.join(OUT, "film.html"), "w", encoding="utf-8") as f:
+    f.write(html)
 
 # 2 · karekod (test edilir)
 step("karekod: " + QR_URL)
 import segno
-segno.make(QR_URL, error="m").save(os.path.join(A, "qr.png"), scale=24, border=4, dark="#0B2E33", light="#FFFFFF")
+qr = segno.make(QR_URL, error="m"); print("  sürüm", qr.version, "hata düzeltme", qr.error)
+qr.save(os.path.join(A, "qr.png"), scale=24, border=2, dark="#0B2E33", light="#FFFFFF")   # sessiz bölge 2 modül + rozetin beyaz/krem kenarı
 try:
     import cv2, numpy as np
     from PIL import Image
     v = cv2.QRCodeDetector().detectAndDecode(np.array(Image.open(os.path.join(A, "qr.png")).convert("RGB")))[0]
-    print("  karekod çözüldü:", v); assert v == QR_URL
+    print("  karekod çözüldü:", v); assert v.upper() == QR_URL
 except ImportError:
     print("  (opencv yok: karekod çözme testi atlandı)")
 
@@ -68,5 +74,8 @@ subprocess.run([sys.executable, os.path.join(ANIM, "harita_hazirla.py"), "yok", 
 subprocess.run([sys.executable, os.path.join(ANIM, "uydu_yakala.py"), HK, cp_ll], env=env, check=True)
 subprocess.run([sys.executable, os.path.join(ANIM, "harita_hazirla.py"), os.path.join(HK, "sat.png"), HK],
                env=dict(env, CP_PX=os.path.join(HK, "cp_px.json")), check=True)
-Image.open(os.path.join(HK, "doku.png")).convert("RGB").crop((700, 830, 3600, 2460)).save(os.path.join(A, "campus_sat.jpg"), quality=90)
+# 5 · filmdeki kampüs haritası: uygulamanın kendi görünümü (uydu + kampüs katmanı), zoom 17,5; doku.png ile aynı kadraj ve koordinatlar.
+# (Eskiden doku.png'den kesiliyordu: binaları silinmiş, 3× büyütülmüş, bulanık ve "çorak" görünüyordu; 12 Kasım 2026.)
+step("filmin kampüs haritası (uygulama görünümü, zoom 17,5)")
+subprocess.run([sys.executable, os.path.join(HERE, "harita_yakala.py"), os.path.join(A, "campus_sat.jpg")], env=env, check=True)
 step("hazır: " + OUT)

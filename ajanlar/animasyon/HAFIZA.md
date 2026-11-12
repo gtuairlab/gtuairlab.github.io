@@ -81,3 +81,23 @@
   (resmî onay izlenimi) → yerine adım şeridi "GTU AirLab · Stand 11 | 1 Measure & model · 2 Predict · 3 Share". "38% less" her yerde
   "modelled"; ziyaretçi sonucu "2.3×"; iklim cümlesi soru ve tahmin sahnelerinde; "Türkiye national AQI"; karekod kısa adres
   https://gtuairlab.github.io/ (M, sürüm 3) ve "Turkish interface" uyarısı. Video H.264 High 4.1, 4 ref, TV aralığı, BT.709; ayrıca 10× art arda dosya.
+- 12 Kasım 2026, stant filmi 9. tur (kullanıcı: "karekod bazen görseli kapatıyor", "Atmotube haritası çok çorak"): harita sahnesinin
+  dokusu artık `harita_yakala.py` ile uygulamanın kendi görünümünden (Esri uydu + kampüs katmanı: binalar, yeşil alan, yol; zoom 17,
+  aynı kadraj ve doku koordinatları). Eski kesit, 3B videolar için binaları silinmiş ve 3× büyütülmüş dokudan geliyordu (bulanık, binasız).
+  Kaynak satırı: "Imagery © Esri, Maxar · building outlines: GTU AirLab app". Karekod rozeti (x 1636–1884, y 20–326) için güvenli alan:
+  harita sahnesindeki telefon aşağı (top 362, 314×680), ziyaretçi saatleri başlığın yanına, tahmin kartları ve çizgisi y 372, paylaşım
+  sahnesindeki özellik listesi y 352'den. Denetim: karekod altında kalan öğeleri tüm filmde 0,25 sn aralıkla tarayan betik (DOM kutuları).
+  Aynı gün denetim (akademisyen: değişikliklerle kabul; stant yöneticisi: değişikliklerle hazır; karekod hiçbir şeyi örtmüyor) → uygulananlar:
+  karekod "HTTPS://GTUAIRLAB.GITHUB.IO/" (büyük harf → alfanümerik, sürüm 2, Q, sessiz bölge 2: modüller ≈ %30 iri; 2 m'den okunması
+  için gerçek TV'de 2–3 telefonla denenmeli, tezgâha A5 karekod); uygulama ekranı alt yazısı "captured {{EKRAN_TARIHI}}" (varlik_hazirla.py
+  yakalama gününü yazar; eskiden yanlışlıkla "20 October" kalmıştı); Esri telifi güncel hâli "Esri, Vantor, Earthstar Geographics, GIS User
+  Community" (Maxar → Vantor; uygulamanın kendi künyesi hâlâ "Esri, Maxar"); zamanlama sahnesi 14,7 / 9,0 µg/m³ = 107 hafta içi günün
+  medyanı (lejant ve kaynak satırı); ATP-4/5 döngüleri kartın üstünde; cihaz etiketleri iç ortam karesinin üstünde; iç ortam işareti kimya
+  binasının güney kanadında (avluda değil); veri paketleri r 5; tahmin sahnesi 13 sn (film 2:23); "reference only" görünür; başlıklar
+  text-wrap:balance; telefon ekranları 40 px aşağı (çentik); adım şeridi koyu sahnede opak ve geçişin ortasında renk değiştirir.
+  harita_yakala.py zoom 17,5 (zoom 18 karoları), bütün karolar inene kadar bekler, koyu alan > %1 ise hata verir.
+- 12 Kasım 2026, 10. tur (kullanıcı: karekoda iletişim, poster/sunum bilgisi): iki denetçi de "tek karekod + kök adreste İngilizce COP31
+  sayfası" önerdi (ikinci karekod ya da vCard karekodu TV'den 1–2 m'de okunmaz, ziyaretçiyi böler). Film etiketi "Scan: app & info /
+  poster · slides · contact" (rozet 284 px), kapanış kartı aynı. Karekod içeriği değişmedi (kök adres). Kök `index.html` + `cop31/`
+  (poster/sunum PDF, vCard, logo) hazırlandı; yayına alma (main) kullanıcının KVKK/Esri onayını bekliyor. Film 2:23, karekod 16. sn'den
+  sonuna kadar her karede çözülüyor, %35 küçültmede de okunuyor.

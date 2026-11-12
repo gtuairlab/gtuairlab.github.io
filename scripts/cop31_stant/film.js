@@ -33,7 +33,7 @@ const hex2rgb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), 
 // ── sahne zaman çizelgesi (saniye) ──
 // [sahne, tasarım süresi d (animasyon anahtarları bu ölçekte), film süresi dn] · 12 Kasım 2026: 170 sn -> 142 sn; sıra üniversitenin
 // tanıtım kurgusu: soru -> 1 ölçüm -> bulgular -> 2 tahmin (makine öğrenimi) -> 3 paylaşım (uygulama) -> kapanış
-const SCN = [['open', 11, 11], ['gap', 18, 15], ['built', 22, 19], ['evid', 25, 18], ['timing', 20, 15], ['visit', 24, 20], ['next', 15, 11], ['app', 20, 16], ['join', 15, 16]];
+const SCN = [['open', 11, 11], ['gap', 18, 15], ['built', 22, 19], ['evid', 25, 18], ['timing', 20, 15], ['visit', 24, 20], ['next', 15, 13], ['app', 20, 16], ['join', 15, 16]];
 const SC = {}; let T = 0, LTN = 0, copbStep = -1, copbLight = null;
 SCN.forEach(([id, d, dn], i) => { SC[id] = { id, t0: T, d, dn, i, el: $('s_' + id) }; SC[id].el.style.zIndex = i + 1; T += dn; });
 const WIPE = .9;
@@ -148,13 +148,13 @@ D.gap = lt => {
 };
 
 // ── 3 · Ne kurduk (uydu haritası) ──
-const TEX = { SUMER: [1652, 1113], CHEM: [1815, 1169], LIB: [1438, 1067] };
+const TEX = { SUMER: [1652, 1113], CHEM: [1815, 1188], LIB: [1438, 1067] };
 // giyilebilir Atmotube'lar: kampüsün farklı bölgelerinde aynı anda dolaşan 5 temsilî cihaz (kapalı döngü, doku koordinatı)
 const LOOPS = [[[1380, 1000], [1470, 990], [1500, 1060], [1440, 1120], [1370, 1090]],
   [[1560, 950], [1700, 960], [1740, 1020], [1640, 1040], [1560, 1010]],
   [[1790, 1080], [1890, 1100], [1910, 1220], [1810, 1250], [1770, 1160]],
-  [[1380, 1250], [1500, 1230], [1540, 1330], [1430, 1400], [1360, 1330]],
-  [[1600, 1330], [1720, 1310], [1760, 1420], [1640, 1460], [1570, 1400]]];
+  [[1380, 1150], [1500, 1130], [1540, 1230], [1430, 1290], [1360, 1230]],
+  [[1600, 1210], [1700, 1200], [1740, 1270], [1640, 1300], [1580, 1260]]];
 const CAMPUS = [[1340, 960], [1900, 960], [2000, 1060], [2000, 1300], [1800, 1480], [1400, 1470], [1330, 1300]];   // geçmiş saha noktaları bu çokgen içinde
 function loopFn(L) { const P = L.concat([L[0]]), seg = []; let T0 = 0;
   for (let i = 1; i < P.length; i++) { const l = Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); seg.push(l); T0 += l; }
@@ -168,7 +168,7 @@ function bez(a, b, c, d, u) { const v = 1 - u; return [v * v * v * a[0] + 3 * v 
 function setupBuilt() {
   const s = $('b_svg');
   bS.streams = [0, 1, 2].map(i => sv('path', { fill: 'none', stroke: [C.pa, C.ind, C.atm][i], 'stroke-width': 3, 'stroke-opacity': .55, 'stroke-linecap': 'round' }, s));
-  bS.packets = [0, 1, 2].map(i => [0, 1, 2, 3].map(() => sv('circle', { r: 8, fill: [C.pa, C.ind, C.atm][i], stroke: C.navy, 'stroke-width': 3 }, s)));
+  bS.packets = [0, 1, 2].map(i => [0, 1, 2, 3].map(() => sv('circle', { r: 5, fill: [C.pa, C.ind, C.atm][i], stroke: C.navy, 'stroke-width': 2 }, s)));
   const rr = rng(7); bS.past = [];
   while (bS.past.length < 240) { const x = 1330 + rr() * 680, y = 950 + rr() * 530; if (inPoly(x, y, CAMPUS)) bS.past.push({ p: [x, y], d: rr(), el: sv('circle', { r: 3.5, fill: C.atm }, s) }); }
   bS.dev = LOOPS.map((L, i) => ({ f: loopFn(L), sp: 1 / (8 + i * 1.3), off: i * .21,
@@ -179,6 +179,7 @@ function setupBuilt() {
   bS.pa = sv('circle', { r: 15, fill: C.pa, stroke: C.navy, 'stroke-width': 4 }, s);
   bS.ind = sv('rect', { width: 30, height: 30, rx: 6, fill: C.ind, stroke: C.navy, 'stroke-width': 4 }, s);
   bS.indRing = sv('rect', { width: 30, height: 30, rx: 8, fill: 'none', stroke: C.ind, 'stroke-width': 3 }, s);
+  bS.dev.forEach(d => s.appendChild(d.lab));
 }
 D.built = lt => {
   const d = SC.built.d, O = d - .85, s = mapS(lt);
@@ -397,7 +398,7 @@ function setupVisit() {
     col.innerHTML = `<div class="a" style="left:${V.x}px;top:322px;width:${V.w}px;display:flex;align-items:center;gap:18px">
         <span style="display:inline-flex;width:56px;height:56px;border-radius:50%;border:3px solid ${C.cream};align-items:center;justify-content:center;font:700 32px/1 Inter">${k}</span>
         <span style="font:600 40px/1.1 Inter">Visitor ${k} · ${V.hrs}</span>
-        <span class="num" style="margin-left:auto;font:600 40px/1 Inter;color:${C.acc}"></span></div>` +
+        <span class="num" style="margin-left:14px;font:600 40px/1 Inter;color:${C.acc}"></span></div>` +
       V.segs.map((g, i) => `<div class="a" style="left:${V.x}px;top:${484 + i * 72}px;width:${V.w}px;height:68px;display:flex;align-items:center;gap:18px;border-radius:12px;padding:0 12px">
         <span class="ic" style="width:40px;height:40px">${ico(g.ic)}</span>
         <div><div style="font:600 30px/1.12 Inter">${g.lab}</div>
@@ -455,13 +456,13 @@ D.visit = lt => {
 // ── 7 · Uygulama ──
 const FEATS = [
   ['gauge', 'Live national AQI', 'from corrected PM<sub>2.5</sub>; source and time always shown'],
-  ['bell-ring', 'Phone alerts', 'when campus AQI exceeds 100, plus an 08:00 daily summary'],
+  ['bell-ring', 'Phone alerts', 'when campus AQI exceeds 100; daily summary at 08:00'],
   ['school', 'Lecture-hall indoor/outdoor ratio', 'matched to the class timetable'],
   ['message-circle', 'Personal exposure assistant', 'your day in, your dose out'],
 ];
 let pF = [];
 function setupApp() {
-  $('p_feats').innerHTML = FEATS.map((f, i) => `<div class="a" style="left:1000px;top:${300 + i * 128}px;width:800px;display:flex;gap:24px">
+  $('p_feats').innerHTML = FEATS.map((f, i) => `<div class="a" style="left:1000px;top:${352 + i * 118}px;width:860px;display:flex;gap:24px">
       <span class="ic" style="width:56px;height:56px;color:${C.acc};margin-top:2px">${ico(f[0])}</span>
       <div><div style="font:600 34px/1.22 Inter">${f[1]}</div><div style="font:400 28px/1.3 Inter;color:${C.mutD}">${f[2]}</div></div></div>`).join('');
   pF = [...$('p_feats').children];
@@ -490,14 +491,14 @@ const NEXT = [
 ];
 let nS = {};
 function setupNext() {
-  $('n_cards').innerHTML = NEXT.map((n, i) => `<div class="a" style="left:${128 + i * 424}px;top:338px;width:392px;height:260px;background:${'#FFFFFF'};border:1.5px solid #D3DCEA;border-radius:22px;padding:58px 28px 24px;color:${C.ink}">
+  $('n_cards').innerHTML = NEXT.map((n, i) => `<div class="a" style="left:${128 + i * 424}px;top:372px;width:392px;height:260px;background:${'#FFFFFF'};border:1.5px solid #D3DCEA;border-radius:22px;padding:58px 28px 24px;color:${C.ink}">
       <div style="font:600 32px/1.2 Inter">${n[0]}</div><div style="font:400 28px/1.32 Inter;color:${C.mutL};margin-top:12px">${n[1]}</div></div>`).join('');
   nS.cards = [...$('n_cards').children];
   const s = $('n_svg');
-  nS.line = sv('line', { x1: 184, x2: 184 + 3 * 424, y1: 338, y2: 338, stroke: C.accInk, 'stroke-width': 4, 'stroke-linecap': 'round' }, s);
+  nS.line = sv('line', { x1: 184, x2: 184 + 3 * 424, y1: 372, y2: 372, stroke: C.accInk, 'stroke-width': 4, 'stroke-linecap': 'round' }, s);
   nS.nums = NEXT.map((n, i) => { const g = sv('g', {}, s);
-    sv('circle', { cx: 184 + i * 424, cy: 338, r: 30, fill: C.ink }, g);
-    const t = sv('text', { x: 184 + i * 424, y: 348, fill: C.cream, 'font-family': 'Inter', 'font-size': 30, 'font-weight': 700, 'text-anchor': 'middle' }, g); t.textContent = i + 1; return g; });
+    sv('circle', { cx: 184 + i * 424, cy: 372, r: 30, fill: C.ink }, g);
+    const t = sv('text', { x: 184 + i * 424, y: 382, fill: C.cream, 'font-family': 'Inter', 'font-size': 30, 'font-weight': 700, 'text-anchor': 'middle' }, g); t.textContent = i + 1; return g; });
   // kampüsten kente: çizgi çizim (sağa doğru çizilir)
   const gY = 872, P2 = [];
   const add = (d, c = C.ink, w = 3.5) => P2.push(sv('path', { d, fill: 'none', stroke: c, 'stroke-width': w, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, s));
@@ -519,10 +520,10 @@ D.next = lt => {
   vis($('n_svg'), 1 - E.i(pr(lt, O + .15, .55)));
   const lu = E.io(pr(lt, 1.6, 4.0));
   nS.line.setAttribute('x2', 184 + 3 * 424 * lu); nS.line.style.opacity = lt > 1.6 ? 1 : 0;
-  nS.nums.forEach((g, i) => { const a = 1.6 + 4.0 * (i / 3) * .92; const u = E.o(pr(lt, a, .5)); g.style.opacity = u; g.style.transform = `scale(${.4 + .6 * u})`; g.style.transformOrigin = `${184 + i * 424}px 338px`; });
+  nS.nums.forEach((g, i) => { const a = 1.6 + 4.0 * (i / 3) * .92; const u = E.o(pr(lt, a, .5)); g.style.opacity = u; g.style.transform = `scale(${.4 + .6 * u})`; g.style.transformOrigin = `${184 + i * 424}px 372px`; });
   nS.cards.forEach((c, i) => fx(c, lt, 1.7 + 4.0 * (i / 3) * .92, O + .1 + i * .05, { dy: 30 }));
   nS.sky.forEach(o => { const a = 6.8 + (o.x - 128) / 1664 * 2.6; o.p.setAttribute('stroke-dashoffset', o.L * (1 - E.io(pr(lt, a, .9)))); o.p.style.opacity = lt > a + .02 ? 1 : 0; });
-  fx($('n_st'), lt, 8.6, O + .2, { dy: 24, d: 1.0 });
+  fx($('n_st'), lt, 7.6, O + .2, { dy: 24, d: 1.0 });
 };
 
 // ── 9 · Bize katılın ──
@@ -557,7 +558,7 @@ function render(t) {
   const qa = E.o(pr(t, SC.gap.t0 + 1.0, .7)) * (1 - E.io(pr(t, SC.join.t0 + .2, .6)));
   vis($('qrb'), qa); $('qrb').style.transform = `translateY(${(1 - qa) * -12}px)`;
   vis($('copb'), qa); $('copb').style.transform = `translateY(${(1 - qa) * -12}px)`;
-  const cur = Object.values(SC).find(s => t >= s.t0 && t < s.t0 + s.dn), step = { built: 1, evid: 1, timing: 1, visit: 1, next: 2, app: 3 }[cur && cur.id] || 0;
+  const cur = Object.values(SC).find(s => t >= s.t0 + WIPE * .5 && t < s.t0 + s.dn + WIPE * .5), step = { built: 1, evid: 1, timing: 1, visit: 1, next: 2, app: 3 }[cur && cur.id] || 0;
   if (copbStep !== step || copbLight !== (cur && (cur.id === 'gap' || cur.id === 'next'))) {
     copbStep = step; copbLight = !!(cur && (cur.id === 'gap' || cur.id === 'next')); $('copb').classList.toggle('lt', copbLight);
     $('copb').innerHTML = '<span>GTU <b>Air</b>Lab · Stand 11</span><span style="opacity:.5">|</span>' +

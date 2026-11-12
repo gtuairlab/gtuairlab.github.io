@@ -1,4 +1,6 @@
 #!/bin/bash
+# KULLANMAYIN (12 Kasım 2026): eski yol. Yerine `python scripts/cop31_stant/varlik_hazirla.py <cikti>` kullanın; bu betik eski karekodu
+# (frontend_v2/) ve bulanık harita kesitini üretir, film.html'deki {{EKRAN_TARIHI}} alanını doldurmaz.
 # COP31 Stant 11 döngü filmi · varlıkları hazırlar (görseller repoya girmez; yalnızca bu betik ve film kodu).
 # Kullanım: bash hazirla.sh <cikti_klasoru> <cop31_gecici_klasoru>
 #   <cop31_gecici_klasoru>: flyer/fonts, render/assets (logo, karekod, uygulama ekranları), harita/doku.png (uydu, © Esri, Maxar)
@@ -15,6 +17,7 @@ cp "$A/9bb40cd979d7bfcef84a09a1babf5262" "$OUT/assets/logo.png"          # GTU A
 cp "$A/938dab365d4b05b8f683d0be39ec522f" "$OUT/assets/qr.png"            # https://gtuairlab.github.io/frontend_v2/
 cp "$A/5b7b79d811384fa389c57cba053b03c5" "$OUT/assets/app_summary.jpg"   # uygulama Özet ekranı (20 Ekim 2026)
 cp "$A/503f3095fcf850e668a2531d0bcf48a2" "$OUT/assets/app_exposure.jpg"  # maruziyet asistanı ekranı
+# ESKİ YOL (12 Kasım 2026: yerine varlik_hazirla.py + harita_yakala.py kullanın; bu kesit bulanık ve binasız görünür).
 # Uydu dokusu: harita_hazirla.py çıktısı (doku.png, 3× büyütülmüş, uygulama katmanları temizlenmiş); kampüsün güneyi kırpılır
 python3 - "$SRC/harita/doku.png" "$OUT/assets/campus_sat.jpg" <<'EOF'
 import sys

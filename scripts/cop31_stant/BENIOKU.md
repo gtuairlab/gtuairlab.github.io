@@ -10,7 +10,7 @@ pip install playwright segno pillow numpy scipy opencv-python-headless
 python scripts/cop31_stant/varlik_hazirla.py <gecici>/stant
 ```
 Çıktı `<gecici>/stant/`: `film.html`, `film.js`, `assets/` (fontlar, AirLab/COP31/YÖK/GTÜ logoları, Lucide ikonları, test edilmiş karekod,
-uygulamanın gerçek telefon ekranları, kampüs uydu dokusu) ve `harita/` (uydu eşlemesi; ziyaretçi videoları da bunu kullanır).
+uygulamanın gerçek telefon ekranları, kampüs haritası: uygulamanın uydu + kampüs katmanı görünümü, `harita_yakala.py`, zoom 17,5) ve `harita/` (uydu eşlemesi; ziyaretçi videoları da bunu kullanır).
 Uydu görüntüsü (© Esri, Maxar) ve uygulama ekranları her seferinde **canlı uygulamadan** üretilir, repoya girmez (repo herkese açık).
 Sabit dosyalar `sabit/`: COP31 ve YÖK logoları (YÖK'ün COP31 dijital poster şablonundan), GTÜ İngilizce logosu, `icons.js` (Lucide, ISC).
 
@@ -27,6 +27,10 @@ python scripts/cop31_stant/film_kayit.py <gecici>/stant kare 2,30,60   # durağa
 python scripts/cop31_stant/film_kayit.py <gecici>/stant film 4         # tam film → <gecici>/stant/film.mp4 (4 işçi)
 node scripts/cop31_stant/kayit.js <gecici>/stant film 3                # aynı işin Node sürümü (bulutta NODE_PATH ile)
 ```
+Yeniden üretmeden önce: canlı uygulamayı açıp ekranların düzgün olduğuna bakın (sensör çevrimdışı, boş grafik vb.); ekranlar ve harita her
+çalıştırmada canlı yakalanır, alt yazıdaki tarih yakalama günüdür. Stantta: gerçek TV'de karekodu 2 m'den 2–3 telefonla deneyin; TV görüntü
+boyutu "Just Scan / Screen Fit" (kenar kırpma kapalı); otomatik kapanma ve eko karartma kapalı.
+
 Ziyaretçi videoları: `python scripts/cop31_animasyon/kayit_yerel.py <gecici>/stant/harita <gecici>/video AB`.
 
 ## Bulutta (Claude Code web / mobil) çalıştırma
