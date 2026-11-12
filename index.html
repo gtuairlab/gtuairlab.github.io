@@ -1,13 +1,157 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GTÜ AirLab</title>
-<meta http-equiv="refresh" content="0; url=frontend_v2/">
-<link rel="canonical" href="frontend_v2/">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GTU AirLab · COP31 Antalya · Stand 11</title>
+<meta name="description" content="GTU AirLab, Gebze Technical University: campus air-quality monitoring and personal exposure. Live app, poster, slides and contact.">
+<meta property="og:title" content="GTU AirLab · Do we breathe the same air?">
+<meta property="og:description" content="Campus air quality and personal exposure, Gebze Technical University · COP31 Antalya 2026 · Stand 11">
+<meta name="theme-color" content="#0B2550">
+<link rel="icon" href="frontend_v2/icons/icon.svg" type="image/svg+xml">
+<!-- COP31 tanıtım sayfası (12 Kasım 2026). Stant filmindeki ve posterdeki karekod bu adrese gelir. Çerez, analitik, dış kaynak YOK;
+     sayılar stant filmiyle birebir aynı (scripts/cop31_stant/film.html). Uygulamaya doğrudan adres: frontend_v2/ -->
+<style>
+:root{--navy:#0B2550;--navy2:#13336B;--ink:#14213D;--mut:#4A5468;--acc:#F5A623;--accInk:#8F5600;--cream:#F4F1EA;--line:#D9DEE8;--good:#1E9E4A}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--cream);color:var(--ink);font:400 17px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+a{color:inherit}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header{background:var(--navy);color:#fff;padding:28px 0 30px}
+.brand{display:flex;align-items:center;gap:12px;font-weight:700;font-size:20px}
+.brand img{width:44px;height:44px;border-radius:10px}
+.brand b{color:var(--acc)}
+.tag{display:inline-block;margin-top:18px;padding:5px 12px;border:1px solid rgba(255,255,255,.3);border-radius:999px;font-size:14px;color:#DCE3F0}
+h1{font:600 clamp(30px,7vw,44px)/1.12 Georgia,"Times New Roman",serif;margin:14px 0 8px;letter-spacing:-.01em}
+.lead{color:#DCE3F0;margin:0;max-width:620px}
+.cta{display:flex;flex-direction:column;gap:10px;margin-top:22px}
+.btn{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:14px;text-decoration:none;font-weight:600;border:1.5px solid transparent;min-height:56px}
+.btn small{display:block;font-weight:400;font-size:14px;opacity:.85}
+.btn svg{flex:none;width:26px;height:26px}
+.btn.primary{background:var(--acc);color:#1B1300}
+.btn.ghost{background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.25)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+main section{padding:26px 0 6px}
+h2{font:600 24px/1.25 Georgia,"Times New Roman",serif;margin:0 0 12px}
+.kick{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accInk);margin:0 0 6px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin:0 0 12px}
+.card .lab{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;margin-bottom:8px}
+.measured{background:#E3ECFB;color:#1D3F86}.modelled{background:#FFF1D6;color:var(--accInk)}.dev{background:#ECEEF2;color:var(--mut)}
+.big{font:700 30px/1.15 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:2px 0 4px}
+.big span{font-size:17px;font-weight:500;color:var(--mut)}
+.src{font-size:14px;color:var(--mut);margin:6px 0 0}
+ul.plain{margin:0;padding-left:20px}
+ul.plain li{margin:4px 0}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.contact{background:var(--navy);color:#fff;border:0}
+.contact a.mail{color:var(--acc);font-weight:600;text-decoration:none;word-break:break-all}
+.contact .row{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:#fff;text-decoration:none;font-weight:600;font-size:15px}
+footer{padding:20px 0 40px;font-size:13px;color:var(--mut)}
+footer p{margin:8px 0}
+.tr{font-size:15px}
+@media (max-width:560px){.grid,.two{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
-<p>GTÜ AirLab uygulamasına yönlendiriliyorsunuz… <a href="frontend_v2/">Açılmazsa buraya dokunun.</a></p>
+<header>
+  <div class="wrap">
+    <div class="brand"><img src="cop31/airlab_logo.png" alt="" width="44" height="44"><span>GTU <b>Air</b>Lab</span></div>
+    <span class="tag">COP31 Antalya 2026 · Stand 11</span> <a href="frontend_v2/" lang="tr" style="margin-left:6px;font-size:14px;color:#DCE3F0">Türkçe: uygulamaya git →</a>
+    <h1>Do we breathe the same air?</h1>
+    <p class="lead">Same outdoor air, different air indoors and on the move. We measure campus air with fixed and wearable sensors, model personal exposure and share it openly in one app.</p>
+    <div class="cta">
+      <a class="btn primary" href="frontend_v2/">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+        <span>Open the live app<small>Campus air now · interface in Turkish</small></span></a>
+      <div class="grid">
+        <a class="btn ghost" href="cop31/GTU_AirLab_COP31_Poster.pdf">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h6"/><path d="M8 13h8M8 17h5"/></svg>
+          <span>Poster<small>PDF · 0.4 MB</small></span></a>
+        <a class="btn ghost" href="cop31/GTU_AirLab_COP31_Slides.pdf">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          <span>Slides<small>PDF · 2.3 MB</small></span></a>
+      </div>
+      <a class="btn ghost" href="#contact">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>
+        <span>Contact &amp; partnership<small>Save contact · e-mail</small></span></a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section>
+    <p class="kick">What we built</p>
+    <h2>One open platform, from sensor to phone</h2>
+    <ul class="plain">
+      <li><b>Outdoor sensor:</b> rooftop PurpleAir PA-II, every 2 min, US EPA-corrected.</li>
+      <li><b>Indoor sensor:</b> PurpleAir in a lecture hall (Chemical and Environmental Engineering building).</li>
+      <li><b>Wearable sensors (Atmotube):</b> 5 devices, field sessions across campus.</li>
+      <li><b>One open app:</b> corrected data, Türkiye national AQI, health advice, alerts when campus AQI exceeds 100, a daily summary at 08:00 and a personal exposure assistant.</li>
+    </ul>
+  </section>
+
+  <section>
+    <p class="kick">Results</p>
+    <h2>What the data show</h2>
+    <div class="card">
+      <span class="lab measured">Measured · average day, outdoor sensor</span>
+      <p class="big">12.7 <span>µg/m³</span></p>
+      <p style="margin:0">Period mean PM<sub>2.5</sub>, May–Oct 2026 (not an annual mean). Peak at 06:00 (16.5 µg/m³), lowest at 18:00 (9.4 µg/m³). 42 of 154 complete days were above the WHO 24-hour guideline level (15 µg/m³); WHO annual guideline: 5 µg/m³.</p>
+      <p class="src">Rooftop PurpleAir PA-II, US EPA-corrected · 3,751 valid hours · 154 complete days (≥ 18 h) · 1 May – 12 Oct 2026.</p>
+    </div>
+    <div class="card">
+      <span class="lab modelled">Modelled · same walk, different hour</span>
+      <p class="big">−38% <span>PM<sub>2.5</sub> inhaled</span></p>
+      <p style="margin:0">One 1-hour brisk walk on a typical weekday: 22.9 µg inhaled at 06:00–09:00 versus 14.1 µg at 16:00–19:00.</p>
+      <p class="src">Median of 107 weekdays (14.7 and 9.0 µg/m³) × 1.56 m³/h (US EPA 2011); outdoor sensor, May–Oct 2026.</p>
+    </div>
+    <div class="card">
+      <span class="lab modelled">Modelled · illustrative scenario, not a measured person</span>
+      <p class="big">2.3× <span>the dose</span></p>
+      <p style="margin:0">Two hours in the wrong places (36.5 µg) versus eight hours in the right places (16.2 µg).</p>
+      <p class="src">Hourly PM<sub>2.5</sub> (May–Oct 2026) × building factor (wearables, 27–30 Apr) × indoor factor 0.5 × breathing rate.</p>
+    </div>
+    <div class="card">
+      <span class="lab dev">In development</span>
+      <p style="margin:0"><b>Forecasting personal exposure with machine learning:</b> training data from sensors, wearable sessions and weather; explainable hour-by-hour forecasts; source characterization; planned forecast-based early warning.</p>
+    </div>
+    <p class="src" style="margin-bottom:6px">Burning fossil fuels drives both climate change and much of the air pollution we breathe: from campus to city, open low-cost tools can link clean air and climate action.</p>
+  </section>
+
+  <section id="contact">
+    <p class="kick">Join us</p>
+    <h2>Replicate it on your campus</h2>
+    <div class="two">
+      <div class="card"><b>What we offer</b>
+        <ul class="plain"><li>Open app and methods</li><li>Corrected-data pipeline</li><li>Exposure model</li><li>Field protocol</li></ul></div>
+      <div class="card"><b>What we seek</b>
+        <ul class="plain"><li>Partner campuses and cities</li><li>Co-location with a reference monitor</li><li>Support for a multi-city pilot</li></ul></div>
+    </div>
+    <div class="card contact">
+      <div style="font-size:14px;color:#DCE3F0">Contact</div>
+      <div style="font-weight:700;font-size:19px;margin-top:2px">Asst. Prof. Dr. İlker Akmırza</div>
+      <div style="color:#DCE3F0">Department of Environmental Engineering, Gebze Technical University, Türkiye</div>
+      <a class="mail" href="mailto:akmirza@gtu.edu.tr?subject=COP31%20%C2%B7%20GTU%20AirLab">akmirza@gtu.edu.tr</a>
+      <div class="row">
+        <a class="pill" href="cop31/GTU_AirLab_contact.vcf" download>Save contact (.vcf)</a>
+        <a class="pill" href="mailto:akmirza@gtu.edu.tr?subject=COP31%20%C2%B7%20GTU%20AirLab%20partnership">Partner with us</a>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="kick">How to cite</p>
+    <p style="margin:0">GTU AirLab (2026). <i>GTU AirLab: Campus Air Quality Monitoring Platform.</i> Gebze Technical University. https://gtuairlab.github.io/frontend_v2/</p>
+    <p class="src">Methods, data sources and limitations: in the app, “Hakkında · Yöntem · Gizlilik” (About · Methods · Privacy). Source code: <a href="https://github.com/gtuairlab/gtuairlab.github.io">github.com/gtuairlab/gtuairlab.github.io</a>.</p>
+    <p class="tr"><a href="frontend_v2/">Türkçe: uygulamaya git →</a></p>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p>This page uses no cookies, analytics or trackers. Satellite imagery in the slides: Esri and its data partners. Last updated 12 November 2026.</p>
+  <p>Gebze Technical University is solely responsible for the views, information and statements expressed on this page and in the linked materials, as well as for their preparation and content. They do not necessarily reflect the views of the Council of Higher Education of Türkiye (YÖK), nor do they imply any responsibility or liability on its part.</p>
+</footer>
 </body>
 </html>

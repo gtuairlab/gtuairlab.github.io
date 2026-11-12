@@ -46,6 +46,10 @@ Tek bir güncel sürüm olması için **tek kaynak `main` branch'idir**.
   duruyor; geçmişinde kişisel belgeler ve PurpleAir anahtarı var, **silinmesini kullanıcı ayrıca onaylayacak**. Kalan: `app.js` → `PEOPLE`
   anahtarları ilk adlar (sunucunun `session_name` önekleriyle eşleşiyor; sunucu düzeltmesiyle birlikte kaldırılacak, onay bekliyor).
 - **KVKK, kullanıcı tutmaya karar verdi:** `proje_animasyon.html` (3 Ekim 2026; proje ekibinin akademik unvanlı adları).
+- **KVKK ve Esri, kullanıcı yayınlanmasına onay verdi (12 Kasım 2026):** COP31 kök tanıtım sayfası `index.html` ve `cop31/`
+  (sunan öğretim üyesinin adı, unvanı, kurum e-postası; `GTU_AirLab_contact.vcf`; poster ve sunum PDF'leri, dosya bilgisi temizlenmiş)
+  ile `scripts/cop31_stant/film.html` kapanış kartı. Sunum PDF'inin 10–12. slaytlarındaki künyeli Esri uydu görüntüsü de istisnadır
+  (Esri, akademik statik kullanıma künyeyle izin verir); başka uydu görüntüsü repoya girmez. PDF'ler `.gitignore`'da `!cop31/*.pdf` ile açık.
 - **Telefon bildirimleri (21 Ekim 2026, kullanıcının isteği):** kötü hava uyarısı + her sabah 08.00 özeti (`backend/bildirim.py`,
   `frontend_v2/js/bildirim.js`, kural `docs/hesaplama_ve_kaynaklar.md` §10a). **Kullanıcı Render → Environment'a `VAPID_PUBLIC_KEY` ve
   `VAPID_PRIVATE_KEY` eklemeli** (değerleri isteme; eklenene kadar bildirim kartı görünmez). Anahtar yenilenirse tüm abonelikler geçersiz
@@ -231,6 +235,6 @@ Renkli (zengin) duyuru — `renk` ya da `bolumler` varsa renkli başlık alanıy
 - **Veritabanı (Supabase):** tüm tablolarda RLS açık (7 Ekim 2026; 2 Kasım 2026: 13 tablo); sunucu `postgres` rolüyle bağlanır (RLS'yi atlar), anon/authenticated erişemez.
   `purpleair_readings.recorded_at` tekil (kopya kayıt yazılmaz).
 - `scripts/` — `tanitim_video/` (tanıtım videosu kaydı ve fon müziği), `ekip_kasasi.js` (ekip görünümü ad kasası), `tuzla_gecmis.py` (İBB'den Tuzla PM₁₀ geçmişi, her yerden çalışır), `csb_gecmis.py` (ÇŞB'den Tuzla PM₂.₅ geçmişi, yalnızca Türkiye'den)
-- `frontend/` — önceki harita arayüzü; **emekliye ayrıldı** (4 Ekim 2026): `map.html` ve kök `index.html` yeni arayüze (`frontend_v2/`) yönlendirir. Eski arayüz gerçek adları gösteriyor, CDN kullanıyor ve korumasız yükleme formu içeriyordu; geri getirme.
+- `frontend/` — önceki harita arayüzü; **emekliye ayrıldı** (4 Ekim 2026): `map.html` yeni arayüze (`frontend_v2/`) yönlendirir. Eski arayüz gerçek adları gösteriyor, CDN kullanıyor ve korumasız yükleme formu içeriyordu; geri getirme. Kök `index.html` 12 Kasım 2026'dan beri **İngilizce COP31 tanıtım sayfasıdır** (stant filmindeki karekod buraya gelir: uygulama, poster, sunum, iletişim); yönlendirmeye geri çevirme. Sayıları stant filmiyle (`scripts/cop31_stant/film.html`) aynı tutulur.
 - `backend/` — Python sunucu ve veri toplayıcılar (PurpleAir, Atmotube, Tuya CO2, ÇSB, İBB); arayüzün kullandığı API: https://gtu-air-quality.onrender.com (`frontend_v2/js/api.js`)
 - Yerelde önizleme: `python -m http.server 8765 --directory frontend_v2` → http://localhost:8765

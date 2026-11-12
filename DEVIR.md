@@ -99,7 +99,7 @@ mesajından indir. Veritabanı klasörde yok, gerekmiyor: Supabase'de duruyor ve
 ## B. Yeni hesaptaki Claude için
 
 ### B1. Adresler
-- Uygulama (yayın): https://gtuairlab.github.io/frontend_v2/ — kök https://gtuairlab.github.io oraya yönlendirir.
+- Uygulama (yayın): https://gtuairlab.github.io/frontend_v2/ — kök https://gtuairlab.github.io 12 Kasım 2026'dan beri İngilizce COP31 tanıtım sayfası (uygulama, poster, sunum, iletişim; stant karekodu buraya gelir).
 - Sunucu API: https://gtu-air-quality.onrender.com (sağlık: `/health`)
 - Repo (tek kaynak `main`): https://github.com/gtuairlab/gtuairlab.github.io — `main`'e push hem siteyi hem Render sunucusunu günceller.
 - Eski repo `ilkerakmirza/gtu-air-quality`: yalnızca yönlendirme sayfaları; geçmişinde kişisel belgeler ve eski bir anahtar var.

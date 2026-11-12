@@ -11,7 +11,9 @@ python scripts/cop31_stant/varlik_hazirla.py <gecici>/stant
 ```
 Çıktı `<gecici>/stant/`: `film.html`, `film.js`, `assets/` (fontlar, AirLab/COP31/YÖK/GTÜ logoları, Lucide ikonları, test edilmiş karekod,
 uygulamanın gerçek telefon ekranları, kampüs haritası: uygulamanın uydu + kampüs katmanı görünümü, `harita_yakala.py`, zoom 17,5) ve `harita/` (uydu eşlemesi; ziyaretçi videoları da bunu kullanır).
-Uydu görüntüsü (© Esri, Maxar) ve uygulama ekranları her seferinde **canlı uygulamadan** üretilir, repoya girmez (repo herkese açık).
+Uydu görüntüsü (Esri, Vantor, Earthstar Geographics, GIS User Community) ve uygulama ekranları her seferinde **canlı uygulamadan** üretilir, repoya girmez
+(repo herkese açık). Tek istisna: kök tanıtım sayfasının `cop31/GTU_AirLab_COP31_Slides.pdf` dosyasındaki künyeli statik görüntüler (kullanıcı onayı, 12 Kasım 2026).
+Karekod kök adrese (https://gtuairlab.github.io/) gider; orası İngilizce COP31 tanıtım sayfasıdır (`index.html`, `cop31/`).
 Sabit dosyalar `sabit/`: COP31 ve YÖK logoları (YÖK'ün COP31 dijital poster şablonundan), GTÜ İngilizce logosu, `icons.js` (Lucide, ISC).
 
 ## Sürüm 12 Kasım 2026 (2:22, döngü)
