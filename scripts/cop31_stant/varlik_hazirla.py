@@ -13,7 +13,7 @@ REPO = os.path.dirname(os.path.dirname(HERE))
 ANIM = os.path.join(REPO, "scripts", "cop31_animasyon")
 OUT = os.path.abspath(sys.argv[1]); A = os.path.join(OUT, "assets"); HK = os.path.join(OUT, "harita")
 APP = "https://gtuairlab.github.io/frontend_v2/"
-QR_URL = APP
+QR_URL = "https://gtuairlab.github.io/"   # kısa adres (uygulamaya yönlenir): daha az ve daha iri modül, stantta daha uzaktan okunur
 for d in (A, os.path.join(A, "fonts"), HK):
     os.makedirs(d, exist_ok=True)
 env = dict(os.environ, PYTHONUTF8="1")
@@ -35,7 +35,7 @@ for f in ("film.html", "film.js"):
 # 2 · karekod (test edilir)
 step("karekod: " + QR_URL)
 import segno
-segno.make(QR_URL, error="q").save(os.path.join(A, "qr.png"), scale=24, border=4, dark="#0B2E33", light="#FFFFFF")
+segno.make(QR_URL, error="m").save(os.path.join(A, "qr.png"), scale=24, border=4, dark="#0B2E33", light="#FFFFFF")
 try:
     import cv2, numpy as np
     from PIL import Image

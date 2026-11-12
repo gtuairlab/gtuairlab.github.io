@@ -75,3 +75,9 @@
   arayüz ve işaretler gizlenir. Kontrol noktaları canlı Leaflet haritasından (çerçeve 20 Ekim'le aynı: zoom 15,5). Yazım BM/COP standardına
   (Oxford) çekildi: Centre, modelled, colour (23 Ekim'deki Amerikan yazımı kararı, YÖK/COP31 şablonlu sunumla tutarlılık için değişti).
   Sayılar değişmedi (36,5 / 16,2 µg; oran 2,3). Sunum: `Desktop\COP31\COP31_GTU_AirLab_Presentation.pptx`, slayt 10–11.
+- 12 Kasım 2026, stant filmi yeni sürüm (ana ajan; `scripts/cop31_stant/`): 2:21 dikişsiz döngü, kurgu GTÜ'nün COP31 Instagram tanıtımını izler
+  (soru → 1 ölçüm ve model → 2 tahmin, geliştiriliyor → 3 paylaşım → kapanış). İki bağımsız denetim (yabancı akademisyen, stant yöneticisi), iki tur:
+  COP31/YÖK/GTÜ logoları yalnızca açılış ve kapanışta (YÖK şablonundaki gibi, sorumluluk metniyle); köşede kalıcı COP31 rozeti YOK
+  (resmî onay izlenimi) → yerine adım şeridi "GTU AirLab · Stand 11 | 1 Measure & model · 2 Predict · 3 Share". "38% less" her yerde
+  "modelled"; ziyaretçi sonucu "2.3×"; iklim cümlesi soru ve tahmin sahnelerinde; "Türkiye national AQI"; karekod kısa adres
+  https://gtuairlab.github.io/ (M, sürüm 3) ve "Turkish interface" uyarısı. Video H.264 High 4.1, 4 ref, TV aralığı, BT.709; ayrıca 10× art arda dosya.

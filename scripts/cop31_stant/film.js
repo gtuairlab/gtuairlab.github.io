@@ -13,7 +13,7 @@ const E = {
   i: u => u * u * u,
   s: u => -(Math.cos(Math.PI * u) - 1) / 2,
 };
-const C = { navy: '#0B2E33', cream: '#F4F1EA', ink: '#0B2E33', mutD: '#B5CACB', mutL: '#4A5468', acc: '#F5A623', accInk: '#8F5600',
+const C = { navy: '#0B2550', cream: '#F3F6FB', ink: '#0B2550', mutD: '#B8C4DA', mutL: '#4A5468', acc: '#F5A623', accInk: '#8F5600',
   good: '#00cc00', mod: '#ffcc00', pa: '#6380f0', ind: '#d4566b', atm: '#2fa79a' };
 const NS = 'http://www.w3.org/2000/svg';
 function sv(tag, at, parent) { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); if (parent) parent.appendChild(e); return e; }
@@ -31,9 +31,11 @@ const ico = n => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 const hex2rgb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
 
 // ── sahne zaman çizelgesi (saniye) ──
-const SCN = [['open', 11], ['gap', 18], ['built', 22], ['evid', 25], ['timing', 20], ['visit', 24], ['app', 20], ['next', 15], ['join', 15]];
-const SC = {}; let T = 0;
-SCN.forEach(([id, d], i) => { SC[id] = { id, t0: T, d, i, el: $('s_' + id) }; SC[id].el.style.zIndex = i + 1; T += d; });
+// [sahne, tasarım süresi d (animasyon anahtarları bu ölçekte), film süresi dn] · 12 Kasım 2026: 170 sn -> 142 sn; sıra üniversitenin
+// tanıtım kurgusu: soru -> 1 ölçüm -> bulgular -> 2 tahmin (makine öğrenimi) -> 3 paylaşım (uygulama) -> kapanış
+const SCN = [['open', 11, 11], ['gap', 18, 15], ['built', 22, 19], ['evid', 25, 18], ['timing', 20, 15], ['visit', 24, 20], ['next', 15, 11], ['app', 20, 16], ['join', 15, 16]];
+const SC = {}; let T = 0, LTN = 0, copbStep = -1, copbLight = null;
+SCN.forEach(([id, d, dn], i) => { SC[id] = { id, t0: T, d, dn, i, el: $('s_' + id) }; SC[id].el.style.zIndex = i + 1; T += dn; });
 const WIPE = .9;
 
 // ═══════════ VERİ (kaynaklar storyboard.md) ═══════════
@@ -41,7 +43,7 @@ const WIPE = .9;
 const PROF = [13.06, 13.63, 14.27, 14.81, 15.39, 15.92, 16.47, 16.08, 14.83, 13.84, 12.96, 12.42, 12.38, 12.29, 11.5, 10.66, 9.77, 9.54, 9.39, 9.86, 10.29, 11.22, 12.14, 12.77];
 
 // ═══════════ PARÇACIKLAR (açılış ve kapanış; T ile periyodik → kesintisiz döngü) ═══════════
-const PCOL = ['#00cc00', '#00cc00', '#ffcc00', '#ffcc00', '#ff8800', '#6380f0', '#2fa79a', '#F4F1EA', '#ff8800', '#bb44bb'];
+const PCOL = ['#00cc00', '#00cc00', '#ffcc00', '#ffcc00', '#ff8800', '#6380f0', '#2fa79a', '#F3F6FB', '#ff8800', '#bb44bb'];
 let PART = [];
 function makeParticles(targets) {
   const r = rng(20261112); PART = [];
@@ -90,7 +92,7 @@ function setupOpen() {
   const cs = getComputedStyle(el), fs = parseFloat(cs.fontSize);
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const x = cv.getContext('2d');
   x.font = `600 ${fs}px "Source Serif 4"`; x.letterSpacing = cs.letterSpacing; x.textAlign = 'center'; x.textBaseline = 'alphabetic'; x.fillStyle = '#fff';
-  const lines = ['Breathing smarter', 'on campus'];
+  const lines = ['Do we breathe', 'the same air?'];
   [...el.querySelectorAll('.bl')].forEach((m, i) => {
     // .bl: satır başındaki sıfır genişlikli satır içi blok, alt kenarı taban çizgisinde
     const r = m.getBoundingClientRect(); x.fillText(lines[i], W / 2, r.bottom);
@@ -101,9 +103,9 @@ function setupOpen() {
   D.titleN = tg.length;
 }
 D.open = lt => {
-  const t = lt;   // açılış t0 = 0
-  drawParticles(pc1, t, 1, lt);
+  drawParticles(pc1, LTN, 1, lt);   // parçacık saati gerçek zaman (T ile periyodik), başlığa toplanma tasarım zamanında
   vis($('o_title'), E.o(pr(lt, 4.3, 1.0)) * (1 - E.i(pr(lt, 9.55, .5))));
+  fx($('o_logos'), lt, .5, 9.45, { dy: -20 }); fx($('o_n'), lt, 6.6, 9.75, { dy: 10 });
   fx($('o_brand'), lt, 4.9, 9.5); fx($('o_sub'), lt, 5.4, 9.6); fx($('o_sub2'), lt, 5.9, 9.65); fx($('o_sub3'), lt, 6.4, 9.7);
 };
 
@@ -142,7 +144,7 @@ D.gap = lt => {
   vis($('g_st'), 1 - E.i(pr(lt, O + .2, .55)));
   gWords.forEach((w, i) => fx(w, lt, 6.9 + i * .075, null, { dy: 20, d: .6 }));
   gUnder.forEach((u, i) => { u.style.width = (100 * E.io(pr(lt, 8.9 + i * .45, .6))) + '%'; });
-  fx($('g_src'), lt, 7.6, O + .2, { dy: 10 });
+  fx($('g_src'), lt, 7.6, O + .2, { dy: 10 }); fx($('g_cl'), lt, 10.4, O + .2, { dy: 16 });
 };
 
 // ── 3 · Ne kurduk (uydu haritası) ──
@@ -240,7 +242,7 @@ function setupEvid() {
   sv('rect', { x: EV.x0, y: yv(20), width: EV.x1 - EV.x0, height: yv(12) - yv(20), fill: C.mod, 'fill-opacity': .075 }, eS.bands);
   sv('rect', { x: EV.x0, y: yv(12), width: EV.x1 - EV.x0, height: yv(0) - yv(12), fill: C.good, 'fill-opacity': .07 }, eS.bands);
   const tx = (x, y, t, at = {}) => { const e = sv('text', Object.assign({ x, y, fill: C.mutD, 'font-family': 'Inter', 'font-size': 28 }, at), s); e.textContent = t; return e; };
-  eS.bandLab = [tx(EV.x0 + 14, yv(20) + 36, 'national AQI: Moderate'), tx(EV.x0 + 14, yv(0) - 16, 'national AQI: Good')];
+  eS.bandLab = [tx(EV.x0 + 14, yv(20) + 36, 'Türkiye national AQI: Moderate'), tx(EV.x0 + 14, yv(0) - 16, 'Türkiye national AQI: Good')];
   eS.grid = sv('g', {}, s);
   for (const v of [0, 5, 10, 15, 20]) { sv('line', { x1: EV.x0, x2: EV.x1, y1: yv(v), y2: yv(v), stroke: 'rgba(244,241,234,.16)', 'stroke-width': 1.5 }, eS.grid);
     const t = sv('text', { x: EV.x0 - 18, y: yv(v) + 10, fill: C.mutD, 'font-family': 'Inter', 'font-size': 28, 'text-anchor': 'end' }, eS.grid); t.textContent = v; }
@@ -250,7 +252,7 @@ function setupEvid() {
   const xt = sv('text', { x: (EV.x0 + EV.x1) / 2, y: yv(0) + 92, fill: C.mutD, 'font-family': 'Inter', 'font-size': 28, 'text-anchor': 'middle' }, eS.grid); xt.textContent = 'Hour of day (Türkiye time)';
   eS.win = [6, 16].map(h => { const g = sv('g', {}, s);
     sv('rect', { x: xh(h), y: yv(20), width: xh(h + 3) - xh(h), height: yv(0) - yv(20), fill: C.cream, 'fill-opacity': .09 }, g);
-    const t = sv('text', { x: (xh(h) + xh(h + 3)) / 2, y: yv(0) - 16, fill: C.cream, 'font-family': 'Inter', 'font-size': 28, 'font-weight': 600, 'text-anchor': 'middle' }, g);
+    const t = sv('text', { x: (xh(h) + xh(h + 3)) / 2, y: yv(0) - 58 /* "national AQI: Good" etiketinin bir satır üstü */, fill: C.cream, 'font-family': 'Inter', 'font-size': 28, 'font-weight': 600, 'text-anchor': 'middle' }, g);
     t.textContent = h === 6 ? '06:00–09:00' : '16:00–19:00'; return g; });
   eS.area = sv('path', { fill: C.pa, 'fill-opacity': .14 }, s);
   eS.line = sv('path', { fill: 'none', stroke: C.pa, 'stroke-width': 6, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, s);
@@ -267,7 +269,7 @@ function setupEvid() {
   sv('rect', { x: 0, y: 6, width: 520, height: 30, rx: 6, fill: 'rgba(244,241,234,.12)' }, m);
   eS.mbar = sv('rect', { x: 0, y: 6, width: 0, height: 30, rx: 6, fill: C.pa }, m);
   sv('line', { x1: sx(5), x2: sx(5), y1: 0, y2: 50, stroke: C.acc, 'stroke-width': 4 }, m);
-  const mt = sv('text', { x: 0, y: 82, fill: C.mutD, 'font-family': 'Inter', 'font-size': 28 }, m); mt.innerHTML = '<tspan fill="#F5A623">▲</tspan> WHO annual guideline: 5 µg/m³';
+  const mt = sv('text', { x: 0, y: 82, fill: C.mutD, 'font-family': 'Inter', 'font-size': 28 }, m); mt.innerHTML = '<tspan fill="#F5A623">▲</tspan> WHO annual guideline: 5 µg/m³<tspan x="30" dy="34" font-size="24">reference only</tspan>';
   // 154 tam gün, 42'si > 15 µg/m³ (birim grafik; kareler tarih sırası değildir)
   const wf = $('e_waf'); wf.setAttribute('height', 140); eS.waf = [];
   for (let i = 0; i < 154; i++) { const c = (i / 7) | 0, r = i % 7;
@@ -377,7 +379,7 @@ const VIS = {
   A: { x: 128, w: 790, hrs: '2 hours', t0: 7, t1: 9, at: 2.2, dur: 6.0, total: 36.5,
     segs: [{ h0: 7, h1: 7.5, c: 16.0, dose: 12.46, ic: 'footprints', lab: 'Walking in along the road' },
            { h0: 7.5, h1: 8.5, c: 30.9, dose: 7.73, ic: 'coffee', lab: 'Busy café terrace' },
-           { h0: 8.5, h1: 9, c: 20.9, dose: 16.31, ic: 'footprints', lab: 'Brisk walk to the Congress Center' }] },
+           { h0: 8.5, h1: 9, c: 20.9, dose: 16.31, ic: 'footprints', lab: 'Brisk walk to the campus congress centre' }] },
   B: { x: 1010, w: 782, hrs: '8 hours', t0: 10, t1: 18, at: 8.8, dur: 7.0, total: 16.2,
     segs: [{ h0: 10, h1: 12, c: 3.9, dose: 1.97, ic: 'book-open', lab: 'Library, windows closed' },
            { h0: 12, h1: 16.5, c: 5.3, dose: 5.94, ic: 'presentation', lab: 'Lecture hall, windows closed' },
@@ -446,7 +448,7 @@ D.visit = lt => {
     o.tot.innerHTML = `${st.tot.toFixed(1)} µg <span style="font:400 28px/1 Inter;color:${C.mutD}">inhaled</span>`;
     vis(o.totWrap, E.o(pr(lt, V.at, .4)) * (1 - E.i(pr(lt, O + .2, .55))));
   }
-  fx($('v_punch'), lt, 16.4, O + .2, { dy: 30, d: 1.0 });
+  fx($('v_punch'), lt, 13.0, O + .2, { dy: 30, d: 1.0 });
   fx($('v_src'), lt, 3.0, O + .25, { dy: 10 });
 };
 
@@ -463,7 +465,7 @@ function setupApp() {
       <span class="ic" style="width:56px;height:56px;color:${C.acc};margin-top:2px">${ico(f[0])}</span>
       <div><div style="font:600 34px/1.22 Inter">${f[1]}</div><div style="font:400 28px/1.3 Inter;color:${C.mutD}">${f[2]}</div></div></div>`).join('');
   pF = [...$('p_feats').children];
-  const tag = $('p_ntag'); tag.style.top = '660px'; tag.style.background = 'rgba(11,46,51,.92)'; tag.style.padding = '6px 16px'; tag.style.borderRadius = '10px';
+  const tag = $('p_ntag'); tag.style.top = '660px'; tag.style.background = 'rgba(11,37,80,.92)'; tag.style.padding = '6px 16px'; tag.style.borderRadius = '10px';
 }
 D.app = lt => {
   const d = SC.app.d, O = d - .85;
@@ -481,14 +483,14 @@ D.app = lt => {
 
 // ── 8 · Sonraki 12 ay ──
 const NEXT = [
-  ['Multi-site indoor monitoring', 'Classrooms, labs, library and sports hall, measured with wearable sensors'],
-  ['Dynamic source characterization', 'Indoor/outdoor ratios and clustering of pollutant patterns with occupancy and activity logs'],
-  ['Machine-learning forecasts', 'Explainable models trained on our field data and cross-validated before use'],
-  ['Early warning and planning', 'Forecast-based alerts and scenarios for timing, routes and ventilation'],
+  ['Training data', 'Sensors, wearable sessions, weather'],
+  ['Explainable forecasts', 'Hour-by-hour personal exposure'],
+  ['Source characterization', 'Indoor/outdoor patterns by activity'],
+  ['Planned: early warning', 'Forecast-based alerts and scenarios'],
 ];
 let nS = {};
 function setupNext() {
-  $('n_cards').innerHTML = NEXT.map((n, i) => `<div class="a" style="left:${128 + i * 424}px;top:338px;width:392px;height:392px;background:${'#FBFAF6'};border:1.5px solid #DAD5C8;border-radius:22px;padding:58px 28px 24px;color:${C.ink}">
+  $('n_cards').innerHTML = NEXT.map((n, i) => `<div class="a" style="left:${128 + i * 424}px;top:338px;width:392px;height:260px;background:${'#FFFFFF'};border:1.5px solid #D3DCEA;border-radius:22px;padding:58px 28px 24px;color:${C.ink}">
       <div style="font:600 32px/1.2 Inter">${n[0]}</div><div style="font:400 28px/1.32 Inter;color:${C.mutL};margin-top:12px">${n[1]}</div></div>`).join('');
   nS.cards = [...$('n_cards').children];
   const s = $('n_svg');
@@ -519,7 +521,7 @@ D.next = lt => {
   nS.line.setAttribute('x2', 184 + 3 * 424 * lu); nS.line.style.opacity = lt > 1.6 ? 1 : 0;
   nS.nums.forEach((g, i) => { const a = 1.6 + 4.0 * (i / 3) * .92; const u = E.o(pr(lt, a, .5)); g.style.opacity = u; g.style.transform = `scale(${.4 + .6 * u})`; g.style.transformOrigin = `${184 + i * 424}px 338px`; });
   nS.cards.forEach((c, i) => fx(c, lt, 1.7 + 4.0 * (i / 3) * .92, O + .1 + i * .05, { dy: 30 }));
-  nS.sky.forEach(o => { const a = 6.8 + (o.x - 128) / 1664 * 2.6; o.p.setAttribute('stroke-dashoffset', o.L * (1 - E.io(pr(lt, a, .9)))); });
+  nS.sky.forEach(o => { const a = 6.8 + (o.x - 128) / 1664 * 2.6; o.p.setAttribute('stroke-dashoffset', o.L * (1 - E.io(pr(lt, a, .9)))); o.p.style.opacity = lt > a + .02 ? 1 : 0; });
   fx($('n_st'), lt, 8.6, O + .2, { dy: 24, d: 1.0 });
 };
 
@@ -529,7 +531,8 @@ D.join = lt => {
   fx($('j_k'), lt, .7, X); fx($('j_h'), lt, .95, X + .05, { dy: 34 });
   fx($('j_o'), lt, 1.7, X + .1); fx($('j_s'), lt, 2.5, X + .15); fx($('j_qr'), lt, 1.2, X + .1, { dy: 0, s: .08, d: 1.0 });
   fx($('j_tag'), lt, 3.4, X + .2); fx($('j_c'), lt, 4.2, X + .25);
-  drawParticles(pc9, SC.join.t0 + lt, E.io(pr(lt, d - 1.6, 1.6)), null);
+  fx($('j_logos'), lt, 1.0, X + .1); fx($('j_n'), lt, 4.6, X + .3, { dy: 10 });
+  drawParticles(pc9, SC.join.t0 + LTN, E.io(pr(lt, d - 1.6, 1.6)), null);
 };
 
 // ═══════════ ARKA PLAN GEÇİŞLERİ ═══════════
@@ -544,15 +547,22 @@ function wipe(id, lt) {
 function render(t) {
   t = ((t % T) + T) % T;
   for (const id in SC) {
-    const s = SC[id], lt = t - s.t0, on = lt >= 0 && lt < s.d + WIPE;
+    const s = SC[id], ln = t - s.t0, on = ln >= 0 && ln < s.dn + WIPE;
     s.el.style.visibility = on ? 'visible' : 'hidden';
     if (!on) continue;
-    if (id !== 'built') wipe(id, lt);
-    D[id](lt);
+    if (id !== 'built') wipe(id, ln);
+    LTN = ln; const off = id === 'open' ? 0 : .45; D[id](off + ln * (s.d - off) / s.dn);   // tasarım zamanına ölçekle; sahneler 0,45 sn ileriden başlar (geçişte boş an kısalır)
   }
   // köşe karekod rozeti: 2.–8. sahneler
   const qa = E.o(pr(t, SC.gap.t0 + 1.0, .7)) * (1 - E.io(pr(t, SC.join.t0 + .2, .6)));
   vis($('qrb'), qa); $('qrb').style.transform = `translateY(${(1 - qa) * -12}px)`;
+  vis($('copb'), qa); $('copb').style.transform = `translateY(${(1 - qa) * -12}px)`;
+  const cur = Object.values(SC).find(s => t >= s.t0 && t < s.t0 + s.dn), step = { built: 1, evid: 1, timing: 1, visit: 1, next: 2, app: 3 }[cur && cur.id] || 0;
+  if (copbStep !== step || copbLight !== (cur && (cur.id === 'gap' || cur.id === 'next'))) {
+    copbStep = step; copbLight = !!(cur && (cur.id === 'gap' || cur.id === 'next')); $('copb').classList.toggle('lt', copbLight);
+    $('copb').innerHTML = '<span>GTU <b>Air</b>Lab · Stand 11</span><span style="opacity:.5">|</span>' +
+      ['1 Measure & model', '2 Predict', '3 Share'].map((n, i) => `<span class="${step === i + 1 ? 'on' : ''}">${n}</span>`).join('<span style="opacity:.5">·</span>');
+  }
 }
 
 async function init() {

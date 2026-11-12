@@ -14,10 +14,18 @@ uygulamanın gerçek telefon ekranları, kampüs uydu dokusu) ve `harita/` (uydu
 Uydu görüntüsü (© Esri, Maxar) ve uygulama ekranları her seferinde **canlı uygulamadan** üretilir, repoya girmez (repo herkese açık).
 Sabit dosyalar `sabit/`: COP31 ve YÖK logoları (YÖK'ün COP31 dijital poster şablonundan), GTÜ İngilizce logosu, `icons.js` (Lucide, ISC).
 
+## Sürüm 12 Kasım 2026 (2:22, döngü)
+Kurgu GTÜ'nün COP31 tanıtım paylaşımını izler: soru ("Do we breathe the same air?") → 1 · Measure (giyilebilir ve sabit sensörler,
+gerçek uydu haritası) → ölçülen bulgular → modellenen doz (zamanlama, iki ziyaretçi) → 2 · Predict (makine öğrenmesi, geliştiriliyor) →
+3 · Share (açık uygulama, gerçek telefon ekranları) → kapanış (COP31/YÖK/GTÜ logoları, karekod, YÖK sorumluluk metni). Sahne süreleri
+`SCN`'de `[ad, tasarım süresi, film süresi]`: animasyon anahtarları tasarım süresine göre yazılıdır, çizimde film süresine ölçeklenir.
+Renkler GTÜ/COP31 laciverti; köşede karekod (sağ üst) ve COP31 rozeti (sol üst). Yazım BM/Oxford (modelled, Centre).
+
 ## Kayıt
 ```bash
-node scripts/cop31_stant/kayit.js <gecici>/stant kare 2,30,60      # durağan kareler (kontrol)
-node scripts/cop31_stant/kayit.js <gecici>/stant film 3            # tam film, 3 işçi
+python scripts/cop31_stant/film_kayit.py <gecici>/stant kare 2,30,60   # durağan kareler (kontrol)
+python scripts/cop31_stant/film_kayit.py <gecici>/stant film 4         # tam film → <gecici>/stant/film.mp4 (4 işçi)
+node scripts/cop31_stant/kayit.js <gecici>/stant film 3                # aynı işin Node sürümü (bulutta NODE_PATH ile)
 ```
 Ziyaretçi videoları: `python scripts/cop31_animasyon/kayit_yerel.py <gecici>/stant/harita <gecici>/video AB`.
 
