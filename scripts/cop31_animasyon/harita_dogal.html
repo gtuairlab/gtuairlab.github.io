@@ -458,12 +458,12 @@ function panel(clock, s, col, dose, done) {
   fnt(24, 1); x.fillStyle = '#F4F1EA'; x.fillText('Sensors in this scene', X0, 394);
   fnt(24); x.fillStyle = '#B79BFF'; x.fillText('■ PurpleAir: rooftop + lecture hall', X0, 428); x.fillStyle = '#F4F1EA'; x.fillText('● Atmotube: wearable (field sessions)', X0, 460);
   x.fillStyle = 'rgba(255,255,255,.12)'; x.fillRect(X0, 480, bw, 2);
-  fnt(24); x.fillStyle = '#F4F1EA'; x.fillText('Path & haze color = PM₂.₅', X0, 508);
+  fnt(24); x.fillStyle = '#F4F1EA'; x.fillText('Path & haze colour = PM₂.₅', X0, 508);
   x.fillStyle = '#AEB9CF'; x.fillText('orange haze: illustrative', X0, 538);
   const lg = x.createLinearGradient(X0 + 58, 0, X0 + 298, 0); lg.addColorStop(0, '#3FB950'); lg.addColorStop(.5, '#E3B341'); lg.addColorStop(1, '#F85149');
   x.fillStyle = lg; x.fillRect(X0 + 58, 552, 240, 18); x.fillStyle = '#AEB9CF'; x.fillText('low', X0, 570); x.fillText('high', X0 + 310, 570);
   // sürekli uyarı satırı (panelin altında)
-  rr(L, 590, PW, 98, 16, 'rgba(14,22,38,.96)'); fnt(24, 1); x.fillStyle = '#F5A623'; x.fillText('Illustrative scenario · modeled dose,', X0, 619);
+  rr(L, 590, PW, 98, 16, 'rgba(14,22,38,.96)'); fnt(24, 1); x.fillStyle = '#F5A623'; x.fillText('Illustrative scenario · modelled dose,', X0, 619);
   x.fillText('not a measured person', X0, 648); fnt(24); x.fillStyle = '#8C97AD'; x.fillText('Imagery © Esri, Maxar', X0, 677);
 }
 </script></body></html>

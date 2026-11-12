@@ -31,6 +31,12 @@ CP = {'PurpleAir (SUMER)': ((29.360985, 40.806155), (1115, 705)),
       'Mimarlık Fak. N Blok': (bboxc(152), (1156.5, 511.5)), 'Ana Kapı': (bboxc(167), (1243, 580)),
       'İşletme Fak.': (bboxc(142), (1149, 599)), 'Elektronik/İnşaat Müh.': (bboxc(80), (921, 686.8)),
       'TeknoPark': (bboxc(21), (1085, 813))}
+_CPX = os.environ.get('CP_PX')
+if _CPX:   # kontrol noktalarının ekran konumu canlı Leaflet haritasından (uydu_yakala.py → cp_px.json); etiket tahmini yerine kesin konum
+    _px = json.load(open(_CPX, encoding='utf-8'))['px']
+    CP = {k: (ll, tuple(_px[k])) for k, (ll, p) in CP.items()}
+if os.environ.get('CP_DUMP'):   # uydu_yakala.py için kontrol noktalarının boylam/enlemi
+    json.dump({k: list(ll) for k, (ll, p) in CP.items()}, open(os.environ['CP_DUMP'], 'w', encoding='utf-8'), ensure_ascii=False); sys.exit(0)
 def lsq(keys):
     A, b = [], []
     for k in keys:

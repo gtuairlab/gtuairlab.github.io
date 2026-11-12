@@ -46,3 +46,17 @@ Yeni varsayılan motor (eski 3B: `MOTOR=harita3b.html`). Uydu zemini, hafif sabi
 yumuşak turuncu pus (temsilî), temiz ziyaretçi işareti. Kamera yolu önceden hesaplanır (kritik sönümlü yay + Gauss); ziyaretçi
 Catmull-Rom yolda sabit hızla yürür; etiketler dünyaya sabit çapalı (`dogal.etiketler`), 0,4 sn belirir/kaybolur.
 Kodlama: H.264 High, CRF 22, -g 30, -bf 2, yuv420p, faststart.
+
+## Masaüstünde (Windows) yeniden kayıt ve COP31 şablonu (12 Kasım 2026)
+Bulut ortamı olmadan, kullanıcının bilgisayarında Edge + Python ile:
+```bash
+pip install playwright imageio-ffmpeg scipy
+CP_DUMP=<gecici>/cp_ll.json python scripts/cop31_animasyon/harita_hazirla.py yok <gecici>
+python scripts/cop31_animasyon/uydu_yakala.py <gecici>/harita <gecici>/cp_ll.json
+CP_PX=<gecici>/harita/cp_px.json python scripts/cop31_animasyon/harita_hazirla.py <gecici>/harita/sat.png <gecici>/harita
+python scripts/cop31_animasyon/kayit_yerel.py <gecici>/harita <gecici>/video AB
+```
+`uydu_yakala.py` uygulama arayüzünü, Leaflet düğmelerini ve canlı cihaz işaretlerini (ör. "ATP-2") gizleyerek yakalar; bunlar
+gizlenmezse dokuya karışıyor. Kontrol noktaları etiket tahmini yerine canlı haritadan (`latLngToContainerPoint`) gelir (`CP_PX`).
+Metinler BM/COP yazım standardına (Oxford İngilizcesi) çekildi: "Congress & Culture Centre", "modelled dose", "haze colour";
+YÖK/COP31 şablonlu sunumla aynı. Videolar sunumda "Animation · Visitor A/B" slaytlarına gömülüdür (tıklayınca oynar).
