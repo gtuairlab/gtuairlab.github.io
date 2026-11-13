@@ -27,7 +27,7 @@
     "metin": "PM₂.₅ 15.4 µg/m³ (30-min average, US\u00a0EPA-corrected). Very sensitive people may consider limiting long, intense outdoor activity.",
     "_kaynak": "backend/bildirim.py summary_payload('Günaydın'); 15.4 = kafe dilimi (07:30–08:30) kampüs profili ortalaması = kafe 30.9 / R 2.0; gerçek bildirim 07:30–08:00 ortalamasını (P07 16.0, HKİ 59) verirdi, sınıf aynı (Orta); hki(15.4) = 58 (colorscale.js)"},
   "altyazi": [{"saat": 420, "metin": "Visitor A arrives, walking along a road with traffic"},
-    {"saat": 450, "metin": "Breakfast on a busy café terrace: about 2× the campus level"},
+    {"saat": 450, "metin": "Breakfast on a busy café terrace: 2× the campus level (model cap)"},
     {"saat": 480, "metin": "08:00: the AirLab app sends its morning summary"},
     {"saat": 510, "metin": "A brisk walk to the Congress Centre: breathing faster, inhaling more"},
     {"son": true, "sn": 2.6, "metin": "2 hours on campus: 36.5 µg PM₂.₅ inhaled"}],
@@ -45,7 +45,7 @@
     {"metin": "PurpleAir · indoor\n(lecture hall)", "sensor": "ic", "tur": "pa", "ofset": [-160, 60], "pencere": [["0", "giris"]]},
     {"metin": "Atmotube field data", "atmotube": "Güzide Kafe", "tur": "atm", "ofset": [150, -80], "pencere": [["s1", "e1"]]},
     {"metin": "@kiyas", "bina": "Güzide Kafe", "tur": "kiyas", "ofset": [250, 90], "pencere": [["@486", "e1"]]}]},
-  "kiyas": {"seg": 1, "metin": "Campus sensor: 15.4 · at this café terrace: 30.9 µg/m³", "metin2": "Campus sensor: 15.4 µg/m³\nat this café terrace: 30.9 µg/m³"}
+  "kiyas": {"seg": 1, "metin": "Campus sensor: 15.4 · at this café terrace: 30.9 µg/m³ (model)", "metin2": "Campus sensor: 15.4 µg/m³\nat this café terrace: 30.9 µg/m³ (model)"}
  },
  "B": {
   "bakis": 0, "yakin": 3.6,
@@ -74,6 +74,6 @@
   "atmotube": ["Kütüphane", "Kimya ve Çevre Mühendisliği Bölümü"], "atmotube_etiket": "Kütüphane",
   "_atmotube": "Bina katsayısı R'si Atmotube saha oturumlarından gelen binalar (HAFIZA: Güzide 2,0 n122; Kongre 1,40 n49; Kimya ve Çevre 0,92 n3959; Kütüphane 0,62 n135).",
   "etiketler": [["Library", "Kütüphane"], ["Chem. & Env. Eng.", "Kimya ve Çevre Mühendisliği Bölümü"], ["Green lawns", "@nokta", 29.3576, 40.8048]],
-  "son": ["2 hours in the wrong places >\n8 hours in the right places", "A: 36.5 µg in 2 h · B: 16.2 µg in 8 h"]
+  "son": ["2 hours in the wrong places can exceed\n8 hours in the right places", "A: 36.5 µg in 2 h · B: 16.2 µg in 8 h"]
  }
 }

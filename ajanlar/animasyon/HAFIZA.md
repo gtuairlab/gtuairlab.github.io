@@ -104,8 +104,20 @@
 - 13 Kasım 2026, son denetim (yabancı akademisyen, yerli akademisyen, sektör temsilcileri; üçü de "değişikliklerle hazır"):
   "2.3×" yalnızca uygulama modelinin sonucu (iç ortam payı iki kez düşülüyor: R × 0,5); ölçülen kişisel/çatı oranlarıyla A/B ≈ 1,2–1,5.
   Her üründe başlık "2 h in the wrong places can exceed 8 h in the right places", aralık kaynak satırında. Kafe katsayısı R = 2,0 model
-  üst sınırı (G = 1,89'dan), kafe/çatı oranı değil (0,96). Özel işletme adı (Güzide) COP malzemelerinden çıkarıldı → "campus café"
+  üst sınırı (R = bina ortalaması ÷ tüm saha ortalaması, 0,5–2; docs/maruziyet_yontemi.md §4.3; G = 1,89'dan TÜRETİLMEZ, 3. turda
+  düzeltildi), kafe/çatı oranı değil (0,96). Özel işletme adı (Güzide) COP malzemelerinden çıkarıldı → "campus café"
   (animasyon etiketi dahil; iç anahtar "Güzide Kafe" campus.geojson için kaldı). "Türkiye national AQI" → "AQI (HKİ scale, indicative)"
   (resmî HKİ 24 sa ortalama ve çok kirleticili; PM₂.₅ kesimleri İBB/US EPA 2012 uyarlaması). Unvan her yerde "Asst. Prof. Dr.";
   destek "TÜBİTAK 1002-A (Rapid Support) and GTU Scientific Research Projects (BAP, GTU-105)" (kaynak: kullanıcının COP31 başvurusu).
   Konuşmacı notlarında "reference" kalmadı. Esri künyesi ziyaretçi videolarında harita sağ üst köşesinde.
+- 13 Kasım 2026, 3. tur (puanlama + panel tartışması; yabancı ve yerli akademisyen, sektör paneli, alan dışı lisans öğrencisi).
+  Genel puanlar 8 / 8,5 / 8 / 7 (öğrenci); düzeltmelerden sonra beklenen 8,5 / 9 / 8,5. Öğrenci ana mesajı doğru anladı; anlamadıkları
+  (PM₂.₅, µg/m³, K, %95 GA, G, IR, SDG…) akademik dinleyici için bırakıldı ya da sözlü cevaba ayrıldı (kural: en az 2/3 profesyonel DÜZELT).
+  Uygulananlar: ziyaretçi videolarında Esri künyesi sağ üstten haritanın sağ altına (uzun altyazıların üstüne biniyordu; kartlar 44 px
+  yukarıda biter, etiketler künye kutusundan kaçar); kafe değeri "(model)" ve "2× the campus level (model cap)"; B kapanış kartı "can
+  exceed"; panelde "PurpleAir: rooftop (model input) / lecture hall (not in model)". Slayt 9: kafe 2,0 = model tavanı (G'den değil).
+  Film değişmedi (yeniden üretime değecek madde yok).
+  1,2–1,5× hesabı (P × R × F yerine P × K; segment başına IR·t = doz / C, P = C / (R × F); sahneler.json):
+    medyan K (bina dışı 0,95, kafe 0,96, kütüphane 0,69, Kimya 0,65; rapor tablo satır 280–284): A 26,6 µg, B 21,6 µg → 1,23×;
+    zaman ağırlıklı K (bina dışı 1,20, kafe 2,16, kütüphane 0,70, Kimya 0,70; rapor satır 467–468): A 37,3 µg, B 24,2 µg → 1,54×.
+  Uygulama modeli 2,3× verir çünkü iç ortam payı hem R'de (saha noktalarının çoğu iç ortam) hem F = 0,5'te düşülür.

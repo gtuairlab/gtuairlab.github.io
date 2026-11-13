@@ -360,11 +360,13 @@ window.render = function (t) {
   const endK = done ? sm((el - tot - RT.son_gec) / .6) : 0; let cardR = null;
   const capR = caption(el, ph, true); if (capR) ov.push(capR);
   if (endK > 0) { cardR = cardRect(RT.son, 24 + PHW + 22); ov.push({ r: cardR, a: endK }); }
+  const crR = creditRect(); ov.push({ r: crR, a: 1 });
   window._LB = drawLabels(el, ov, st.al > .5 ? g : null);
   caption(el, ph, false);
   if (endK > 0) card(RT.son, endK, 24 + PHW + 22);
   if (ph) phone(ph);
   panel(clock, s, col, dose, done);
+  drawCredit(crR);
   window._ST = { g, ph, capR, cardR };
 };
 window.DIAG = () => ({ bg: (() => { const p = P([29.361, 40.8062]); return S(p[0], p[1], 0); })(), vis: window._ST.g, k: C.k,
@@ -434,14 +436,14 @@ function phone(ph) {
   if (ph.k > .9) { x.globalAlpha = sm((ph.k - .9) / .1); fnt(24, 1); const tw = x.measureText(ph.tag).width; rr(24, top - 56, tw + 26, 40, 10, 'rgba(14,22,38,.94)');
     x.fillStyle = '#F4F1EA'; x.fillText(ph.tag, 37, top - 28); x.globalAlpha = 1; }
 }
-function cardRect(lines, l0) { fnt(34, 1); const w = SW - 20 - l0, L1 = lines[0].split('\n').flatMap(t => wrap(t, w - 52)), h = 30 + L1.length * 42 + (lines[1] ? 40 : 0) + 6; return [l0, H - h - 20, SW - 20, H - 20]; }
+function cardRect(lines, l0) { fnt(34, 1); const w = SW - 20 - l0, L1 = lines[0].split('\n').flatMap(t => wrap(t, w - 52)), h = 30 + L1.length * 42 + (lines[1] ? 40 : 0) + 6; return [l0, H - h - 44, SW - 20, H - 44]; }
 function card(lines, al, l0) {
   if (al <= 0) return null; l0 = l0 || 20; const w = SW - 20 - l0; fnt(34, 1); const L1 = lines[0].split('\n').flatMap(t => wrap(t, w - 52));
-  const h = 30 + L1.length * 42 + (lines[1] ? 40 : 0) + 6, top = H - h - 20; x.globalAlpha = al;
+  const h = 30 + L1.length * 42 + (lines[1] ? 40 : 0) + 6, top = H - h - 44; x.globalAlpha = al;
   rr(l0, top, w, h, 20, 'rgba(14,22,38,.96)');
   x.fillStyle = '#F5A623'; L1.forEach((t, i) => x.fillText(t, l0 + 26, top + 52 + i * 42));
   if (lines[1]) { x.fillStyle = '#F4F1EA'; fnt(26, 0); x.fillText(lines[1], l0 + 26, top + 52 + L1.length * 42); }
-  x.globalAlpha = 1; return [l0, top, SW - 20, H - 20];
+  x.globalAlpha = 1; return [l0, top, SW - 20, H - 44];
 }
 function panel(clock, s, col, dose, done) {
   const L = SW + 14, PW = W - L - 14, X0 = L + 26, hrs = (segs.at(-1).m1 - segs[0].m0) / 60, el = (clock - segs[0].m0) / 60;
@@ -455,18 +457,22 @@ function panel(clock, s, col, dose, done) {
   const bw = PW - 52; rr(X0, 298, bw, 42, 10, '#22304B'); rr(X0, 298, Math.max(4, bw * dose / 40), 42, 10, SC.col);
   x.fillStyle = '#F4F1EA'; fnt(28, 1); x.fillText(dose.toFixed(1) + ' µg', X0 + 12, 329);
   x.fillStyle = 'rgba(255,255,255,.12)'; x.fillRect(X0, 360, bw, 2);
-  fnt(24, 1); x.fillStyle = '#F4F1EA'; x.fillText('Sensors in this scene', X0, 394);
-  fnt(24); x.fillStyle = '#B79BFF'; x.fillText('■ PurpleAir: rooftop + lecture hall', X0, 428); x.fillStyle = '#F4F1EA'; x.fillText('● Atmotube: wearable (field sessions)', X0, 460);
-  x.fillStyle = 'rgba(255,255,255,.12)'; x.fillRect(X0, 480, bw, 2);
-  fnt(24); x.fillStyle = '#F4F1EA'; x.fillText('Path & haze colour = PM₂.₅', X0, 508);
-  x.fillStyle = '#AEB9CF'; x.fillText('orange haze: illustrative', X0, 538);
+  // model girdisi yalnızca çatı sensörü; derslik sensörü yalnızca konum olarak gösterilir (13 Kasım 2026 denetimi)
+  fnt(24, 1); x.fillStyle = '#F4F1EA'; x.fillText('Sensors in this scene', X0, 392);
+  fnt(22); x.fillStyle = '#B79BFF'; x.fillText('■ PurpleAir: rooftop (model input)', X0, 421, bw); x.fillText('    lecture hall (not in model)', X0, 448, bw);
+  x.fillStyle = '#F4F1EA'; x.fillText('● Atmotube: wearable (field sessions)', X0, 475, bw);
+  x.fillStyle = 'rgba(255,255,255,.12)'; x.fillRect(X0, 490, bw, 2);
+  fnt(24); x.fillStyle = '#F4F1EA'; x.fillText('Path & haze colour = PM₂.₅', X0, 518);
+  x.fillStyle = '#AEB9CF'; x.fillText('orange haze: illustrative', X0, 546);
   const lg = x.createLinearGradient(X0 + 58, 0, X0 + 298, 0); lg.addColorStop(0, '#3FB950'); lg.addColorStop(.5, '#E3B341'); lg.addColorStop(1, '#F85149');
-  x.fillStyle = lg; x.fillRect(X0 + 58, 552, 240, 18); x.fillStyle = '#AEB9CF'; x.fillText('low', X0, 570); x.fillText('high', X0 + 310, 570);
+  x.fillStyle = lg; x.fillRect(X0 + 58, 556, 240, 16); x.fillStyle = '#AEB9CF'; x.fillText('low', X0, 572); x.fillText('high', X0 + 310, 572);
   // sürekli uyarı satırı (panelin altında)
   rr(L, 590, PW, 74, 16, 'rgba(14,22,38,.96)'); fnt(24, 1); x.fillStyle = '#F5A623'; x.fillText('Illustrative scenario · modelled dose,', X0, 619);
   x.fillText('not a measured person', X0, 648);
-  // uydu künyesi (Esri World Imagery'nin güncel metni, 12 Kasım 2026): haritanın sağ üst köşesinde
-  fnt(18); const ct = 'Imagery: Esri, Vantor, Earthstar Geographics, GIS User Community', cw = x.measureText(ct).width;
-  rr(SW - cw - 34, 10, cw + 20, 30, 8, 'rgba(14,22,38,.78)'); x.fillStyle = '#C9D1E0'; x.fillText(ct, SW - cw - 24, 31);
 }
+// uydu künyesi (Esri World Imagery'nin güncel metni): haritanın sağ alt köşesinde (Leaflet usulü). Sağ üstteyken uzun altyazılarla
+// çakışıyordu (13 Kasım 2026 denetimi); kartlar artık 44 px yukarıda biter ve etiketler bu kutudan kaçar.
+const CREDIT = 'Imagery: Esri, Vantor, Earthstar Geographics, GIS User Community';
+function creditRect() { fnt(18); const cw = x.measureText(CREDIT).width; return [SW - cw - 34, H - 36, SW - 14, H - 8]; }
+function drawCredit(r) { fnt(18); rr(r[0], r[1], r[2] - r[0], r[3] - r[1], 8, 'rgba(14,22,38,.78)'); x.fillStyle = '#C9D1E0'; x.fillText(CREDIT, r[0] + 10, r[1] + 21); }
 </script></body></html>
