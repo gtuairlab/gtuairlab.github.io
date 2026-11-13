@@ -42,3 +42,8 @@ Ziyaretçi videoları: `python scripts/cop31_animasyon/kayit_yerel.py <gecici>/s
 2. Oturum `cop31/animasyon-guncelleme` dalından başlar; yukarıdaki iki komut aynen çalışır (Linux'ta Playwright Chromium,
    `PLAYWRIGHT_BROWSERS_PATH`; ffmpeg sistemden). Node betikleri için `NODE_PATH` Playwright'ın kurulu olduğu yeri göstermeli.
 3. Çıktılar (MP4, PNG) repoya konmaz; telefondan izlemek için oturum içinden özel bir Claude sayfası (Artifact) olarak yayımlanır.
+
+## COP31 lale motifi ve ebru deseni (13 Kasım 2026)
+`sabit/lale.png`, `sabit/ebru_koyu.png`, `sabit/ebru_acik.png` YÖK'ün COP31 katılımcı şablonundan (lale: şablon videosunun son karesi,
+oran korunarak; ebru: şablon arka planından alfa). Lale yalnızca açılışta; ebru açılışta (≤ 7 sn) ve kapanışta (%4). Veri sahnelerinde
+motif kullanılmaz. Şablonun başlık fontu (Mozaic GEO Bold, ticari) lisanssız kullanılmaz; film Inter + Source Serif 4 ile kalır.

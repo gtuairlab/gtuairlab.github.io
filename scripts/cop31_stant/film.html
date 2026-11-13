@@ -48,20 +48,24 @@ sub{font-size:.62em;vertical-align:baseline;position:relative;top:.26em;line-hei
 
 <!-- ═════════ 1 · AÇILIŞ ═════════ -->
 <div class="scene" id="s_open"><div class="bg" style="background:var(--navy)"></div>
+  <div class="bg" style="background:url(assets/ebru_acik.png) center/cover;opacity:.04"></div>
+  <div class="bg" id="o_lt" style="background:var(--cream);opacity:0"></div>
+  <div class="bg" id="o_eb" style="background:url(assets/ebru_koyu.png) center/cover;opacity:0"></div>
+  <img class="a" id="o_lale" src="assets/lale.png" style="right:30px;bottom:0;height:569px;transform-origin:50% 100%;opacity:0">
   <canvas id="pc1" width="1920" height="1080" class="a" style="left:0;top:0"></canvas>
-  <div class="a" id="o_logos" style="left:50%;top:64px;margin-left:-430px;width:860px;height:132px;background:var(--paper);border-radius:24px;display:flex;align-items:center;justify-content:space-evenly;box-shadow:0 12px 36px rgba(0,0,0,.35)">
+  <div class="a" id="o_logos" style="left:50%;top:64px;margin-left:-430px;width:860px;height:132px;background:var(--paper);border-radius:24px;display:flex;align-items:center;justify-content:space-evenly;box-shadow:0 10px 30px rgba(11,37,80,.16)">
     <img src="assets/cop31.png" style="height:84px"><span style="width:2px;height:80px;background:#D3DCEA"></span>
     <img src="assets/yok.png" style="height:80px"><span style="width:2px;height:80px;background:#D3DCEA"></span>
     <img src="assets/gtu.png" style="height:96px"></div>
   <div class="a" id="o_brand" style="left:0;width:1920px;top:262px;display:flex;justify-content:center;align-items:center;gap:22px">
     <img src="assets/logo.png" style="width:92px;height:92px;border-radius:20px">
-    <span style="font:700 52px/1 var(--sans);letter-spacing:.01em">GTU <span style="color:var(--acc)">Air</span>Lab</span></div>
-  <div class="a" id="o_title" style="left:0;width:1920px;top:390px;text-align:center;font:600 132px/1.08 var(--serif);letter-spacing:-.01em">
+    <span style="font:700 52px/1 var(--sans);letter-spacing:.01em;color:var(--ink)">GTU <span style="color:#B86E00">Air</span>Lab</span></div>
+  <div class="a" id="o_title" style="left:0;width:1920px;top:390px;text-align:center;font:600 132px/1.08 var(--serif);letter-spacing:-.01em;color:var(--ink)">
     <span class="bl"></span>Do we breathe<br><span class="bl"></span>the same air?</div>
-  <div class="a" id="o_sub" style="left:0;width:1920px;top:716px;text-align:center;font:600 46px/1.25 var(--sans)">Asst. Prof. Dr. İlker Akmırza</div>
-  <div class="a" id="o_sub2" style="left:0;width:1920px;top:784px;text-align:center;font:400 34px/1.3 var(--sans);color:var(--mutD)">Department of Environmental Engineering · Gebze Technical University</div>
-  <div class="a" id="o_sub3" style="left:0;width:1920px;top:850px;text-align:center;font:600 30px/1.3 var(--sans);color:var(--acc);letter-spacing:.06em">COP31 TÜRKİYE · ANTALYA 2026 · STAND 11</div>
-  <div class="a" id="o_n" style="left:240px;width:1440px;top:952px;text-align:center;font:400 24px/1.35 var(--sans);color:var(--mutD)">Gebze Technical University is solely responsible for the views, information and statements expressed in this film, as well as for its preparation and content. It does not necessarily reflect the views of the Council of Higher Education of Türkiye (YÖK), nor does it imply any responsibility or liability on its part.</div>
+  <div class="a" id="o_sub" style="left:0;width:1920px;top:716px;text-align:center;font:600 46px/1.25 var(--sans);color:var(--ink)">Asst. Prof. Dr. İlker Akmırza</div>
+  <div class="a" id="o_sub2" style="left:0;width:1920px;top:784px;text-align:center;font:400 34px/1.3 var(--sans);color:var(--mutL)">Department of Environmental Engineering · Gebze Technical University</div>
+  <div class="a" id="o_sub3" style="left:0;width:1920px;top:850px;text-align:center;font:600 30px/1.3 var(--sans);color:var(--accInk);letter-spacing:.06em">COP31 TÜRKİYE · ANTALYA 2026 · STAND 11</div>
+  <div class="a" id="o_n" style="left:240px;width:1440px;top:952px;text-align:center;font:400 24px/1.35 var(--sans);color:var(--mutL)">Gebze Technical University is solely responsible for the views, information and statements expressed in this film, as well as for its preparation and content. It does not necessarily reflect the views of the Council of Higher Education of Türkiye (YÖK), nor does it imply any responsibility or liability on its part.</div>
 </div>
 
 <!-- ═════════ 2 · BOŞLUK ═════════ -->
@@ -204,11 +208,12 @@ sub{font-size:.62em;vertical-align:baseline;position:relative;top:.26em;line-hei
   <div class="a hl" id="n_h" style="font-size:60px">In development: forecasting personal exposure</div>
   <div id="n_cards"></div>
   <svg class="a" id="n_svg" width="1920" height="1080" style="left:0;top:0;pointer-events:none"></svg>
-  <div class="a" id="n_st" style="left:128px;top:905px;width:1664px;font:500 44px/1.24 var(--serif)">From campus to city: open, low-cost tools linking clean air and climate action for healthier buildings and resilient cities.</div>
+  <div class="a" id="n_st" style="left:128px;top:905px;width:1664px;font:500 44px/1.24 var(--serif)">From campus to city: public, low-cost tools linking clean air and climate action for healthier buildings and resilient cities.</div>
 </div>
 
 <!-- ═════════ 9 · BİZE KATILIN ═════════ -->
 <div class="scene" id="s_join"><div class="bg" style="background:var(--navy)"></div>
+  <div class="bg" style="background:url(assets/ebru_acik.png) center/cover;opacity:.04"></div>
   <canvas id="pc9" width="1920" height="1080" class="a" style="left:0;top:0"></canvas>
   <div class="a kick" id="j_k"><img src="assets/logo.png">Join us</div>
   <div class="a hl" id="j_h" style="font-size:84px">Replicate it on your campus</div>

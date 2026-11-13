@@ -5,7 +5,7 @@ campus_sat.jpg: harita_yakala.py ile uygulamanın uydu + kampüs katmanı görü
 Lisanslı uydu görüntüsü (© Esri, Maxar) ve uygulama ekranları her seferinde canlı uygulamadan üretilir; REPOYA GİRMEZ.
 Gerekenler: pip install playwright segno pillow numpy scipy (Windows'ta Edge; bulutta Playwright Chromium + ffmpeg).
 Bulut ortamının ağ izni: gtuairlab.github.io, server.arcgisonline.com, services.arcgisonline.com, gtu-air-quality.onrender.com.
-Sabit varlıklar (sabit/): COP31 ve YÖK logoları (YÖK'ün COP31 şablonundan), GTÜ İngilizce logosu, Lucide ikonları (ISC)."""
+Sabit varlıklar (sabit/): COP31 ve YÖK logoları, lale motifi ve ebru deseni (YÖK'ün COP31 katılımcı şablonundan), GTÜ İngilizce logosu, Lucide ikonları (ISC)."""
 import os, shutil, subprocess, sys, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -29,7 +29,8 @@ step("fontlar, logolar, ikonlar")
 for f in os.listdir(os.path.join(REPO, "frontend_v2", "vendor", "fonts")):
     shutil.copy(os.path.join(REPO, "frontend_v2", "vendor", "fonts", f), os.path.join(A, "fonts", f))
 shutil.copy(os.path.join(REPO, "docs", "gorseller", "airlab_logo_simge.png"), os.path.join(A, "logo.png"))
-for src, dst in (("cop31.png", "cop31.png"), ("yok.png", "yok.png"), ("gtu_en.png", "gtu.png"), ("icons.js", "icons.js")):
+for src, dst in (("cop31.png", "cop31.png"), ("yok.png", "yok.png"), ("gtu_en.png", "gtu.png"), ("icons.js", "icons.js"),
+                 ("lale.png", "lale.png"), ("ebru_koyu.png", "ebru_koyu.png"), ("ebru_acik.png", "ebru_acik.png")):
     shutil.copy(os.path.join(HERE, "sabit", src), os.path.join(A, dst))
 shutil.copy(os.path.join(HERE, "film.js"), os.path.join(OUT, "film.js"))
 with open(os.path.join(HERE, "film.html"), encoding="utf-8") as f:   # {{EKRAN_TARIHI}} → bugünün tarihi (ekranlar aşağıda canlı yakalanır)

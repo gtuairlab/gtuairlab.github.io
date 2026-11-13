@@ -121,3 +121,15 @@
     medyan K (bina dışı 0,95, kafe 0,96, kütüphane 0,69, Kimya 0,65; rapor tablo satır 280–284): A 26,6 µg, B 21,6 µg → 1,23×;
     zaman ağırlıklı K (bina dışı 1,20, kafe 2,16, kütüphane 0,70, Kimya 0,70; rapor satır 467–468): A 37,3 µg, B 24,2 µg → 1,54×.
   Uygulama modeli 2,3× verir çünkü iç ortam payı hem R'de (saha noktalarının çoğu iç ortam) hem F = 0,5'te düşülür.
+- 13 Kasım 2026, 4. tur (kullanıcı: "videoda COP31 lale motifi ve fontları olsun"; panel: yabancı/yerli akademisyen, sektör, öğrenci).
+  Varlıklar YÖK'ün COP31 katılımcı şablonundan (sunum ve poster zaten bu şablonda): lale (şablon videosu media1.mp4'ün son karesinden,
+  oran korunarak, `scripts/cop31_stant/sabit/lale.png`), ebru deseni (`ebru_koyu.png`, `ebru_acik.png`, şablonun image2'sinden alfa).
+  Karar: lale YALNIZCA açılışta (0,8–5,8 sn, sağ altta yumuşak kenarla büyür, logo kartına/başlığa değmez); açık zemin lalenin kökünden
+  daire olarak yayılır (dikişte gri ara ton ya da beyaz parlama yok); ebru açılışta ≤ 7 sn (%3,5), kapanışta lacivert üzerinde %4;
+  GTU AirLab adı 1,0 sn'de görünür (lale ekrandayken); parçacıklar başlığa lacivert toplanır; açılış yazıları koyu (kontrast ≥ 4,5:1).
+  Reddedilenler: veri sahnelerinde ebru (grafik çizgileriyle karışır, sıkıştırmada bantlaşır), her bölümde lale (kalıcı rozet etkisi;
+  #F93621 HKİ "Sağlıksız" kırmızısına yakın), alt kenarda şablon bandı (şablon ürünü görünümü, TV kenar kırpması).
+  Font: şablon başlıkları "Mozaic GEO Bold" (TipoType, ticari); şablona gömülü değil, bilgisayarda yok → film Inter + Source Serif 4
+  ile kalır. Lisanslı kopya YÖK/organizatörden yazılı gelirse yalnızca açılış/kapanış başlıklarında kullanılabilir; benzer font yok.
+  Aynı üretimde filmdeki "open, low-cost tools" → "public, low-cost tools" (3. turdaki sayfa kararıyla tutarlı). Film 2:23, dikiş r = 0,984,
+  karekod 13–141 sn her saniye çözülüyor; 10× ve WhatsApp (720p, 14,8 MB) sürümleri yenilendi.

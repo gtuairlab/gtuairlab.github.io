@@ -60,7 +60,7 @@ function drift(p, t) {
   const y = ((((p.y0 - p.k * t / T) % 1) + 1) % 1) * (H + 60) - 30;
   return [x, y];
 }
-const CR = hex2rgb(C.cream);
+const CR = hex2rgb(C.ink);   // açılış zemini açık (COP31 ebru): başlığa toplanan parçacıklar lacivert
 function drawParticles(ctx, t, gAlpha, lt1) {   // lt1: açılış sahnesinin yerel zamanı (başlığa toplanma) ya da null
   ctx.clearRect(0, 0, W, H);
   if (gAlpha <= 0) return;
@@ -106,7 +106,15 @@ D.open = lt => {
   drawParticles(pc1, LTN, 1, lt);   // parçacık saati gerçek zaman (T ile periyodik), başlığa toplanma tasarım zamanında
   vis($('o_title'), E.o(pr(lt, 4.3, 1.0)) * (1 - E.i(pr(lt, 9.55, .5))));
   fx($('o_logos'), lt, .5, 9.45, { dy: -20 }); fx($('o_n'), lt, 6.6, 9.75, { dy: 10 });
-  fx($('o_brand'), lt, 4.9, 9.5); fx($('o_sub'), lt, 5.4, 9.6); fx($('o_sub2'), lt, 5.9, 9.65); fx($('o_sub3'), lt, 6.4, 9.7);
+  // COP31 şablonu: açık zemin lalenin kökünden daire olarak yayılır (dikişte gri ara ton/parlama yok), ebru ≤ 7 sn,
+  // lale 0,8–5,8 sn sağ altta yumuşak kenarla büyür (oran korunur)
+  const lk = E.io(pr(lt, .15, 1.25)), cp = lk >= 1 ? 'none' : `circle(${(lk * 2050).toFixed(1)}px at 1673px 1080px)`;
+  for (const id of ['o_lt', 'o_eb']) { $(id).style.clipPath = cp; }
+  $('o_lt').style.opacity = lk > 0 ? 1 : 0; $('o_eb').style.opacity = lk > 0 ? .035 * (1 - E.io(pr(lt, 6.0, 1.0))) : 0;
+  const lg = E.o(pr(lt, .8, 3.4)), lo = E.i(pr(lt, 5.0, .8)), la = $('o_lale'), mp = (lg * 112 - 12).toFixed(2);
+  vis(la, lg > 0 ? 1 - lo : 0); la.style.maskImage = `linear-gradient(to top, #000 ${mp}%, transparent ${(+mp + 12).toFixed(2)}%)`;
+  la.style.transform = `translateY(${(lo * 30).toFixed(1)}px) scale(${(.9 + .1 * lg).toFixed(4)})`;
+  fx($('o_brand'), lt, 1.0, 9.5); fx($('o_sub'), lt, 5.4, 9.6); fx($('o_sub2'), lt, 5.9, 9.65); fx($('o_sub3'), lt, 6.4, 9.7);
 };
 
 // ── 2 · Boşluk ──
